@@ -28,18 +28,18 @@ The UI uses the standard MCP Apps `ui/initialize`, `ui/notifications/tool-result
 ## Milestones
 
 1. **Phase 1, local vertical slice.** Implement the TypeScript MCP server, two tools, the 600-question bank and referenced images, inline quiz UI, local tests, type checking, and setup instructions. Verify the MCP tool round trip and UI interaction locally. ChatGPT-hosted verification requires a reachable tunnel and a developer-mode connection.
-2. **Phase 2, private learner state.** Implemented with an append-only SQLite attempt log, `get_due_reviews`, `get_progress`, deterministic intervals, and retry tests. Remote multiuser state remains Phase 5.
+2. **Phase 2, private learner state.** Implemented with an append-only SQLite attempt log, `get_due_reviews`, `get_progress`, deterministic intervals, and retry tests.
 3. **Phase 3, sourced retrieval.** Implemented as bank-only lexical search with question ID references. Evaluate retrieval quality before adding more source material.
 4. **Phase 4, tutor skill.** Implemented under `skills/driving-theory-tutor/SKILL.md`; combined ChatGPT plugin activation remains unverified.
-5. **Phase 5, authenticated remote use.** Implement OAuth 2.1 identities, learner-scoped storage, and deletion controls before exposing progress to public users.
+5. **Phase 5, authenticated remote use.** The server verifies WorkOS tokens, stores learner-scoped attempts in Neon, and exposes progress, due reviews, and deletion. The live provider and database setup and a real ChatGPT login remain unverified.
 6. **Phase 6, public package.** Portable manifest and Docker build path are present. Stable hosting, image rights, listing metadata, account-side review, and human approval remain before submission or publication.
 
 ## Risks and unknowns
 
 - The user designated the bank as the source of truth. Rights to redistribute the downloaded images and public publication terms still need review.
-- ChatGPT may render or cache UI resources differently from the local mock host. Verify in developer mode after a tunnel is available.
-- Anonymous Phase 1 tools cannot associate attempts with a learner. Answer results are ephemeral.
-- The final hosted domain, privacy policy, authentication provider, and public listing metadata are undecided.
+- ChatGPT may render or cache UI resources differently from the local mock host. Verify with the live Vercel connection in developer mode.
+- The anonymous public demo cannot associate attempts with a learner. Answer results there are ephemeral.
+- WorkOS and Neon must be configured before live learner progress works. A privacy policy and public listing metadata remain open.
 - Plugin directory access and approval depend on the publisher account and OpenAI review.
 
 ## Phase 1 acceptance
@@ -48,4 +48,4 @@ The UI uses the standard MCP Apps `ui/initialize`, `ui/notifications/tool-result
 
 ## Phase 1 verification status
 
-The local MCP client test passes over HTTP. A headless browser test checks answer selection, deterministic feedback, next-question flow, and image rendering. A temporary HTTPS tunnel returned `q301` and its image URL through a remote MCP client. The tunnel and server were shut down after that check. ChatGPT developer-mode rendering remains unverified because the available in-app browser session could not open ChatGPT Plugins. The next verification step is to connect a fresh temporary tunnel in a user-accessible ChatGPT developer-mode browser and run the same sign quiz there.
+The local MCP client test passes over HTTP. A headless browser test checks answer selection, deterministic feedback, next-question flow, and image rendering. The permanent Vercel endpoint serves `q301` and its image. Authenticated MCP tests cover token checks, two-learner isolation, and history after a handler restart. ChatGPT developer-mode rendering and a real WorkOS login remain unverified.
