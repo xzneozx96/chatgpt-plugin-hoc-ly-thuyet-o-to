@@ -1,5 +1,6 @@
-import { createServer } from "node:http";
+import { createServer, type RequestListener } from "node:http";
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -9,9 +10,9 @@ import { AttemptStore } from "./persistence/attempts.js";
 
 const UI_URI = "ui://ly-thuyet-lai-xe/quiz-v1.html";
 const UI_MIME = "text/html;profile=mcp-app";
-const htmlPath = fileURLToPath(new URL("./ui/quiz.html", import.meta.url));
-const previewPath = fileURLToPath(new URL("./ui/preview.html", import.meta.url));
-const imagesPath = fileURLToPath(new URL("../images/", import.meta.url));
+const htmlPath = process.env.VERCEL ? resolve("src/ui/quiz.html") : fileURLToPath(new URL("./ui/quiz.html", import.meta.url));
+const previewPath = process.env.VERCEL ? resolve("src/ui/preview.html") : fileURLToPath(new URL("./ui/preview.html", import.meta.url));
+const imagesPath = process.env.VERCEL ? resolve("images") : fileURLToPath(new URL("../images/", import.meta.url));
 const questionSchema = {
   id: z.string(),
   topic: z.string(),
@@ -138,14 +139,15 @@ export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", worksp
   return server;
 }
 
-export function startHttpServer(port = Number(process.env.PORT ?? 8787), options: { dataPath?: string; publicBaseUrl?: string } = {}) {
+export function createHttpHandler(options: { dataPath?: string; publicBaseUrl?: string; publicMode?: boolean } = {}) {
   const configuredBase = options.publicBaseUrl ?? process.env.PUBLIC_BASE_URL;
-  const progressEnabled = !configuredBase || new URL(configuredBase).hostname === "127.0.0.1";
+  const progressEnabled = !options.publicMode && (!configuredBase || new URL(configuredBase).hostname === "127.0.0.1");
   const store = progressEnabled ? new AttemptStore(options.dataPath ?? process.env.DATA_PATH ?? fileURLToPath(new URL("../.data/study.sqlite", import.meta.url))) : null;
   const workspace = new LearnerWorkspace(store);
-  const httpServer = createServer(async (req, res) => {
+  const handler: RequestListener = async (req, res) => {
     if (!req.url) return void res.writeHead(400).end("Missing URL");
     const path = new URL(req.url, `http://${req.headers.host ?? "localhost"}`).pathname;
+    const publicBaseUrl = configuredBase ?? `${options.publicMode ? "https" : "http"}://${req.headers.host ?? "localhost"}`;
     if (path === "/" && req.method === "GET") return void res.writeHead(200).end("Lý Thuyết Lái Xe Tutor MCP server");
     if (req.method === "GET" && /^\/images\/q\d+\.webp$/.test(path)) {
       try {
@@ -172,9 +174,7 @@ export function startHttpServer(port = Number(process.env.PORT ?? 8787), options
           if (body.length > 8192) throw new Error("REQUEST_TOO_LARGE");
         }
         const request = z.object({ name: z.string(), arguments: z.record(z.unknown()).default({}) }).parse(JSON.parse(body));
-        const address = httpServer.address();
-        if (!address || typeof address === "string") throw new Error("SERVER_NOT_READY");
-        const baseUrl = new URL(configuredBase ?? `http://127.0.0.1:${address.port}`);
+        const baseUrl = new URL(publicBaseUrl);
         let result: object;
         if (request.name === "get_question") {
           const input = z.object({ questionId: z.string().optional(), afterQuestionId: z.string().optional(), beforeQuestionId: z.string().optional(), topic: z.string().optional() }).parse(request.arguments);
@@ -210,9 +210,6 @@ export function startHttpServer(port = Number(process.env.PORT ?? 8787), options
     if (path !== "/mcp" || !["POST", "GET", "DELETE"].includes(req.method ?? "")) return void res.writeHead(404).end("Not Found");
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id");
-    const address = httpServer.address();
-    if (!address || typeof address === "string") return void res.writeHead(503).end("Server not ready");
-    const publicBaseUrl = configuredBase ?? `http://127.0.0.1:${address.port}`;
     const server = createQuizServer(publicBaseUrl, workspace, progressEnabled);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => { void transport.close(); void server.close(); });
@@ -223,14 +220,20 @@ export function startHttpServer(port = Number(process.env.PORT ?? 8787), options
       console.error("MCP request failed", error);
       if (!res.headersSent) res.writeHead(500).end("Internal server error");
     }
-  });
-  httpServer.on("close", () => store?.close());
-  const host = process.env.HOST ?? (progressEnabled ? "127.0.0.1" : "0.0.0.0");
+  };
+  return { handler, close: () => store?.close(), progressEnabled };
+}
+
+export function startHttpServer(port = Number(process.env.PORT ?? 8787), options: { dataPath?: string; publicBaseUrl?: string } = {}) {
+  const app = createHttpHandler(options);
+  const httpServer = createServer(app.handler);
+  httpServer.on("close", app.close);
+  const host = process.env.HOST ?? (app.progressEnabled ? "127.0.0.1" : "0.0.0.0");
   httpServer.listen(port, host, () => {
     const address = httpServer.address();
     const actualPort = typeof address === "object" && address ? address.port : port;
     console.log(`MCP server listening on http://${host}:${actualPort}/mcp`);
-    if (progressEnabled) console.log(`Local preview at http://127.0.0.1:${actualPort}/preview`);
+    if (app.progressEnabled) console.log(`Local preview at http://127.0.0.1:${actualPort}/preview`);
   });
   return httpServer;
 }

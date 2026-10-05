@@ -1,5 +1,13 @@
 # Deployment and sharing
 
+## Deploy on Vercel
+
+This repository includes `api/index.ts` and `vercel.json` for Vercel. Import `xzneozx96/chatgpt-plugin-hoc-ly-thuyet-o-to` into Vercel with the project root as the build directory and the framework preset set to **Other**. The function serves the public quiz at `/play`, the MCP endpoint at `/mcp`, and the question images at `/images/qNNN.webp`. It does not write learner progress to Vercel's temporary filesystem.
+
+After Vercel gives the project a production URL, check `/play`, `/images/q301.webp`, and `/mcp` with `node scripts/check-public-preview.mjs https://YOUR-PROJECT.vercel.app`. In ChatGPT Plugins, create or update the custom MCP connection to `https://YOUR-PROJECT.vercel.app/mcp`, then refresh its tool list. A custom domain can be added in Vercel Project Settings → Domains; after DNS verification, use that domain's `/mcp` URL in ChatGPT. This replaces the temporary ngrok connection.
+
+The public mode is stateless. The local `/preview` retains private progress in SQLite. Shared progress needs separate user authentication and durable storage.
+
 ## Try it with ChatGPT today
 
 The temporary HTTPS tunnel is `https://d16e-118-70-84-239.ngrok-free.app`. Its MCP endpoint is `https://d16e-118-70-84-239.ngrok-free.app/mcp`. It serves `get_question`, `submit_answer`, and `search_theory`. The public web page is `https://d16e-118-70-84-239.ngrok-free.app/play`. This URL works only while the local stateless server and ngrok process stay running. It does not expose the private SQLite progress file or the local `/preview` routes.

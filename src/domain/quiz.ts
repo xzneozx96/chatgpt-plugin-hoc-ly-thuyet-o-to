@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 
@@ -14,7 +15,7 @@ const questionSchema = z.object({
   explanation: z.string().min(1).nullable()
 });
 const bankSchema = z.object({ version: z.string(), questions: z.array(questionSchema).length(600) });
-const sourcePath = fileURLToPath(new URL("../../question-bank.json", import.meta.url));
+const sourcePath = process.env.VERCEL ? resolve("question-bank.json") : fileURLToPath(new URL("../../question-bank.json", import.meta.url));
 const bank = bankSchema.parse(JSON.parse(readFileSync(sourcePath, "utf8")));
 
 for (const question of bank.questions) {
@@ -27,7 +28,7 @@ if (new Set(bank.questions.map((question) => question.id)).size !== bank.questio
   throw new Error("Duplicate question ID in source bank");
 }
 
-const imageFile = (imagePath: string) => fileURLToPath(new URL(`../../${imagePath}`, import.meta.url));
+const imageFile = (imagePath: string) => process.env.VERCEL ? resolve(imagePath) : fileURLToPath(new URL(`../../${imagePath}`, import.meta.url));
 const availableQuestions = bank.questions.filter((question) => !question.imagePath || existsSync(imageFile(question.imagePath)));
 
 export interface PublicQuestion {

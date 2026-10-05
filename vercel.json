@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "{question-bank.json,images/**,src/ui/**}"
+    }
+  },
+  "rewrites": [
+    { "source": "/", "destination": "/api/index?route=" },
+    { "source": "/mcp", "destination": "/api/index?route=mcp" },
+    { "source": "/play", "destination": "/api/index?route=play" },
+    { "source": "/play/tool", "destination": "/api/index?route=play/tool" },
+    { "source": "/ui/quiz.html", "destination": "/api/index?route=ui/quiz.html" },
+    { "source": "/images/:file", "destination": "/api/index?route=images/:file" }
+  ]
+}
