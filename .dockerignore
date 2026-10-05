@@ -1,0 +1,11 @@
+node_modules
+dist
+.data
+.env
+.git
+.audit
+docs
+tests
+study_tracker
+sign_search_poc
+question-bank.txt

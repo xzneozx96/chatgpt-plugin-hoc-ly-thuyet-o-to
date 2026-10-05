@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lý thuyết lái xe · Bản dùng thử</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f6f8f4; }
+    iframe { display: block; width: 100%; min-height: 100vh; border: 0; }
+  </style>
+</head>
+<body>
+  <iframe id="quiz" title="Ứng dụng học lý thuyết lái xe" allow="clipboard-write"></iframe>
+  <script type="module">
+    const frame = document.querySelector('#quiz');
+    const publicMode = location.pathname === '/play';
+    const toolPath = publicMode ? '/play/tool' : '/preview/tool';
+    frame.src = publicMode ? '/ui/quiz.html?public=1' : '/ui/quiz.html';
+    window.addEventListener('message', async (event) => {
+      if (event.source !== frame.contentWindow || event.origin !== location.origin || event.data?.jsonrpc !== '2.0') return;
+      const { id, method, params } = event.data;
+      if (method === 'ui/initialize') {
+        frame.contentWindow.postMessage({ jsonrpc: '2.0', id, result: { hostInfo: { name: 'Lý thuyết lái xe · Bản dùng thử', version: '0.2.0' }, hostCapabilities: {} } }, location.origin);
+        return;
+      }
+      if (method === 'ui/notifications/initialized') {
+        const response = await fetch(toolPath, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: 'get_question', arguments: {} }) });
+        frame.contentWindow.postMessage({ jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: await response.json() }, location.origin);
+        return;
+      }
+      if (method !== 'tools/call' || typeof id !== 'number') return;
+      try {
+        const response = await fetch(toolPath, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: params.name, arguments: params.arguments ?? {} }) });
+        const result = await response.json();
+        frame.contentWindow.postMessage({ jsonrpc: '2.0', id, result }, location.origin);
+      } catch {
+        frame.contentWindow.postMessage({ jsonrpc: '2.0', id, error: { code: -32000, message: 'Không thể kết nối với máy chủ học tập.' } }, location.origin);
+      }
+    });
+  </script>
+</body>
+</html>

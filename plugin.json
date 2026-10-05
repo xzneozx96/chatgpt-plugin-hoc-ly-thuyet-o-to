@@ -1,0 +1,7 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "ly-thuyet-lai-xe",
+  "version": "0.2.0",
+  "description": "Practice the authoritative 600-question Vietnamese driving-theory bank with images, deterministic scoring, review, and source-backed search.",
+  "keywords": ["driving theory", "Vietnamese", "quiz", "study"]
+}
