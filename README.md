@@ -35,4 +35,4 @@ ChatGPT needs an HTTPS route to the server. Use Secure MCP Tunnel or a temporary
 
 The local test proves the MCP exchange, but ChatGPT-hosted rendering needs your signed-in developer-mode account. Account-based remote progress needs OAuth before it can be enabled. Nothing is published by this local trial.
 
-The repository also includes a Vercel function entry point for permanent HTTPS hosting of the stateless public quiz and MCP server. See [try-it-yourself.md](docs/try-it-yourself.md) for exact manual cases and [deployment.md](docs/deployment.md) for Vercel, custom domain, and ChatGPT connection steps.
+The public quiz is live at [chatgpt-plugin-hoc-ly-thuyet-o-to.vercel.app/play](https://chatgpt-plugin-hoc-ly-thuyet-o-to.vercel.app/play). Its MCP endpoint is [the same domain at `/mcp`](https://chatgpt-plugin-hoc-ly-thuyet-o-to.vercel.app/mcp). See [try-it-yourself.md](docs/try-it-yourself.md) for manual cases and [deployment.md](docs/deployment.md) for custom domain and ChatGPT connection steps.

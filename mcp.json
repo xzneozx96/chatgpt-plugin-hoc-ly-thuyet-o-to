@@ -3,7 +3,7 @@
   "mcpServers": {
     "ly-thuyet-lai-xe": {
       "type": "streamable-http",
-      "url": "http://127.0.0.1:8787/mcp"
+      "url": "https://chatgpt-plugin-hoc-ly-thuyet-o-to.vercel.app/mcp"
     }
   }
 }

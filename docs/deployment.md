@@ -2,19 +2,19 @@
 
 ## Deploy on Vercel
 
-This repository includes `api/index.ts` and `vercel.json` for Vercel. Import `xzneozx96/chatgpt-plugin-hoc-ly-thuyet-o-to` into Vercel with the project root as the build directory and the framework preset set to **Other**. The function serves the public quiz at `/play`, the MCP endpoint at `/mcp`, and the question images at `/images/qNNN.webp`. It does not write learner progress to Vercel's temporary filesystem.
+This repository is deployed at `https://chatgpt-plugin-hoc-ly-thuyet-o-to.vercel.app`. The public quiz is at `/play`, the MCP endpoint at `/mcp`, and the question images at `/images/qNNN.webp`. The Vercel function is stateless and does not write learner progress to its temporary filesystem.
 
-After Vercel gives the project a production URL, check `/play`, `/images/q301.webp`, and `/mcp` with `node scripts/check-public-preview.mjs https://YOUR-PROJECT.vercel.app`. In ChatGPT Plugins, create or update the custom MCP connection to `https://YOUR-PROJECT.vercel.app/mcp`, then refresh its tool list. A custom domain can be added in Vercel Project Settings → Domains; after DNS verification, use that domain's `/mcp` URL in ChatGPT. This replaces the temporary ngrok connection.
+To recheck the deployment, run `node scripts/check-public-preview.mjs https://chatgpt-plugin-hoc-ly-thuyet-o-to.vercel.app`. In ChatGPT Plugins, create or update the custom MCP connection to `https://chatgpt-plugin-hoc-ly-thuyet-o-to.vercel.app/mcp`, then refresh its tool list. A custom domain can be added in Vercel Project Settings → Domains; after DNS verification, use that domain's `/mcp` URL in ChatGPT.
 
 The public mode is stateless. The local `/preview` retains private progress in SQLite. Shared progress needs separate user authentication and durable storage.
 
 ## Try it with ChatGPT today
 
-The temporary HTTPS tunnel is `https://d16e-118-70-84-239.ngrok-free.app`. Its MCP endpoint is `https://d16e-118-70-84-239.ngrok-free.app/mcp`. It serves `get_question`, `submit_answer`, and `search_theory`. The public web page is `https://d16e-118-70-84-239.ngrok-free.app/play`. This URL works only while the local stateless server and ngrok process stay running. It does not expose the private SQLite progress file or the local `/preview` routes.
+The permanent MCP endpoint is `https://chatgpt-plugin-hoc-ly-thuyet-o-to.vercel.app/mcp`. It serves `get_question`, `submit_answer`, and `search_theory`. The public web page is `https://chatgpt-plugin-hoc-ly-thuyet-o-to.vercel.app/play`. It does not expose the private SQLite progress file or the local `/preview` routes.
 
-To connect this server in ChatGPT, check the Developer mode control in Settings → Security and login. OpenAI's MCP app help also documents Settings → Apps → Advanced settings for eligible accounts. If your account shows neither control, developer connections may be unavailable under its current account or workspace policy; the public study page above remains usable, and you can test `/mcp` directly with MCP Inspector. If Developer mode is available, open [ChatGPT Plugins](https://chatgpt.com/plugins), select the plus button, and create an MCP connection named `Lý Thuyết Lái Xe` using the HTTPS `/mcp` URL above. Confirm that ChatGPT discovers exactly three tools. In a new chat, add that connection from the tools menu and ask: `Cho tôi luyện câu q301 về biển báo. Đừng tiết lộ đáp án trước khi tôi chọn.` Then choose A and ask it to check the answer. If the connection metadata is stale, open its Plugins entry and select Refresh before starting another new chat.
+To connect this server in ChatGPT, open [ChatGPT Plugins](https://chatgpt.com/plugins), select the plus button, and create an MCP connection named `Lý Thuyết Lái Xe` using the HTTPS `/mcp` URL above. If you already added the temporary ngrok connection, replace its URL with the Vercel URL or create a new connection, then refresh the tool list. Confirm that ChatGPT discovers exactly three tools. In a new chat, add that connection from the tools menu and ask: `Cho tôi luyện câu q301 về biển báo. Đừng tiết lộ đáp án trước khi tôi chọn.` Then choose A and ask it to check the answer.
 
-The temporary connection tests the MCP server and optional quiz card. The skill in `skills/driving-theory-tutor/SKILL.md` is packaged locally; it is not installed into ChatGPT just by adding the MCP connection. Test the combined plugin after registering a stable MCP server and installing the package from a supported plugin source.
+The MCP connection tests the server and optional quiz card. The skill in `skills/driving-theory-tutor/SKILL.md` is packaged locally; it is not installed into ChatGPT just by adding the MCP connection. Test the combined plugin after installing the package from a supported plugin source.
 
 ## Host the public study page and MCP server
 
