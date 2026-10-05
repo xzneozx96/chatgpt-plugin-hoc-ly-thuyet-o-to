@@ -5,8 +5,10 @@ import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
-import { LearnerWorkspace } from "./domain/workspace.js";
+import { AuthenticatedLearnerWorkspace, LearnerWorkspace, type UserAttemptStore } from "./domain/workspace.js";
 import { AttemptStore } from "./persistence/attempts.js";
+import { authenticateBearer, createAuthKitVerifier, readAuthKitConfig, type TokenVerifier } from "./auth/authkit.js";
+import { createRemoteAttemptStore } from "./persistence/remote-attempts.js";
 
 const UI_URI = "ui://ly-thuyet-lai-xe/quiz-v1.html";
 const UI_MIME = "text/html;profile=mcp-app";
@@ -32,11 +34,11 @@ const answerSchema = {
   nextReviewAt: z.string().nullable()
 };
 
-export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", workspace = new LearnerWorkspace(null), progressEnabled = false): McpServer {
+export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", workspace = new LearnerWorkspace(null), progressEnabled = false, authenticatedWorkspace?: AuthenticatedLearnerWorkspace): McpServer {
   const baseUrl = new URL(publicBaseUrl);
   const server = new McpServer(
     { name: "ly-thuyet-lai-xe-tutor", version: "0.2.0" },
-    { instructions: "For Vietnamese driving-theory practice, call get_question. Score only after the learner selects an answer through submit_answer. Use search_theory for source-backed explanations from question-bank.json only. Do not invent missing explanations. Progress tools are available in the private local trial." }
+    { instructions: `For Vietnamese driving-theory practice, call get_question. Score only after the learner selects an answer through submit_answer. Use search_theory for source-backed explanations from question-bank.json only. Do not invent missing explanations.${progressEnabled || authenticatedWorkspace ? " Progress tools show only the authenticated learner's own study history." : ""}` }
   );
 
   server.registerResource("quiz", UI_URI, { title: "Driving theory quiz", mimeType: UI_MIME }, async () => ({
@@ -79,12 +81,12 @@ export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", worksp
       description: "Deterministically score an A/B/C/D answer for a question ID and return the correct answer with explanation. Call only after the learner chooses an answer.",
       inputSchema: { questionId: z.string().min(1), selectedAnswer: z.enum(["A", "B", "C", "D"]), attemptId: z.string().uuid().optional() },
       outputSchema: answerSchema,
-      annotations: { readOnlyHint: !progressEnabled, openWorldHint: false, destructiveHint: false, idempotentHint: false },
+      annotations: { readOnlyHint: !progressEnabled && !authenticatedWorkspace, openWorldHint: false, destructiveHint: false, idempotentHint: false },
       _meta: { ui: { visibility: ["model", "app"] } }
     },
     async ({ questionId, selectedAnswer, attemptId }) => {
       try {
-        const result = workspace.submitAnswer({ questionId, selectedAnswer, attemptId });
+        const result = await (authenticatedWorkspace ?? workspace).submitAnswer({ questionId, selectedAnswer, attemptId });
         return {
           structuredContent: { ...result },
           content: [{ type: "text", text: `${result.correct ? "Đúng" : "Chưa đúng"}. Đáp án đúng: ${result.correctAnswer}. ${result.explanation}${result.memoryTip ? ` Mẹo nhớ: ${result.memoryTip}` : ""}` }]
@@ -106,21 +108,21 @@ export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", worksp
     return { structuredContent: { hits }, content: [{ type: "text", text: hits.length ? hits.map((hit) => `${hit.source}: ${hit.question}\n${hit.excerpt}`).join("\n\n") : "Ngân hàng câu hỏi không có nội dung phù hợp." }] };
   });
 
-  if (progressEnabled) {
+  if (progressEnabled || authenticatedWorkspace) {
     server.registerTool("get_progress", {
       title: "Get learning progress",
-      description: "Show the private local learner's attempt count, accuracy, practiced questions, and due reviews.",
+      description: "Show this learner's attempt count, accuracy, practiced questions, and due reviews.",
       inputSchema: {},
       outputSchema: { totalQuestions: z.number(), practicedQuestions: z.number(), unseenQuestions: z.number(), totalAttempts: z.number(), correctAttempts: z.number(), accuracyPercent: z.number(), dueReviews: z.number() },
       annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false }
     }, async () => {
-      const progress = workspace.getProgress();
+      const progress = await (authenticatedWorkspace ?? workspace).getProgress();
       return { structuredContent: progress, content: [{ type: "text", text: JSON.stringify(progress) }] };
     });
 
     server.registerTool("get_due_reviews", {
       title: "Get due review questions",
-      description: "List the private local learner's due review questions without answer keys.",
+      description: "List this learner's due review questions without answer keys.",
       inputSchema: { limit: z.number().int().min(1).max(50).optional() },
       outputSchema: { items: z.array(z.object({
         questionId: z.string(), attempts: z.number(), correctStreak: z.number(), mistakeCount: z.number(), dueAt: z.string(), lastAnsweredAt: z.string(),
@@ -128,7 +130,7 @@ export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", worksp
       })) },
       annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false }
     }, async ({ limit }) => {
-      const items = workspace.getDueReviews(limit).map(({ question: sourceQuestion, ...state }) => {
+      const items = (await (authenticatedWorkspace ?? workspace).getDueReviews(limit)).map(({ question: sourceQuestion, ...state }) => {
         const { imagePath, ...question } = sourceQuestion;
         const imageUrl = imagePath ? new URL(`/images/${imagePath.split("/").at(-1)}`, baseUrl).toString() : null;
         return { ...state, question: { ...question, imageUrl } };
@@ -136,14 +138,40 @@ export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", worksp
       return { structuredContent: { items }, content: [{ type: "text", text: JSON.stringify(items) }] };
     });
   }
+  if (authenticatedWorkspace) {
+    server.registerTool("delete_my_progress", {
+      title: "Delete my learning progress",
+      description: "Permanently delete all of your saved answer attempts and review history. This cannot be undone. Set confirm to true only after the learner explicitly asks to delete their progress.",
+      inputSchema: { confirm: z.literal(true) },
+      outputSchema: { deletedAttempts: z.number() },
+      annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: true, idempotentHint: true }
+    }, async () => {
+      const deletedAttempts = await authenticatedWorkspace.deleteProgress();
+      return { structuredContent: { deletedAttempts }, content: [{ type: "text", text: `Deleted ${deletedAttempts} saved attempts.` }] };
+    });
+  }
   return server;
 }
 
-export function createHttpHandler(options: { dataPath?: string; publicBaseUrl?: string; publicMode?: boolean } = {}) {
-  const configuredBase = options.publicBaseUrl ?? process.env.PUBLIC_BASE_URL;
+export function createHttpHandler(options: {
+  dataPath?: string;
+  publicBaseUrl?: string;
+  publicMode?: boolean;
+  authConfig?: ReturnType<typeof readAuthKitConfig>;
+  verifier?: TokenVerifier;
+  remoteStore?: UserAttemptStore;
+} = {}) {
+  let authConfig: ReturnType<typeof readAuthKitConfig>;
+  let authConfigurationError = false;
+  try { authConfig = options.authConfig === undefined ? readAuthKitConfig() : options.authConfig; }
+  catch { authConfig = null; authConfigurationError = true; }
+  const configuredBase = authConfig?.publicBaseUrl ?? options.publicBaseUrl ?? process.env.PUBLIC_BASE_URL;
   const progressEnabled = !options.publicMode && (!configuredBase || new URL(configuredBase).hostname === "127.0.0.1");
   const store = progressEnabled ? new AttemptStore(options.dataPath ?? process.env.DATA_PATH ?? fileURLToPath(new URL("../.data/study.sqlite", import.meta.url))) : null;
   const workspace = new LearnerWorkspace(store);
+  const verifier = authConfig ? options.verifier ?? createAuthKitVerifier(authConfig) : null;
+  let remoteStore: UserAttemptStore | null = null;
+  if (authConfig && verifier) remoteStore = options.remoteStore ?? createRemoteAttemptStore(authConfig.databaseUrl);
   const handler: RequestListener = async (req, res) => {
     if (!req.url) return void res.writeHead(400).end("Missing URL");
     const path = new URL(req.url, `http://${req.headers.host ?? "localhost"}`).pathname;
@@ -151,6 +179,15 @@ export function createHttpHandler(options: { dataPath?: string; publicBaseUrl?: 
     const localHost = ["localhost", "127.0.0.1"].includes(new URL(`http://${requestHost}`).hostname);
     const publicBaseUrl = configuredBase ?? `${options.publicMode && !localHost ? "https" : "http"}://${requestHost}`;
     if (path === "/" && req.method === "GET") return void res.writeHead(200).end("Lý Thuyết Lái Xe Tutor MCP server");
+    if (path === "/.well-known/oauth-protected-resource/mcp" && req.method === "GET") {
+      if (!authConfig || authConfigurationError) return void res.writeHead(404).end("Not Found");
+      return void res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=300" }).end(JSON.stringify({
+        resource: `${authConfig.publicBaseUrl}/mcp`,
+        authorization_servers: [authConfig.issuer],
+        bearer_methods_supported: ["header"],
+        scopes_supported: ["openid"]
+      }));
+    }
     if (req.method === "GET" && /^\/images\/q\d+\.webp$/.test(path)) {
       try {
         const image = readFileSync(`${imagesPath}/${path.split("/").at(-1)}`);
@@ -206,14 +243,27 @@ export function createHttpHandler(options: { dataPath?: string; publicBaseUrl?: 
       return void res.writeHead(204, {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, GET, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "content-type, mcp-session-id",
+        "Access-Control-Allow-Headers": "authorization, content-type, mcp-session-id",
         "Access-Control-Expose-Headers": "Mcp-Session-Id"
       }).end();
     }
     if (path !== "/mcp" || !["POST", "GET", "DELETE"].includes(req.method ?? "")) return void res.writeHead(404).end("Not Found");
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id");
-    const server = createQuizServer(publicBaseUrl, workspace, progressEnabled);
+    if (authConfigurationError) return void res.writeHead(503, { "Cache-Control": "no-store" }).end("Authentication configuration incomplete");
+    let authenticatedWorkspace: AuthenticatedLearnerWorkspace | undefined;
+    if (authConfig && verifier && remoteStore) {
+      try {
+        const userId = await authenticateBearer(req.headers.authorization, verifier);
+        authenticatedWorkspace = new AuthenticatedLearnerWorkspace(userId, remoteStore);
+      } catch {
+        return void res.writeHead(401, {
+          "WWW-Authenticate": `Bearer resource_metadata="${authConfig.publicBaseUrl}/.well-known/oauth-protected-resource/mcp"`,
+          "Cache-Control": "no-store"
+        }).end("Unauthorized");
+      }
+    }
+    const server = createQuizServer(publicBaseUrl, workspace, progressEnabled, authenticatedWorkspace);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => { void transport.close(); void server.close(); });
     try {

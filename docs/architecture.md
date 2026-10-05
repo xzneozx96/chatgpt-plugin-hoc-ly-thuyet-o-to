@@ -4,4 +4,4 @@ The TypeScript process validates the 600-question JSON bank and serves its 318 l
 
 `server.ts` exposes MCP tools at `/mcp`. The same workspace powers the local `/preview/tool` bridge, which hosts the exact MCP Apps UI at `/preview`. The UI has no answer key. The server binds to `127.0.0.1`.
 
-With no public base URL, the private local trial enables persistent progress. Setting `PUBLIC_BASE_URL` to a remote HTTPS origin switches to stateless preview mode and omits local progress tools and routes. A hosted multiuser product would require OAuth-derived identities, a server-side store, and a separate deployment gate.
+With no public base URL, the private local trial enables persistent progress. The public `/play` page remains stateless. When `AUTHKIT_ISSUER`, `PUBLIC_BASE_URL`, and `DATABASE_URL` are all set, `/mcp` verifies the WorkOS token and derives an opaque learner key from its issuer and subject. `AuthenticatedLearnerWorkspace` stores that learner's attempts in Neon Postgres and reuses `study.ts` for the review schedule. Missing login or database configuration leaves `/mcp` in anonymous demo mode; partial authentication configuration returns a service error.

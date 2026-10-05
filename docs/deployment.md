@@ -6,13 +6,13 @@ This repository is deployed at `https://chatgpt-plugin-hoc-ly-thuyet-o-to.vercel
 
 To recheck the deployment, run `node scripts/check-public-preview.mjs https://chatgpt-plugin-hoc-ly-thuyet-o-to.vercel.app`. In ChatGPT Plugins, create or update the custom MCP connection to `https://chatgpt-plugin-hoc-ly-thuyet-o-to.vercel.app/mcp`, then refresh its tool list. A custom domain can be added in Vercel Project Settings → Domains; after DNS verification, use that domain's `/mcp` URL in ChatGPT.
 
-The public mode is stateless. The local `/preview` retains private progress in SQLite. Shared progress needs separate user authentication and durable storage.
+Until the AuthKit and Neon settings are present, the public connection is an anonymous demo. The local `/preview` retains private progress in SQLite. [Enable saved reviews in ChatGPT](chatgpt-progress-setup.md) explains the authenticated deployment.
 
 ## Try it with ChatGPT today
 
-The permanent MCP endpoint is `https://chatgpt-plugin-hoc-ly-thuyet-o-to.vercel.app/mcp`. It serves `get_question`, `submit_answer`, and `search_theory`. The public web page is `https://chatgpt-plugin-hoc-ly-thuyet-o-to.vercel.app/play`. It does not expose the private SQLite progress file or the local `/preview` routes.
+The MCP endpoint is `https://chatgpt-plugin-hoc-ly-thuyet-o-to.vercel.app/mcp`. Before login is configured, it serves `get_question`, `submit_answer`, and `search_theory`. After WorkOS and Neon are configured, it also serves `get_progress`, `get_due_reviews`, and `delete_my_progress`. The public web page at `/play` remains an anonymous demo. Neither public path exposes the local SQLite file or `/preview` routes.
 
-To connect this server in ChatGPT, open [ChatGPT Plugins](https://chatgpt.com/plugins), select the plus button, and create an MCP connection named `Lý Thuyết Lái Xe` using the HTTPS `/mcp` URL above. If you already added the temporary ngrok connection, replace its URL with the Vercel URL or create a new connection, then refresh the tool list. Confirm that ChatGPT discovers exactly three tools. In a new chat, add that connection from the tools menu and ask: `Cho tôi luyện câu q301 về biển báo. Đừng tiết lộ đáp án trước khi tôi chọn.` Then choose A and ask it to check the answer.
+To connect this server in ChatGPT, open [ChatGPT Plugins](https://chatgpt.com/plugins), select the plus button, and create an MCP connection named `Lý Thuyết Lái Xe` using the HTTPS `/mcp` URL above. If you already added the temporary ngrok connection, replace its URL with the Vercel URL or create a new connection, then refresh the tool list. After the authenticated deployment, complete the WorkOS login and confirm that ChatGPT discovers six tools. In a new chat, add that connection from the tools menu and ask: `Cho tôi luyện câu q301 về biển báo. Đừng tiết lộ đáp án trước khi tôi chọn.` Then answer and ask for your progress.
 
 The MCP connection tests the server and optional quiz card. The skill in `skills/driving-theory-tutor/SKILL.md` is packaged locally; it is not installed into ChatGPT just by adding the MCP connection. Test the combined plugin after installing the package from a supported plugin source.
 
@@ -31,6 +31,6 @@ The source package has a portable `plugin.json`, `mcp.json`, and tutor skill. Be
 
 ## Personal progress for multiple learners
 
-The local `/preview` stores one private learner's attempts in `.data/study.sqlite`. Public mode intentionally omits progress and reviews. To offer those features to other people's ChatGPT accounts, add OAuth 2.1 user authentication, learner-scoped storage, and deletion controls before exposing progress tools on a public endpoint. ChatGPT's documented MCP authorization flow requires token verification on every protected request.
+The local `/preview` stores one private learner's attempts in `.data/study.sqlite`. The authenticated public MCP verifies a WorkOS access token before serving tools and stores attempts under an opaque key derived from its issuer and subject. Neon holds the attempt history. `delete_my_progress` deletes only the authenticated learner's attempts and requires an explicit confirmation argument. The server does not activate this mode until all three required environment variables are set.
 
 The TypeScript build and compiled production process were checked locally. A Docker image build was not verified in this workspace because the current user cannot access `/var/run/docker.sock`.

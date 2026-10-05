@@ -10,6 +10,7 @@
   "rewrites": [
     { "source": "/", "destination": "/api/index?route=" },
     { "source": "/mcp", "destination": "/api/index?route=mcp" },
+    { "source": "/.well-known/oauth-protected-resource/mcp", "destination": "/api/index?route=.well-known/oauth-protected-resource/mcp" },
     { "source": "/play", "destination": "/api/index?route=play" },
     { "source": "/play/tool", "destination": "/api/index?route=play/tool" },
     { "source": "/ui/quiz.html", "destination": "/api/index?route=ui/quiz.html" },
