@@ -35,7 +35,7 @@ test("Vercel entry point serves the public quiz, bank image, and stateless MCP",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ name: "get_question", arguments: { questionId: "q301" } })
     });
-    assert.equal((await response.json()).structuredContent.imageUrl, `https://127.0.0.1:${address.port}/images/q301.webp`);
+    assert.equal((await response.json()).structuredContent.imageUrl, `${origin}/images/q301.webp`);
   } finally {
     await client.close();
     await transport.close();

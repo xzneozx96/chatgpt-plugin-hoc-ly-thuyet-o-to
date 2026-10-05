@@ -147,7 +147,9 @@ export function createHttpHandler(options: { dataPath?: string; publicBaseUrl?: 
   const handler: RequestListener = async (req, res) => {
     if (!req.url) return void res.writeHead(400).end("Missing URL");
     const path = new URL(req.url, `http://${req.headers.host ?? "localhost"}`).pathname;
-    const publicBaseUrl = configuredBase ?? `${options.publicMode ? "https" : "http"}://${req.headers.host ?? "localhost"}`;
+    const requestHost = req.headers.host ?? "localhost";
+    const localHost = ["localhost", "127.0.0.1"].includes(new URL(`http://${requestHost}`).hostname);
+    const publicBaseUrl = configuredBase ?? `${options.publicMode && !localHost ? "https" : "http"}://${requestHost}`;
     if (path === "/" && req.method === "GET") return void res.writeHead(200).end("Lý Thuyết Lái Xe Tutor MCP server");
     if (req.method === "GET" && /^\/images\/q\d+\.webp$/.test(path)) {
       try {
@@ -168,12 +170,13 @@ export function createHttpHandler(options: { dataPath?: string; publicBaseUrl?: 
     }
     if (((progressEnabled && path === "/preview/tool") || (!progressEnabled && path === "/play/tool")) && req.method === "POST") {
       try {
+        const parsedBody = (req as typeof req & { body?: unknown }).body;
         let body = "";
         for await (const chunk of req) {
           body += String(chunk);
           if (body.length > 8192) throw new Error("REQUEST_TOO_LARGE");
         }
-        const request = z.object({ name: z.string(), arguments: z.record(z.unknown()).default({}) }).parse(JSON.parse(body));
+        const request = z.object({ name: z.string(), arguments: z.record(z.unknown()).default({}) }).parse(parsedBody ?? JSON.parse(body));
         const baseUrl = new URL(publicBaseUrl);
         let result: object;
         if (request.name === "get_question") {
@@ -215,7 +218,7 @@ export function createHttpHandler(options: { dataPath?: string; publicBaseUrl?: 
     res.on("close", () => { void transport.close(); void server.close(); });
     try {
       await server.connect(transport);
-      await transport.handleRequest(req, res);
+      await transport.handleRequest(req, res, (req as typeof req & { body?: unknown }).body);
     } catch (error) {
       console.error("MCP request failed", error);
       if (!res.headersSent) res.writeHead(500).end("Internal server error");
