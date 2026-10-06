@@ -753,3 +753,31 @@ test("the ⓘ beside Tôi đoán, THỬ LẠI, the combo, XP, the goal, the mock
     await explains("Bản nháp", "Bản nháp");
   });
 });
+
+test("with nothing newly mastered, the finish screen counts first-time correct answers and says which day to review them; a mastered answer keeps câu mới thuộc", async () => {
+  await withPreview(async ({ origin, dataPath, page, app, tool, open }) => {
+    const { sessionId } = await learnFirstTime(tool, ["q001", "q002", "q003"]);
+    await page.goto(`${origin}/preview`);
+    await app.locator("[data-action]").first().waitFor();
+    await open(await tool("get_study_session", { sessionId }));
+    await app.getByRole("heading", { name: "Hoàn thành bài học!" }).waitFor();
+    const third = app.locator(".tiles .stat-tile").nth(2);
+    await third.getByText("câu đúng lần đầu").waitFor();
+    assert.equal(await third.locator("[data-count]").getAttribute("data-count"), "3");
+    assert.equal(await app.getByText("câu mới thuộc").count(), 0);
+    // Answered just now, so they count again from 24 hours later: tomorrow.
+    await app.getByText("Ngày mai ôn lại để thuộc", { exact: true }).waitFor();
+    await app.getByRole("button", { name: "Giải thích: Đã thuộc", exact: true }).click();
+    await app.getByRole("dialog").getByText("3 câu đã đúng 1 lần", { exact: false }).waitFor();
+
+    // q010 answered right a day ago, so today's right answer masters it.
+    const store = new SqliteLearningStore(dataPath);
+    await new LearningRuntime(store, "local-development", () => Date.now() - 24 * 3600000 - 1000).command({ kind: "answer_question", requestId: randomUUID(), questionId: "q010", answer: right("q010") });
+    store.close();
+    const mastered = await learnFirstTime(tool, ["q010"]);
+    await open(await tool("get_study_session", { sessionId: mastered.sessionId }));
+    await app.getByText("câu mới thuộc").waitFor();
+    assert.equal(await app.locator(".tiles .stat-tile").nth(2).locator("[data-count]").getAttribute("data-count"), "1");
+    assert.equal(await app.locator("#content").getByText("ôn lại để thuộc").count(), 0, "the first-step line is only for lessons with nothing mastered");
+  });
+});
