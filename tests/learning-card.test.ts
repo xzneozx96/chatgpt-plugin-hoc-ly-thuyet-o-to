@@ -337,8 +337,9 @@ test("the home card draws the goal ring and the three numbers from the course vi
     assert.equal(await app.locator(".ring .seg").count(), course.dailyGoal, "one segment per new question in today's goal");
     assert.equal(await app.locator(".ring .seg.on").count(), course.newToday);
     const tiles = await app.locator(".nums .ntile").allInnerTexts();
-    assert.deepEqual(tiles.map((t) => t.replace(/\s+/g, " ").trim()), [`${course.covered}/600 Đã gặp`, `${course.learned}/600 Đã thuộc`, `${course.dueCount} câu Cần ôn hôm nay`]);
-    await app.getByRole("button", { name: /Tham gia nhóm thi đua tuần/ }).waitFor();
+    assert.deepEqual(tiles.map((t) => t.replace(/\s+/g, " ").trim()), [`${course.covered} /600 Đã gặp`, `${course.learned} /600 Đã thuộc`, `${course.dueCount} câu Cần ôn hôm nay`]);
+    const weekXp = ((await tool("get_course", {})).structuredContent as { leagueSummary: { weekXp: number } }).leagueSummary.weekXp;
+    await app.getByRole("button", { name: `Tham gia nhóm thi đua tuần Tuần này bạn có ${weekXp} XP` }).waitFor();
     assert.equal(await app.locator(".row-btn").count(), 0, "a learner outside the league sees only the invitation");
     await app.getByText("Theo nhịp 12 câu/ngày: xong lượt đầu ngày", { exact: false }).waitFor();
 
