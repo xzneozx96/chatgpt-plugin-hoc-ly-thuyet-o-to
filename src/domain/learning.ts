@@ -485,11 +485,13 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
         }
     };
 }
-export function mockView(state: LearnerState, attemptId: string, now: number) {
+export function mockView(state: LearnerState, attemptId: string, now: number, resumed = false) {
     const m = findMock(state, attemptId);
     const common = {
         kind: "mock" as const,
         attemptId: m.id,
+        resumed,
+        createdAt: m.createdAt,
         status: m.status,
         deadline: m.deadline,
         serverNow: now,
@@ -682,6 +684,7 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
         closeMock(state, attemptId, now, "expiry");
     let activityId: string | null = null;
     let viewKind: "course" | "study" | "mock" | "help" | "answer" = "course";
+    let resumed = false;
     switch (command.kind) {
         case "answer_question": {
             assertNotInRunningMock(state, command.questionId);
@@ -859,6 +862,7 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
             if (running) {
                 activityId = running.id;
                 viewKind = "mock";
+                resumed = true;
                 break;
             }
             const pool = unitQuestions();
@@ -942,7 +946,7 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
     };
     return {
         state,
-        view: viewKind === "study" && activityId ? studyView(state, activityId, now) : viewKind === "mock" && activityId ? mockView(state, activityId, now) : viewKind === "help" && activityId ? helpView(activityId) : viewKind === "answer" && activityId ? answerView(state, activityId) : courseView(state, now)
+        view: viewKind === "study" && activityId ? studyView(state, activityId, now) : viewKind === "mock" && activityId ? mockView(state, activityId, now, resumed) : viewKind === "help" && activityId ? helpView(activityId) : viewKind === "answer" && activityId ? answerView(state, activityId) : courseView(state, now)
     };
 }
 export const startStudy = (s: LearnerState, c: Omit<Extract<LearningCommand, {

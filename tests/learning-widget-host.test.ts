@@ -152,3 +152,38 @@ test("in a sandboxed host with slow saves the mock keeps moving, keeps the list 
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("asking for a mock while one is unfinished says so and can start a fresh test", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "driving-widget-resume-"));
+  const server = startHttpServer(0, { dataPath: join(dir, "study.sqlite") });
+  if (!server.listening) await once(server, "listening");
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("Missing preview port");
+  const origin = `http://127.0.0.1:${address.port}`;
+  const executablePath = process.env.CHROME_PATH ?? (existsSync("/usr/bin/google-chrome") ? "/usr/bin/google-chrome" : undefined);
+  const browser = await chromium.launch({ executablePath, headless: true, args: ["--no-sandbox"] });
+  try {
+    const page = await browser.newPage();
+    const app = page.frameLocator("#widget");
+    const startMock = async () => {
+      await page.goto(`${origin}/preview`);
+      await app.getByRole("heading", { name: "Khóa học bằng B" }).waitFor();
+      await app.locator(".brand nav [data-action='mock-entry']").click();
+      await app.locator('[data-action="mock-start"]').click();
+      await app.locator("#timer").waitFor();
+    };
+    await startMock();
+    assert.equal(await app.locator(".resume-note").count(), 0, "a new test has no resume note");
+    await startMock();
+    await app.getByText(/Bạn đang làm tiếp bài thi bắt đầu lúc/).waitFor();
+    await app.locator('[data-action="mock-restart"]').click();
+    await app.locator('[data-action="confirm-yes"]').click();
+    await app.locator(".resume-note").waitFor({ state: "detached" });
+    const course = await (await fetch(`${origin}/preview/tool`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "get_course", arguments: {} }) })).json();
+    assert.deepEqual(course.structuredContent.mocks.map((mock: { status: string }) => mock.status), ["abandoned", "active"]);
+  } finally {
+    await browser.close();
+    server.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

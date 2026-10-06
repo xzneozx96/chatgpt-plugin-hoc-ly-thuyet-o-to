@@ -399,3 +399,17 @@ test("course and session views report right and wrong answers from saved evidenc
     assert.deepEqual(course.results, { totalAttempts: 2, correctAttempts: 1, wrongAttempts: 1, accuracyPercent: 50 });
     assert.deepEqual(course.recentAnswers.map(a => [a.questionId, a.correct]), [["q002", false], ["q001", true]]);
 });
+test("starting a mock while one runs says it resumed, and a later start shuffles a new test", () => {
+    const first = executeLearning(createLearner(clock), { kind: "start_mock", requestId: requestId(), mode: "random" }, clock);
+    assert.ok(first.view.kind === "mock");
+    assert.equal(first.view.resumed, false);
+    const again = executeLearning(first.state, { kind: "start_mock", requestId: requestId(), mode: "random" }, clock + 60000);
+    assert.ok(again.view.kind === "mock");
+    assert.equal(again.view.resumed, true);
+    assert.equal(again.view.attemptId, first.view.attemptId);
+    const abandoned = run(again.state, { kind: "abandon_mock", requestId: requestId(), attemptId: first.view.attemptId }, clock + 120000);
+    const fresh = executeLearning(abandoned, { kind: "start_mock", requestId: requestId(), mode: "random" }, clock + 180000);
+    assert.ok(fresh.view.kind === "mock");
+    assert.equal(fresh.view.resumed, false);
+    assert.notDeepEqual(fresh.view.questions.map(q => q.id), first.view.questions.map(q => q.id), "a new test is a new shuffle");
+});
