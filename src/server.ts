@@ -66,7 +66,7 @@ export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", worksp
     server.registerTool(tool.name, {
       title: tool.title, description: tool.description, inputSchema: tool.inputSchema,
       annotations: { readOnlyHint: tool.readOnly, destructiveHint: false, openWorldHint: false },
-      _meta: { ui: { resourceUri: LEARNING_UI_URI, visibility: ["model", "app"] } }
+      _meta: { ui: { ...(tool.card ? { resourceUri: LEARNING_UI_URI } : {}), visibility: ["model", "app"] } }
     }, async (input) => {
       try {
         const view = await tool.run(input);

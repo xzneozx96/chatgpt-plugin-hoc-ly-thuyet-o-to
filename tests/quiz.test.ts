@@ -71,6 +71,8 @@ test("MCP get, submit, next and UI resource work over HTTP", async () => {
   const courseTool = tools.tools.find((tool) => tool.name === "get_course");
   const learningUri = (courseTool?._meta as { ui?: { resourceUri?: string } })?.ui?.resourceUri;
   assert.equal(learningUri, "ui://ly-thuyet-lai-xe/learning-v2.html");
+  const cardTools = tools.tools.filter((tool) => (tool._meta as { ui?: { resourceUri?: string } })?.ui?.resourceUri === learningUri).map((tool) => tool.name).sort();
+  assert.deepEqual(cardTools, ["get_course", "get_mock_test", "resume_study", "start_mock_test", "start_study"], "only entry points open a new card");
   const learningResource = await client.readResource({ uri: learningUri });
   const learningHtml = learningResource.contents[0] as { mimeType: string; text: string };
   assert.equal(learningHtml.mimeType, "text/html;profile=mcp-app");

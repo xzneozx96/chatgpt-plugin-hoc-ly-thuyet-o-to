@@ -10,8 +10,11 @@ export interface LearningTool {
   description: string;
   inputSchema: Record<string, z.ZodTypeAny>;
   readOnly: boolean;
+  card: boolean;
   run(input: unknown): Promise<object>;
 }
+
+const cardCommands = new Set(["start_study", "resume_study", "start_mock", "view_mock"]);
 
 const commands: Record<string, { name: string; title: string; description: string }> = {
   start_study: { name: "start_study", title: "Start a study session", description: "Start all due reviews then new questions within the daily goal. Explicit category or family requests may override review ordering while retaining due work. Supply selected original question IDs to assemble a focused source-supported lesson; duplicates and learned new items are filtered by the server." },
@@ -35,12 +38,12 @@ export function createLearningTools(runtime: LearningRuntime | null, persistence
   const tools: LearningTool[] = [{
     name: "get_course", title: "Open the driving-theory course",
     description: "Open the course overview, category progress, daily goal, due reviews and saved activities. Distinguish first-pass coverage from qualifying delayed learning. If historyAvailable=false, disclose unavailable history rather than personalise.",
-    inputSchema: {}, readOnly: true,
+    inputSchema: {}, readOnly: true, card: true,
     async run() { return decorate(runtime ? await runtime.course() : courseView(createLearner(Date.now()), Date.now())); }
   }, {
     name: "list_units", title: "Find a course category or confusing group",
     description: "Browse the seven bank categories and the eighth custom category, Câu hỏi dễ nhầm lẫn. Search all249 draft groups by title or original question ID. Request a bounded page. Draft family relationships are discovery metadata, not approved teaching.",
-    inputSchema: { query: z.string().max(200).optional(), kind: z.enum(["category", "family"]).optional(), offset: z.number().int().min(0).optional(), limit: z.number().int().min(1).max(30).optional() }, readOnly: true,
+    inputSchema: { query: z.string().max(200).optional(), kind: z.enum(["category", "family"]).optional(), offset: z.number().int().min(0).optional(), limit: z.number().int().min(1).max(30).optional() }, readOnly: true, card: false,
     async run(raw) {
       const input = z.object(this.inputSchema).parse(raw);
       const query = typeof input.query === "string" ? input.query : "";
@@ -53,7 +56,7 @@ export function createLearningTools(runtime: LearningRuntime | null, persistence
   }, {
     name: "get_study_session", title: "Inspect a saved study session",
     description: "Retrieve this learner's session by stable ID without inventing progress or clearing pending review.",
-    inputSchema: { sessionId: z.string().uuid() }, readOnly: true,
+    inputSchema: { sessionId: z.string().uuid() }, readOnly: true, card: false,
     async run(raw) {
       if (!runtime) throw new Error("HISTORY_UNAVAILABLE");
       const { sessionId } = z.object({ sessionId: z.string().uuid() }).parse(raw);
@@ -69,7 +72,7 @@ export function createLearningTools(runtime: LearningRuntime | null, persistence
     for (const [name, value] of Object.entries(schema.shape)) if (name !== "kind") inputSchema[name] = value;
     const requestId = z.string().uuid().describe("New UUID for each learner action. Reuse the same UUID and payload only to retry a lost response.");
     inputSchema.requestId = kind === "view_mock" ? requestId.optional() : requestId;
-    tools.push({ ...definition, inputSchema, readOnly: false,
+    tools.push({ ...definition, inputSchema, readOnly: false, card: cardCommands.has(kind),
       async run(raw) {
         if (!runtime) throw new Error("HISTORY_UNAVAILABLE");
         const input = z.object(inputSchema).parse(raw);
