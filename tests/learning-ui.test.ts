@@ -81,7 +81,7 @@ test("learning preview drives course, goal, families, study, confusion, help, pa
     await app.getByText("20 câu mỗi ngày").waitFor();
     await action("resume").click();
     await app.getByRole("heading", { name: "Làn đường là gì?" }).waitFor();
-    await app.getByText("1/21 câu đã xử lý", { exact: false }).waitFor();
+    await app.getByText("1/22 câu đã xử lý", { exact: false }).waitFor();
 
     await app.locator(".brand nav [data-action='mock-entry']").click();
     await action("mock-start").click();

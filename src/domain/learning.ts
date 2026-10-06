@@ -503,12 +503,18 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
     const s = findSession(state, sessionId);
     const q = s.activeQuestionId;
     const active = activeItem(s);
-    const answers = answerFacts(state.evidence).filter(e => e.activityId === s.id);
+    // Both pair verdicts appear together (INT-02), so a half-answered pair's answer stays out of every result below.
+    const waitingGroups = new Set(s.items.flatMap(i => i.group !== undefined && i.status === "pending" ? [i.group] : []));
+    const withheld = new Set(s.items.flatMap(i => i.group !== undefined && waitingGroups.has(i.group) && i.answerId ? [i.answerId] : []));
+    const answers = answerFacts(state.evidence).filter(e => e.activityId === s.id && !withheld.has(e.id));
     const results = answerResults(answers);
-    const activeAnswer = active?.status !== "answered" ? undefined : active.answerId ? answers.find(e => e.id === active.answerId) : answers.filter(e => e.questionId === q).at(-1);
+    const answerOf = (i: Item) => i.status !== "answered" ? undefined : i.answerId ? answers.find(e => e.id === i.answerId) : answers.filter(e => e.questionId === i.questionId).at(-1);
+    const activeAnswer = active ? answerOf(active) : undefined;
     const awards = answerAwards(state);
     const planned = s.items.filter(i => i.repairOf === undefined && i.group === undefined);
     const repairStep = active?.repairOf !== undefined && active.status === "pending" ? active : undefined;
+    const pairItems = active?.group === undefined ? [] : s.items.filter(i => i.group === active.group);
+    const family = families.find(f => f.id === active?.group);
     return {
         kind: "study" as const,
         sessionId: s.id,
@@ -549,8 +555,24 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
             new: planned.filter(i => i.kind === "new").length,
             practice: planned.filter(i => i.kind === "practice").length,
             pairGroups: new Set(s.items.flatMap(i => i.group === undefined ? [] : [i.group])).size
+        },
+        pair: active?.group === undefined ? null : {
+            group: active.group,
+            familyId: active.group,
+            title: family?.title ?? active.group,
+            axes: family?.comparisonAxes ?? [],
+            status: familyStatus(family?.status ?? "draft_bank_analysis"),
+            questions: pairItems.map(i => safeQuestion(i.questionId)),
+            feedback: pairItems.map(i => {
+                const e = answerOf(i);
+                return e ? feedbackOf(e) : null;
+            })
         }
     };
+}
+// Only approved family comparisons may teach (CON-06); the bank analysis has not approved any yet.
+function familyStatus(status: string) {
+    return status === "approved" ? "approved" as const : "draft" as const;
 }
 export function mockView(state: LearnerState, attemptId: string, now: number, resumed = false) {
     const m = findMock(state, attemptId);
@@ -666,6 +688,34 @@ function insertRepair(s: Session, answered: Item, now: number) {
         position++;
     // bindingAt equals the feedback event's time, so B4 treats the repair answer as assisted.
     s.items.splice(position, 0, { questionId: answered.questionId, kind: "practice", status: "pending", bindingAt: now, repairOf: answered.questionId });
+}
+/**
+ * INT-02: end the lesson with one of its new questions and a sibling from the same confusing-question
+ * family, grouped so both are answered before either verdict shows. The sibling is not learned, not
+ * already in the lesson and not in a running mock. Families with comparison axes and fewer members come
+ * first; ties take the family whose new question sits latest, which moves the lesson plan least.
+ */
+function addPair(s: Session, progress: ReturnType<typeof questionProgress>, blocked: Set<string>, now: number) {
+    const inLesson = new Set(s.items.map(i => i.questionId));
+    const newIds = s.items.filter(i => i.kind === "new").map(i => i.questionId);
+    const candidates = families.flatMap((family, order) => {
+        const question = newIds.filter(q => family.questionIds.includes(q)).at(-1);
+        const sibling = family.questionIds.find(q => !inLesson.has(q) && !blocked.has(q) && (progress.get(q)?.successes ?? 0) < 2);
+        return question !== undefined && sibling !== undefined ? [{ family, order, question, sibling }] : [];
+    });
+    const pick = candidates.sort((a, b) => Number(b.family.comparisonAxes.length > 0) - Number(a.family.comparisonAxes.length > 0)
+        || a.family.questionIds.length - b.family.questionIds.length
+        || newIds.indexOf(b.question) - newIds.indexOf(a.question)
+        || a.order - b.order)[0];
+    const moved = s.items.find(i => i.questionId === pick?.question);
+    if (!pick || !moved)
+        return;
+    const group = pick.family.id;
+    s.items = [
+        ...s.items.filter(i => i !== moved),
+        { ...moved, group },
+        { questionId: pick.sibling, kind: progress.get(pick.sibling)?.coveredAt === null ? "new" : "practice", status: "pending", bindingAt: now, group }
+    ];
 }
 export function runningMockQuestions(state: LearnerState) {
     return new Set(state.mocks.flatMap(m => m.status === "active" ? m.questionIds : []));
@@ -842,6 +892,11 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
                 activeRepair: false,
                 mode: "lesson"
             };
+            // An exact count or question list is the learner's or ChatGPT's chosen lesson, so it gets no extra challenge.
+            if (!command.reviewOnly && command.questionIds === undefined && command.count === undefined) {
+                addPair(s, progress, blocked, now);
+                activate(s, s.items[0]);
+            }
             state.sessions.push(s);
             viewKind = "study";
             break;
@@ -879,6 +934,9 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
             });
             if (!scored.correct && s.mode === "lesson" && i.repairOf === undefined)
                 insertRepair(s, i, now);
+            // Within a pair, the other question stays active until it is answered too.
+            if (i.group !== undefined)
+                activate(s, s.items.find(x => x.group === i.group && x.status === "pending") ?? i);
             break;
         }
         case "next_study": {

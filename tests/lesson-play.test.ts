@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { createLearner, executeLearning, questionProgress, DAY, type LearnerState, type LearningCommand } from "../src/domain/learning.js";
+import { createLearner, courseView, executeLearning, questionProgress, DAY, type LearnerState, type LearningCommand } from "../src/domain/learning.js";
 import { answerAwards } from "../src/domain/game.js";
-import { safeQuestion } from "../src/domain/course.js";
+import { families, safeQuestion } from "../src/domain/course.js";
 import { submitAnswer, type AnswerId } from "../src/domain/quiz.js";
 
 // Tuesday 10:00 in Vietnam.
@@ -95,4 +95,86 @@ test("a correct repair answer is assisted practice and never counts as delayed r
     assert.equal(questionProgress(s).get("q001")?.successes, 0);
     assert.equal(answerAwards(s).get(repairAnswer.id)?.reason, "repair");
     assert.equal(dueAfterWrong, morning + DAY);
+});
+
+function dailyLesson() {
+    const state = run(createLearner(morning), { kind: "start_study", requestId: requestId() }, morning);
+    const session = state.sessions.at(-1);
+    assert.ok(session);
+    return { state, sessionId: session.id, items: session.items };
+}
+/** Answers every step correctly until the active step belongs to a pair. */
+function playToPair(state: LearnerState, sessionId: string) {
+    for (let i = 0; i < 50; i++) {
+        const view = study(state, { kind: "resume_study", requestId: requestId(), sessionId }, morning);
+        if (view.pair)
+            return { state, view };
+        const q = view.question?.id;
+        assert.ok(q);
+        state = next(answerIn(state, sessionId, q, morning), sessionId, morning);
+    }
+    throw new Error("no pair reached");
+}
+
+test("a daily lesson ends with one new question and a not-yet-learned sibling from its family", () => {
+    const { items } = dailyLesson();
+    assert.equal(items.length, 13, "12 new questions and one sibling");
+    assert.equal(new Set(items.map(i => i.questionId)).size, 13, "no question appears twice");
+    assert.equal(items[0]?.questionId, "q001", "the lesson still starts where it would have");
+    const [first, second] = items.slice(-2);
+    assert.ok(first && second);
+    assert.equal(first.group, second.group);
+    const family = families.find(f => f.id === first.group);
+    assert.ok(family);
+    assert.ok(family.questionIds.includes(first.questionId) && family.questionIds.includes(second.questionId));
+    assert.deepEqual([first.kind, second.kind], ["new", "new"]);
+    assert.equal(items.filter(i => i.group !== undefined).length, 2);
+    for (const c of [{ count: 5 }, { questionIds: ["q001", "q002"] }]) {
+        const s = run(createLearner(morning), { kind: "start_study", requestId: requestId(), ...c }, morning);
+        assert.equal(s.sessions.at(-1)?.items.some(i => i.group !== undefined), false, "an exact count or question list gets no pair");
+    }
+});
+
+test("both pair questions are shown and answered before either verdict, and each is covered once", () => {
+    const daily = dailyLesson();
+    const reached = playToPair(daily.state, daily.sessionId);
+    const pair = reached.view.pair;
+    assert.ok(pair);
+    const family = families.find(f => f.id === pair.familyId);
+    assert.ok(family);
+    assert.deepEqual([pair.group, pair.title, pair.axes, pair.status], [family.id, family.title, family.comparisonAxes, "draft"]);
+    const [a, b] = pair.questions.map(q => q.id);
+    assert.ok(a && b);
+    assert.deepEqual(pair.feedback, [null, null]);
+    assert.equal(reached.view.steps.pairGroups, 1);
+    // The second question is accepted first; the first stays active until answered.
+    const half = executeLearning(reached.state, { kind: "answer_study", requestId: requestId(), sessionId: daily.sessionId, questionId: b, answer: wrong(b) }, morning + MINUTE);
+    assert.ok(half.view.kind === "study");
+    assert.equal(half.view.question?.id, a);
+    assert.deepEqual(half.view.pair?.feedback, [null, null], "no verdict until both are answered");
+    assert.equal(half.view.currentFeedback, null);
+    assert.equal(half.view.lastAward, null);
+    assert.equal(half.view.sessionResults.items.some(e => e.questionId === b), false);
+    assert.equal(half.view.combo, 11, "the hidden wrong answer does not reset the shown combo yet");
+    assert.throws(() => next(half.state, daily.sessionId, morning + MINUTE), /ANSWER_OR_SKIP_FIRST/);
+    const both = executeLearning(half.state, { kind: "answer_study", requestId: requestId(), sessionId: daily.sessionId, questionId: a, answer: right(a) }, morning + 2 * MINUTE);
+    assert.ok(both.view.kind === "study");
+    assert.deepEqual(both.view.pair?.feedback.map(f => f?.correct), [true, false]);
+    assert.equal(both.view.sessionResults.answered, 13);
+    assert.equal(both.view.combo, 1);
+    assert.deepEqual(both.state.sessions.at(-1)?.items.slice(-1).map(i => i.repairOf), [b], "the wrong pair answer gets its repair after the pair");
+    let s = next(both.state, daily.sessionId, morning + 3 * MINUTE);
+    s = next(answerIn(s, daily.sessionId, b, morning + 4 * MINUTE), daily.sessionId, morning + 4 * MINUTE);
+    assert.equal(s.sessions.at(-1)?.status, "complete");
+    assert.equal(courseView(s, morning + 5 * MINUTE).covered, 13);
+    assert.equal(s.evidence.filter(e => e.kind === "answer" && e.questionId === a).length, 1, "the moved question is answered once");
+});
+
+test("skipping a pair requeues both questions together", () => {
+    const daily = dailyLesson();
+    const reached = playToPair(daily.state, daily.sessionId);
+    const ids = reached.view.pair?.questions.map(q => q.id);
+    const skipped = run(reached.state, { kind: "skip_study", requestId: requestId(), sessionId: daily.sessionId }, morning + MINUTE);
+    assert.deepEqual(skipped.sessions.at(-1)?.items.slice(-2).map(i => i.questionId), ids);
+    assert.equal(skipped.sessions.at(-1)?.status, "paused");
 });
