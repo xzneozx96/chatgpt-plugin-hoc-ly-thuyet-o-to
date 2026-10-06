@@ -306,7 +306,8 @@ test("when the lightning countdown reaches zero the card fetches the round once 
     await app.locator("h2.stem").waitFor();
     await app.locator(`input[name="answer"][value="${wrong(first)}"]`).check();
     await app.locator('[data-action="lt-check"]').click();
-    await app.locator(".flash").getByText("Chưa đúng — sẽ quay lại trong lịch ôn").waitFor();
+    // The next question is already showing, so the flash names the question it judged.
+    await app.locator(".flash").getByText(`Câu ${Number(first.slice(1))}: chưa đúng — sẽ quay lại trong lịch ôn`).waitFor();
     const before = fetches.filter((name) => name === "get_study_session").length;
     await app.getByRole("heading", { name: "Hết giờ!" }).waitFor({ timeout: 15000 });
     await page.waitForTimeout(600);
