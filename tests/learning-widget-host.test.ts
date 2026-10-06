@@ -5,8 +5,23 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { test } from "node:test";
-import { chromium } from "playwright";
+import { chromium, type Page } from "playwright";
 import { startHttpServer } from "../src/server.js";
+
+type WidgetMessage = { method: string; name?: string; arguments?: Record<string, unknown> };
+
+// Records what the widget posts to its host, in order, so tests can check chat messages and tool calls.
+async function recordWidgetMessages(page: Page) {
+  await page.evaluate(() => {
+    const log: WidgetMessage[] = [];
+    (window as unknown as { widgetMessages: WidgetMessage[] }).widgetMessages = log;
+    window.addEventListener("message", (event) => {
+      const message = event.data as { jsonrpc?: string; method?: string; params?: { name?: string; arguments?: Record<string, unknown> } } | null;
+      if (message?.jsonrpc === "2.0" && message.method) log.push({ method: message.method, name: message.params?.name, arguments: message.params?.arguments });
+    });
+  });
+  return () => page.evaluate(() => (window as unknown as { widgetMessages: WidgetMessage[] }).widgetMessages);
+}
 
 test("a widget opened by a tool call shows that tool's result, not the course overview", async () => {
   const dir = mkdtempSync(join(tmpdir(), "driving-widget-host-"));
@@ -72,7 +87,7 @@ test("the widget follows the host theme at start and when the host changes it", 
   }
 });
 
-test("in ChatGPT the card's answer button sends the choice as a chat message instead of scoring it", async () => {
+test("in ChatGPT the card's answer button scores the choice through tools/call and posts no chat message", async () => {
   const dir = mkdtempSync(join(tmpdir(), "driving-widget-chat-"));
   const server = startHttpServer(0, { dataPath: join(dir, "study.sqlite") });
   if (!server.listening) await once(server, "listening");
@@ -87,14 +102,16 @@ test("in ChatGPT the card's answer button sends the choice as a chat message ins
     const app = page.frameLocator("#widget");
     await app.locator('[data-action="daily"]').click();
     await app.getByRole("heading", { name: /Phần của đường bộ được sử dụng/ }).waitFor();
+    const messages = await recordWidgetMessages(page);
     await app.locator('input[name="answer"][value="A"]').check();
     await app.getByText("Tôi đoán").click();
     await app.locator('[data-action="answer"]').click();
-    await page.locator("#host-message").getByText("Mình chọn A cho câu q001 (đoán).").waitFor();
-    await app.getByRole("button", { name: "Đã gửi" }).waitFor();
-    assert.equal(await app.getByRole("button", { name: "Đã gửi" }).isDisabled(), true);
+    await app.getByText("Cần xem lại").waitFor();
+    const sent = await messages();
+    assert.deepEqual(sent.filter((m) => m.name === "submit_study_answer").map((m) => [m.method, m.arguments?.answer, m.arguments?.confidence]), [["tools/call", "A", "guess"]]);
+    assert.equal(sent.filter((m) => m.method === "ui/message").length, 0, "the card never posts an answer into the chat");
     const course = await (await fetch(`${origin}/preview/tool`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "get_course", arguments: {} }) })).json();
-    assert.equal(course.structuredContent.covered, 0, "ChatGPT scores the answer, not the card");
+    assert.equal(course.structuredContent.results.totalAttempts, 1, "the card scored the answer once");
   } finally {
     await browser.close();
     server.close();
@@ -265,41 +282,6 @@ test("confusion keeps the chosen answer, the card shrinks after long screens, an
     await page.reload();
     await app.locator('[data-action="daily"]').click();
     await app.getByText(/Hôm nay không còn câu đến hạn ôn và bạn đã đạt mục tiêu câu mới/).waitFor();
-  } finally {
-    await browser.close();
-    server.close();
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test("after ChatGPT scores a card-sent answer, the card shows the result and moves on", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "driving-widget-followup-"));
-  const server = startHttpServer(0, { dataPath: join(dir, "study.sqlite") });
-  if (!server.listening) await once(server, "listening");
-  const address = server.address();
-  if (!address || typeof address === "string") throw new Error("Missing preview port");
-  const origin = `http://127.0.0.1:${address.port}`;
-  const executablePath = process.env.CHROME_PATH ?? (existsSync("/usr/bin/google-chrome") ? "/usr/bin/google-chrome" : undefined);
-  const browser = await chromium.launch({ executablePath, headless: true, args: ["--no-sandbox"] });
-  const tool = async (name: string, args: object) => (await (await fetch(`${origin}/preview/tool`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, arguments: args }) })).json()).structuredContent;
-  try {
-    const page = await browser.newPage();
-    await page.goto(`${origin}/preview?chat=1`);
-    const app = page.frameLocator("#widget");
-    await app.locator('[data-action="families"]').first().click();
-    await app.locator('[data-action="unit"]').first().click();
-    await app.locator('input[name="answer"]').first().waitFor();
-    const heading = await app.locator("#content h2").innerText();
-    await app.locator('input[name="answer"][value="A"]').check();
-    await app.locator('[data-action="answer"]').click();
-    await app.getByRole("button", { name: "Đã gửi" }).waitFor();
-    const course = await tool("get_course", {}) as { sessions: { id: string; status: string }[] };
-    const session = await tool("get_study_session", { sessionId: course.sessions.filter((s) => s.status === "active").at(-1)?.id }) as { sessionId: string; question: { id: string } };
-    await tool("submit_study_answer", { sessionId: session.sessionId, questionId: session.question.id, answer: "A", requestId: randomUUID() });
-    await app.getByRole("button", { name: "Câu tiếp theo" }).waitFor({ timeout: 8000 });
-    await app.getByRole("button", { name: "Câu tiếp theo" }).click();
-    await app.locator('[data-action="answer"]', { hasText: "Trả lời" }).waitFor();
-    assert.notEqual(await app.locator("#content h2").innerText(), heading, "moved to the next question");
   } finally {
     await browser.close();
     server.close();
