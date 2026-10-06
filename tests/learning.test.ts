@@ -388,6 +388,23 @@ test("returning to an open session keeps the answered question's feedback until 
     assert.equal(resumed.state.sessions.at(-1)?.status, "active");
     assert.notEqual("currentFeedback" in resumed.view ? resumed.view.currentFeedback : null, null);
 });
+test("saved feedback says whether the answer was a guess or followed help, so a reopened card shows the same verdict", () => {
+    let s = run(createLearner(clock), { kind: "start_study", requestId: requestId(), questionIds: ["q001", "q002"] }, clock);
+    const ss = s.sessions.at(-1);
+    assert.ok(ss);
+    s = run(s, { kind: "answer_study", requestId: requestId(), sessionId: ss.id, questionId: "q001", answer: right("q001"), confidence: "guess" }, clock + 1000);
+    const guessed = executeLearning(s, { kind: "resume_study", requestId: requestId(), sessionId: ss.id }, clock + 2000).view;
+    assert.ok(guessed.kind === "study");
+    assert.equal(guessed.currentFeedback?.confidence, "guess");
+    assert.equal(guessed.currentFeedback?.assisted, false);
+    assert.notEqual(guessed.help, null, "the server records feedback as help, so help alone cannot mark an answer assisted");
+    s = run(s, { kind: "next_study", requestId: requestId(), sessionId: ss.id }, clock + 3000);
+    s = run(s, { kind: "record_help", requestId: requestId(), sessionId: ss.id, questionId: "q002" }, clock + 4000);
+    const helped = executeLearning(s, { kind: "answer_study", requestId: requestId(), sessionId: ss.id, questionId: "q002", answer: right("q002") }, clock + 5000).view;
+    assert.ok(helped.kind === "study");
+    assert.equal(helped.currentFeedback?.assisted, true);
+    assert.equal(helped.currentFeedback?.confidence, "unknown");
+});
 test("course and session views report right and wrong answers from saved evidence", () => {
     let s = run(createLearner(clock), { kind: "start_study", requestId: requestId(), questionIds: ["q001", "q002", "q003"] }, clock);
     const session = s.sessions.at(-1);

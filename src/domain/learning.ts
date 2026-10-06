@@ -478,6 +478,8 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
         queue: s.items,
         currentFeedback: answers.filter(e => e.questionId === q).slice(-1).map(e => e.kind === "answer" ? {
             ...submitAnswer(e.questionId, e.answer),
+            assisted: e.assisted,
+            confidence: e.confidence,
             sourceId: `question-bank.json#${e.questionId}`,
             teachingStatus: "bank_text_unreviewed"
         } : null)[0] ?? null,
