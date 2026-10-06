@@ -6,12 +6,15 @@ import { hasFinishedLesson, leagueWeek, xpSummary } from "./game.js";
 const COHORT_SIZE = 30;
 // Latin-script letters, which include every Vietnamese letter, plus digits, space and . _ -
 const NAME_CHARACTERS = /^(?:(?=\p{Script=Latin})\p{L}|[0-9 ._-])+$/u;
-// Compared after folding to lower-case ASCII without accents. Short or common words must match a whole
-// word, so "Lớn" and "lon" both match "lon"; longer stems are rejected anywhere once separators are removed.
+// Vietnamese swear words differ from everyday words only by tone ("lồn" and "lớn", "buồi" and "buổi"), so accented
+// words are checked against accented forms and only unaccented words against the ASCII list. Whole words match
+// exactly; stems are rejected anywhere once separators are removed.
 const BANNED_WORDS = new Set([
     "fuck", "fucker", "fucking", "fuk", "shit", "bitch", "cunt", "dick", "cock", "pussy", "asshole", "bastard", "whore", "slut", "porn", "rape", "nigger", "nigga", "faggot", "fag",
     "dit", "dm", "dmm", "dcm", "dkm", "dmcs", "vcl", "vkl", "vl", "cl", "clgt", "lon", "buoi", "cac", "deo"
 ]);
+const BANNED_ACCENTED_WORDS = new Set(["lồn", "buồi", "cặc", "đéo", "địt", "đụ", "đĩ", "đcm", "đm", "đmm"]);
+const BANNED_ACCENTED_STEMS = ["địtmẹ", "đụmá", "đụmẹ", "cáilồn", "conlồn", "concặc", "đéomẹ", "óccho"];
 const BANNED_STEMS = ["fuck", "cunt", "nigger", "nigga", "faggot", "pussy", "asshole", "bitch", "ditme", "ditmen", "ditcon", "dume", "duma", "dumay", "dcm", "dmm", "vcl", "vkl", "clgt", "cailon", "conlon", "occho", "concac", "deome"];
 
 function fold(text: string) {
@@ -24,9 +27,11 @@ export function leagueDisplayName(raw: string) {
     const length = [...name].length;
     if (length < 3 || length > 20 || !NAME_CHARACTERS.test(name) || !/[\p{L}0-9]/u.test(name))
         throw new Error("LEAGUE_NAME_INVALID");
-    const words = fold(name).split(/[^a-z0-9]+/).filter(Boolean);
+    const words = name.toLowerCase().split(/[^\p{L}0-9]+/u).filter(Boolean);
+    const plain = words.filter(word => fold(word) === word);
     const joined = words.join("");
-    if (words.some(word => BANNED_WORDS.has(word)) || BANNED_STEMS.some(stem => joined.includes(stem)))
+    if (words.some(word => BANNED_ACCENTED_WORDS.has(word)) || BANNED_ACCENTED_STEMS.some(stem => joined.includes(stem))
+        || plain.some(word => BANNED_WORDS.has(word)) || (plain.length === words.length && BANNED_STEMS.some(stem => joined.includes(stem))))
         throw new Error("LEAGUE_NAME_REJECTED");
     return name;
 }

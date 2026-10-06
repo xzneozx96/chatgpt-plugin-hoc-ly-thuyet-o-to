@@ -38,11 +38,11 @@ async function storeWith(members: LearnerState[]) {
 
 test("display names are trimmed, 3 to 20 letters, digits, spaces or . _ -, and free of profanity in any case or accent", () => {
     assert.equal(leagueDisplayName("  Tuấn_01  "), "Tuấn_01");
-    for (const ok of ["Lan.B", "minh_lai_xe", "Hà Nội 2026", "abc", "Nguyễn Thị Minh Khai"])
+    for (const ok of ["Lan.B", "minh_lai_xe", "Hà Nội 2026", "abc", "Nguyễn Thị Minh Khai", "Lớn", "Các bạn", "Buổi sáng", "Con Lớn", "Đèo Hải Vân"])
         assert.equal(leagueDisplayName(ok), ok);
     for (const bad of ["ab", "a".repeat(21), "abc$", "Аня", "...", "x́́́"])
         assert.throws(() => leagueDisplayName(bad), /LEAGUE_NAME_INVALID/, bad);
-    for (const rude of ["FuCk you", "ĐỊT", "Địt mẹ", "đ.ị.t m.ẹ", "Lồn", "VCL", "f.u.c.k"])
+    for (const rude of ["FuCk you", "ĐỊT", "Địt mẹ", "đ.ị.t m.ẹ", "Lồn", "VCL", "f.u.c.k", "Cặc", "con cặc", "lon", "ditme", "Buồi"])
         assert.throws(() => leagueDisplayName(rude), /LEAGUE_NAME_REJECTED/, rude);
 });
 

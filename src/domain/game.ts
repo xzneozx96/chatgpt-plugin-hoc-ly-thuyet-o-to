@@ -24,6 +24,7 @@ const MASTERED_BONUS = 15;
 const PRACTICE_CAP_PER_DAY = 50;
 const LIGHTNING_CAP_PER_ROUND = 15;
 const LESSON_XP = 10;
+const MIN_BONUS_ANSWERS = 5;
 const MOCK_FINALISED_XP = 20;
 const MOCK_PASSED_XP = 30;
 const SUSPICIOUS_DAILY_XP = 500;
@@ -88,9 +89,9 @@ export function lessonFinishedAt(state: LearnerState, session: LearnerState["ses
     return session.completedAt ?? (session.status === "complete" ? lastAnswerAt : null);
 }
 
-/** The lesson-finished bonus a session has earned: 10 once it is finished, otherwise 0. */
+/** The lesson-finished bonus: 10 once a lesson of at least 5 answers is finished, so tiny lessons cannot farm it. */
 export function lessonXp(state: LearnerState, session: LearnerState["sessions"][number]) {
-    return lessonFinishedAt(state, session) === null ? 0 : LESSON_XP;
+    return lessonFinishedAt(state, session) === null || sessionAnswers(state, session.id).length < MIN_BONUS_ANSWERS ? 0 : LESSON_XP;
 }
 
 export function hasFinishedLesson(state: LearnerState) {
@@ -136,7 +137,8 @@ function xpEvents(state: LearnerState) {
 
 /**
  * total: all XP. today: learner-local today in the current profile timezone. week: the league week.
- * suspicious: some learner-local day in the learner's history earned more than 500 XP (LEA-04).
+ * suspicious: a learner-local day in the current league week earned more than 500 XP (LEA-04), so one
+ * heavy day only affects that week's ranking.
  */
 export function xpSummary(state: LearnerState, now: number) {
     const day = new Intl.DateTimeFormat("en-CA", { timeZone: state.profile.timezone, year: "numeric", month: "2-digit", day: "2-digit" });
@@ -146,7 +148,8 @@ export function xpSummary(state: LearnerState, now: number) {
     const summary = { total: 0, today: 0, week: 0, weekStartsAt, weekEndsAt, suspicious: false };
     for (const e of xpEvents(state)) {
         const key = day.format(e.at);
-        perDay.set(key, (perDay.get(key) ?? 0) + e.xp);
+        if (e.at >= weekStartsAt && e.at <= weekEndsAt)
+            perDay.set(key, (perDay.get(key) ?? 0) + e.xp);
         summary.total += e.xp;
         if (key === today)
             summary.today += e.xp;

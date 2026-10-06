@@ -172,7 +172,21 @@ test("the study view reports session XP, the latest award, the step kind and the
     assert.equal(done.view.xp, 20);
     const finished = executeLearning(done.state, { kind: "next_study", requestId: requestId(), sessionId }, morning + 3 * MINUTE).view;
     assert.ok(finished.kind === "study" && finished.status === "complete");
-    assert.equal(finished.xp, 30, "finishing the lesson adds 10");
+    assert.equal(finished.xp, 20, "a lesson under 5 answers earns no finish bonus");
+});
+
+test("finishing a lesson of at least 5 answers adds 10", () => {
+    const ids = ["q001", "q002", "q003", "q004", "q005"];
+    const started = lesson(createLearner(morning), ids, morning);
+    const sessionId = started.sessionId;
+    let s = started.state;
+    ids.forEach((id, i) => {
+        s = answerIn(s, sessionId, id, morning + (2 * i + 1) * MINUTE);
+        s = run(s, { kind: "next_study", requestId: requestId(), sessionId }, morning + (2 * i + 2) * MINUTE);
+    });
+    const finished = executeLearning(s, { kind: "resume_study", requestId: requestId(), sessionId }, morning + 20 * MINUTE).view;
+    assert.ok(finished.kind === "study" && finished.status === "complete");
+    assert.equal(finished.xp, 5 * 10 + 10);
 });
 
 test("a finished daily lesson keeps its bonus when it reopens for newly due reviews", () => {
@@ -208,6 +222,7 @@ test("today follows the learner's timezone, the week runs Monday to Sunday in Vi
     const q51 = bankQuestions[50]?.questionId ?? "";
     busy = run(busy, { kind: "answer_question", requestId: requestId(), questionId: q51, answer: right(q51) }, morning);
     assert.equal(xpSummary(busy, morning).suspicious, true);
+    assert.equal(xpSummary(busy, morning + 8 * DAY).suspicious, false, "a heavy day only flags its own league week");
 });
 
 test("the course view carries the XP summary and what comes back tomorrow", () => {
