@@ -402,6 +402,21 @@ function answerResults(answers: AnswerFact[]) {
         accuracyPercent: answers.length ? Math.round(correctAttempts * 100 / answers.length) : 0
     };
 }
+/** Today's wrong answers, the latest per question and newest first, for read-only review. Viewing them records nothing. */
+export function todayMistakes(state: LearnerState, now: number) {
+    const today = localDay(now, state.profile.timezone);
+    const latest = new Map<string, AnswerFact>();
+    for (const e of answerFacts(state.evidence))
+        if (!e.correct && localDay(e.at, state.profile.timezone) === today)
+            latest.set(e.questionId, e);
+    return [...latest.values()].sort((a, b) => b.at - a.at || b.sequence - a.sequence).map(e => ({
+        question: safeQuestion(e.questionId),
+        chosen: e.answer,
+        correctAnswer: submitAnswer(e.questionId, e.answer).correctAnswer,
+        explanation: bankQuestions.find(q => q.questionId === e.questionId)?.explanation ?? null,
+        at: e.at
+    }));
+}
 /** Today's goal ring and what comes back tomorrow, shared by the home card and the finish screen. */
 function dailySummary(state: LearnerState, now: number, p = questionProgress(state)) {
     const today = localDay(now, state.profile.timezone);
@@ -411,6 +426,7 @@ function dailySummary(state: LearnerState, now: number, p = questionProgress(sta
         newToday: progress.filter(q => q.coveredAt !== null && q.coveredDay === today).length,
         dailyGoal: state.profile.dailyGoal,
         dueCount: progress.filter(q => q.dueAt !== null && q.dueAt <= now).length,
+        wrongToday: todayMistakes(state, now).length,
         // Not due yet, but due by the end of the learner-local tomorrow: what the finish screen says comes back tomorrow.
         // Answers given just now are due 24 hours after they were given, which is slightly under now + 24 hours.
         tomorrowDue: progress.filter(q => q.dueAt !== null && q.dueAt > now && q.dueAt < now + 3 * DAY && localDay(q.dueAt, state.profile.timezone) <= tomorrow).length
@@ -448,6 +464,7 @@ export function courseView(state: LearnerState, now: number, nothingToStudy = fa
         newToday: daily.newToday,
         dailyGoal: daily.dailyGoal,
         dueCount: daily.dueCount,
+        wrongToday: daily.wrongToday,
         requiredStudyDays,
         calendarCapacity,
         bufferDays: calendarCapacity - requiredStudyDays,

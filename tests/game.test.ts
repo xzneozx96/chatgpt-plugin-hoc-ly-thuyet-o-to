@@ -259,6 +259,6 @@ test("the study view splits a mastery award and counts mastered, guessed, assist
     assert.ok(finished.kind === "study" && finished.status === "complete");
     assert.deepEqual([finished.masteredCount, finished.guessedCount, finished.assistedCount, finished.skippedCount, finished.skippedPending], [1, 1, 1, 1, 0]);
     const course = courseView(s, at + MINUTE);
-    assert.deepEqual(finished.goal, { newToday: course.newToday, dailyGoal: course.dailyGoal, dueCount: course.dueCount, tomorrowDue: course.tomorrowDue });
+    assert.deepEqual(finished.goal, { newToday: course.newToday, dailyGoal: course.dailyGoal, dueCount: course.dueCount, wrongToday: course.wrongToday, tomorrowDue: course.tomorrowDue });
     assert.deepEqual([finished.goal.newToday, finished.goal.tomorrowDue], [3, 3], "q002 to q004 are new today and come back tomorrow; mastered q001 waits three days");
 });

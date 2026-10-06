@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { createLearner, courseView, listUnits, LearningCommandSchema, type mockView, type studyView } from "./domain/learning.js";
+import { createLearner, courseView, listUnits, LearningCommandSchema, type mockView, type studyView, type todayMistakes } from "./domain/learning.js";
 import { LearningRuntime } from "./domain/learning-runtime.js";
 import { questionTeaching } from "./domain/teaching.js";
 import type { leagueView } from "./domain/league.js";
@@ -58,6 +58,14 @@ export function createLearningTools(runtime: LearningRuntime | null, persistence
       const offset = typeof input.offset === "number" ? input.offset : 0;
       const limit = typeof input.limit === "number" ? input.limit : 20;
       return decorate({ ...view, units: filtered.slice(offset, offset + limit), totalMatches: filtered.length, offset, nextOffset: offset + limit < filtered.length ? offset + limit : null });
+    }
+  }, {
+    name: "get_today_mistakes", title: "Review today's wrong answers",
+    description: "List the questions the learner answered wrong today (learner timezone), each once with the choice they made, the bank's correct answer and the bank explanation, newest first. Read-only: records no help and no attempt, so redoing these questions is left to their scheduled review. Use when the learner asks which questions they got wrong today.",
+    inputSchema: {}, readOnly: true, card: true,
+    async run() {
+      if (!runtime) throw new Error("HISTORY_UNAVAILABLE");
+      return decorate(await runtime.mistakes());
     }
   }, {
     name: "get_study_session", title: "Inspect a saved study session",
@@ -203,8 +211,14 @@ function cardText(view: object) {
     if ("score" in mock) return `Thẻ đang hiển thị kết quả thi thử ${mock.attemptId}: ${mock.score}/30 · ${mock.passed ? "Đạt" : "Chưa đạt"}. ${CARD_SILENT}`;
     return `Thẻ thi thử đang hiển thị bài ${mock.attemptId} · đã chọn ${mock.answeredCount}/30. Never reveal correctness before submission. ${CARD_SILENT}`;
   }
+  if (kind === "mistakes") return `Thẻ đang hiển thị ${(view as { items: unknown[] }).items.length} câu sai hôm nay để xem lại. ${CARD_SILENT}`;
   const screen = kind === "league" ? "nhóm thi đua tuần" : kind === "units" ? "danh sách chủ đề và nhóm" : "trang chính của khóa học";
   return `Thẻ đang hiển thị ${screen}. ${CARD_SILENT}`;
+}
+
+function mistakesText({ items }: { items: ReturnType<typeof todayMistakes> }) {
+  if (!items.length) return "Hôm nay chưa có câu sai.";
+  return [`Câu sai hôm nay (${items.length}), chỉ để xem lại; câu sẽ quay lại theo lịch ôn:`, ...items.map(item => `${item.question.id}: bạn chọn ${item.chosen}, đáp án gốc ${item.correctAnswer}. ${item.explanation ? `Giải thích từ ngân hàng: ${item.explanation}` : "Ngân hàng chưa có giải thích cho câu này."}`)].join("\n");
 }
 
 export function learningText(view: object, origin: string, card = false) {
@@ -215,6 +229,7 @@ export function learningText(view: object, origin: string, card = false) {
   if (kind === "help" && teaching) return helpText(teaching);
   if (kind === "mock") return mockText(view as ReturnType<typeof mockView>, origin);
   if (kind === "league") return leagueText(view as ReturnType<typeof leagueView>);
+  if (kind === "mistakes") return mistakesText(view as { items: ReturnType<typeof todayMistakes> });
   if (kind !== "study") return JSON.stringify(view);
   const study = view as ReturnType<typeof studyView>;
   const lines = [`Buổi học ${study.sessionId} · ${study.completed}/${study.total} câu đã xử lý · ${study.status}`, `Kết quả buổi này: ${study.sessionResults.correct}/${study.sessionResults.answered} đúng${study.sessionResults.wrong ? ` · sai: ${study.sessionResults.items.filter(item => !item.correct).map(item => item.questionId).join(", ")}` : ""}`];

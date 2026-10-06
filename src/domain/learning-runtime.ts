@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { closeExpiredLightning, createLearner, courseView, executeLearning, listUnits, runningMockQuestions, studyView, type LearnerState, type LearningCommand } from "./learning.js";
+import { closeExpiredLightning, createLearner, courseView, todayMistakes, executeLearning, listUnits, runningMockQuestions, studyView, type LearnerState, type LearningCommand } from "./learning.js";
 import { leagueSummary, leagueView } from "./league.js";
 import type { LearningStore } from "../persistence/learning-store.js";
 
@@ -44,6 +44,7 @@ export class LearningRuntime {
   async runningMockQuestions() { return runningMockQuestions((await this.current()).state); }
   async course() { const saved = await this.current(); return { ...courseView(saved.state, this.now()), leagueSummary: leagueSummary(await this.board(saved.state)), revision: saved.revision }; }
   async league() { const saved = await this.current(); return { ...await this.board(saved.state), revision: saved.revision }; }
+  async mistakes() { const saved = await this.current(); return { kind: "mistakes" as const, items: todayMistakes(saved.state, this.now()), revision: saved.revision }; }
   async units(query?: string) { const saved = await this.current(); return { ...listUnits(saved.state, query, this.now()), revision: saved.revision }; }
   async session(sessionId: string) { const saved = await this.current(); return { ...studyView(saved.state, sessionId, this.now()), revision: saved.revision }; }
 }

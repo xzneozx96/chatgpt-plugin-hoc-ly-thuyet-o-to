@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { createLearner, executeLearning, importLegacyAttempts, questionProgress, courseView, listUnits, DAY, type LearnerState, type LearningCommand } from "../src/domain/learning.js";
+import { createLearner, executeLearning, importLegacyAttempts, questionProgress, courseView, listUnits, todayMistakes, DAY, type LearnerState, type LearningCommand } from "../src/domain/learning.js";
 import { safeQuestion, bankQuestions, families } from "../src/domain/course.js";
 import { submitAnswer, type AnswerId } from "../src/domain/quiz.js";
 const clock = Date.parse("2026-10-05T16:55:00Z");
@@ -481,4 +481,23 @@ test("the confusing-question category counts its due reviews, and a closed mock 
     const done = executeLearning(started.state, { kind: "finalise_mock", requestId: requestId(), attemptId: started.view.attemptId, confirmUnanswered: true }, clock + 5 * 60000).view;
     assert.ok(done.kind === "mock");
     assert.equal(done.closedAt, clock + 5 * 60000);
+});
+
+test("today's mistakes list each wrong question once with its latest choice, the bank key and explanation, and leave yesterday out", () => {
+    const yesterday = clock; // 23:55 in Vietnam
+    const today = clock + 2 * 3600000; // 01:55 the next day
+    const noText = bankQuestions.find(q => !q.explanation)?.questionId ?? "";
+    let s = answer(createLearner(yesterday), "q010", yesterday, wrong("q010"));
+    s = answer(s, "q011", today, wrong("q011"));
+    s = answer(s, "q012", today, right("q012"));
+    s = answer(s, noText, today + 60000, wrong(noText));
+    s = answer(s, "q011", today + 120000, wrong("q011"));
+    const before = JSON.stringify(s);
+    const items = todayMistakes(s, today + 180000);
+    assert.deepEqual(items.map(i => i.question.id), ["q011", noText], "newest first, one entry per question, no correct or earlier-day answers");
+    assert.deepEqual([items[0]?.chosen, items[0]?.correctAnswer], [wrong("q011"), right("q011")]);
+    assert.equal(items[0]?.explanation, bankQuestions.find(q => q.questionId === "q011")?.explanation);
+    assert.equal(items[1]?.explanation, null, "a question without bank text says so rather than showing a fallback sentence");
+    assert.equal(courseView(s, today + 180000).wrongToday, 2);
+    assert.equal(JSON.stringify(s), before, "reviewing mistakes records nothing");
 });
