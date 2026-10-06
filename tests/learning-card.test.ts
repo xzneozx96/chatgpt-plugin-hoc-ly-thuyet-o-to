@@ -486,3 +486,30 @@ test("a failed progress load offers Thử lại and shows no numbers, and a host
     });
   });
 });
+
+test("the verdict's pop, bounce, sparks and shake start after Kiểm tra", async () => {
+  await withPreview(async ({ origin, page, app, tool, open }) => {
+    const started = await tool("start_study", { questionIds: ["q001", "q002"], requestId: randomUUID() });
+    await page.goto(`${origin}/preview`);
+    await app.locator("[data-action]").first().waitFor();
+    await open(started);
+    await app.getByRole("button", { name: "Bắt đầu" }).click();
+    const frame = page.frames().find((f) => f.url().includes("/ui/learning.html"));
+    assert.ok(frame);
+    await frame.evaluate(() => {
+      const log: string[] = [];
+      (window as unknown as { started: string[] }).started = log;
+      document.addEventListener("animationstart", (event) => log.push((event as AnimationEvent).animationName), true);
+    });
+    // The answer renders twice in one task; both renders must keep the animation classes, or nothing ever paints.
+    const startsAll = (names: string[]) => frame.waitForFunction((wanted) => wanted.every((name) => (window as unknown as { started: string[] }).started.includes(name)), names, { timeout: 5000 });
+    await app.locator(`input[name="answer"][value="${right("q001")}"]`).check();
+    await app.locator('[data-action="answer"]').click();
+    await startsAll(["rise", "pop", "bounce", "spark", "xp"]);
+    await app.getByRole("button", { name: "Tiếp tục" }).click();
+    await app.locator("#verdict").waitFor({ state: "detached" });
+    await app.locator(`input[name="answer"][value="${wrong("q002")}"]`).check();
+    await app.locator('[data-action="answer"]').click();
+    await startsAll(["shake"]);
+  });
+});
