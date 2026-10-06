@@ -162,11 +162,11 @@ test("in a sandboxed host with slow saves the mock keeps moving, keeps the list 
     assert.equal(await app.locator("details.test-index").evaluate((element: HTMLDetailsElement) => element.open), true, "question list stays open");
     await app.locator('[data-action="mock-nav"][data-value="0"]').click();
     assert.equal(await app.locator('input[name="answer"]').first().isChecked(), true, "choice kept while saving");
-    await app.getByText("Đáp án hiển thị là lựa chọn máy chủ đã lưu.").waitFor({ timeout: 5000 });
-    await app.locator('[data-action="mock-confirm"]').click();
-    await app.getByText("29 câu chưa trả lời. Nộp bài và chấm ngay?").waitFor({ timeout: 2000 });
+    await app.getByText("Đã lưu lựa chọn.").waitFor({ timeout: 5000 });
+    await app.locator('[data-action="mock-confirm"]').first().click();
+    await app.getByRole("alertdialog", { name: "Nộp bài?" }).waitFor({ timeout: 2000 });
     await app.locator('[data-action="confirm-yes"]').click();
-    await app.getByRole("heading", { name: "Kết quả thi thử" }).waitFor({ timeout: 5000 });
+    await app.getByRole("heading", { name: "Kết quả" }).waitFor({ timeout: 5000 });
     assert.deepEqual(dialogs, [], "no browser dialogs; sandboxed hosts block them");
   } finally {
     await browser.close();

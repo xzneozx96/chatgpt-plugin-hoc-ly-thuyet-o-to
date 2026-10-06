@@ -13,7 +13,7 @@ import { LearningRuntime } from "../src/domain/learning-runtime.js";
 import { SqliteLearningStore } from "../src/persistence/learning-store.js";
 
 type WidgetMessage = { method: string; name?: string; arguments?: Record<string, unknown> };
-interface Preview { origin: string; dataPath: string; page: Page; app: FrameLocator; tool(name: string, args: object): Promise<{ structuredContent: Record<string, unknown> }>; open(result: unknown): Promise<void>; messages(): Promise<() => Promise<WidgetMessage[]>> }
+interface Preview { origin: string; dataPath: string; page: Page; app: FrameLocator; tool(name: string, args: object): Promise<{ structuredContent: Record<string, unknown>; isError?: boolean }>; open(result: unknown): Promise<void>; messages(): Promise<() => Promise<WidgetMessage[]>> }
 
 const right = (q: string) => submitAnswer(q, safeQuestion(q).options[0]?.id ?? "A").correctAnswer;
 const wrong = (q: string) => safeQuestion(q).options.find(o => o.id !== right(q))?.id ?? "A";
@@ -388,5 +388,53 @@ test("joining the league shows the server's name errors in the card's words, the
     await app.getByRole("heading", { name: "Thi đua XP mỗi tuần" }).waitFor();
     const league = await tool("get_league", {});
     assert.equal(league.structuredContent.joined, false);
+  });
+});
+
+test("the mock result groups wrong and blank questions by category, and Ôn các câu sai studies exactly those", async () => {
+  await withPreview(async ({ origin, page, app, tool, open, messages }) => {
+    const started = await tool("start_mock_test", { mode: "random", requestId: randomUUID() });
+    const mock = started.structuredContent as { attemptId: string; questions: { id: string; topic: string }[] };
+    const [a, b, c] = mock.questions;
+    assert.ok(a && b && c);
+    for (const [q, answer] of [[a.id, right(a.id)], [b.id, wrong(b.id)], [c.id, wrong(c.id)]]) await tool("save_mock_choice", { attemptId: mock.attemptId, questionId: q, answer, requestId: randomUUID() });
+    const finished = await tool("finalise_mock_test", { attemptId: mock.attemptId, confirmUnanswered: true, requestId: randomUUID() });
+    const missed = mock.questions.map((q) => q.id).filter((id) => id !== a.id);
+    await page.goto(`${origin}/preview`);
+    await app.locator("[data-action]").first().waitFor();
+    await open(finished);
+    await app.getByRole("heading", { name: "Kết quả" }).waitFor();
+    await app.getByText("CHƯA ĐẠT", { exact: true }).waitFor();
+    assert.equal(await app.locator(".ticks i.wrong").count(), 2);
+    assert.equal(await app.locator(".ticks i.blank").count(), 27);
+    assert.equal(await app.locator("details.acc").count(), missed.length, "one entry per wrong or blank question");
+    const topics = await app.locator("details.acc .acc-text b").allInnerTexts();
+    assert.ok(topics.every((t, i) => i === 0 || t === topics[i - 1] || !topics.slice(0, i).includes(t)), "entries of one bank category sit together");
+    assert.ok(new Set(topics).size > 1, "a random test spans several categories");
+    const entry = app.locator(`details.acc:has-text("Câu ${Number(b.id.slice(1))} · sai")`).first();
+    if (!(await entry.evaluate((element: HTMLDetailsElement) => element.open))) await entry.locator("summary").click();
+    await app.getByText(`Bạn chọn: ${wrong(b.id)} ·`, { exact: false }).first().waitFor();
+    await app.getByText("Các câu sai và câu bỏ trống đã vào lịch ôn ngày mai.").waitFor();
+    const sent = await messages();
+    await app.getByRole("button", { name: "Ôn các câu sai" }).click();
+    await app.getByRole("button", { name: "Bắt đầu" }).waitFor();
+    const call = (await sent()).find((m) => m.name === "start_study");
+    assert.deepEqual([...(call?.arguments?.questionIds as string[])].sort(), [...missed].sort(), "exactly the wrong and blank questions");
+    await app.getByText(`${missed.length} câu bạn chọn.`, { exact: false }).waitFor();
+  });
+});
+
+test("a request for the supplied test library shows Chưa có bộ đề gốc and offers a random test", async () => {
+  await withPreview(async ({ origin, page, app, tool, open }) => {
+    await tool("start_study", { requestId: randomUUID() });
+    const refused = await tool("start_mock_test", { mode: "library", requestId: randomUUID() });
+    assert.equal(refused.isError, true);
+    await page.goto(`${origin}/preview`);
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    await open(refused);
+    await app.getByRole("heading", { name: "Chưa có bộ đề gốc" }).waitFor();
+    await app.getByRole("button", { name: "Tạo đề ngẫu nhiên" }).click();
+    await app.getByRole("heading", { name: "Sẵn sàng thi thử?" }).waitFor();
+    await app.getByRole("button", { name: "Bắt đầu tính giờ" }).waitFor();
   });
 });
