@@ -271,3 +271,38 @@ test("confusion keeps the chosen answer, the card shrinks after long screens, an
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("after ChatGPT scores a card-sent answer, the card shows the result and moves on", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "driving-widget-followup-"));
+  const server = startHttpServer(0, { dataPath: join(dir, "study.sqlite") });
+  if (!server.listening) await once(server, "listening");
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("Missing preview port");
+  const origin = `http://127.0.0.1:${address.port}`;
+  const executablePath = process.env.CHROME_PATH ?? (existsSync("/usr/bin/google-chrome") ? "/usr/bin/google-chrome" : undefined);
+  const browser = await chromium.launch({ executablePath, headless: true, args: ["--no-sandbox"] });
+  const tool = async (name: string, args: object) => (await (await fetch(`${origin}/preview/tool`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, arguments: args }) })).json()).structuredContent;
+  try {
+    const page = await browser.newPage();
+    await page.goto(`${origin}/preview?chat=1`);
+    const app = page.frameLocator("#widget");
+    await app.locator('[data-action="families"]').first().click();
+    await app.locator('[data-action="unit"]').first().click();
+    await app.locator('input[name="answer"]').first().waitFor();
+    const heading = await app.locator("#content h2").innerText();
+    await app.locator('input[name="answer"][value="A"]').check();
+    await app.locator('[data-action="answer"]').click();
+    await app.getByRole("button", { name: "Đã gửi" }).waitFor();
+    const course = await tool("get_course", {}) as { sessions: { id: string; status: string }[] };
+    const session = await tool("get_study_session", { sessionId: course.sessions.filter((s) => s.status === "active").at(-1)?.id }) as { sessionId: string; question: { id: string } };
+    await tool("submit_study_answer", { sessionId: session.sessionId, questionId: session.question.id, answer: "A", requestId: randomUUID() });
+    await app.getByRole("button", { name: "Câu tiếp theo" }).waitFor({ timeout: 8000 });
+    await app.getByRole("button", { name: "Câu tiếp theo" }).click();
+    await app.locator('[data-action="answer"]', { hasText: "Trả lời" }).waitFor();
+    assert.notEqual(await app.locator("#content h2").innerText(), heading, "moved to the next question");
+  } finally {
+    await browser.close();
+    server.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
