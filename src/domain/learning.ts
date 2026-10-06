@@ -45,7 +45,13 @@ const item = z.object({
     questionId: qid,
     kind: z.enum(["review", "new", "practice"]),
     status: z.enum(["pending", "answered"]),
-    bindingAt: time
+    bindingAt: time,
+    // Set on the one repair step a wrong lesson answer schedules (PLAY-05).
+    repairOf: qid.optional(),
+    // Compare-the-pair items share their family ID here (INT-02).
+    group: z.string().optional(),
+    // The answer fact that resolved this item in this session.
+    answerId: id.optional()
 });
 const session = z.object({
     id,
@@ -55,8 +61,14 @@ const session = z.object({
     reviewOnly: z.boolean().default(false),
     unitId: z.string().nullable(),
     items: z.array(item),
-    activeQuestionId: qid.nullable()
+    activeQuestionId: qid.nullable(),
+    // A question can appear twice once it has a repair step, so this says which of the two is active.
+    activeRepair: z.boolean().default(false),
+    mode: z.enum(["lesson", "lightning"]).default("lesson"),
+    deadline: time.optional()
 });
+type Session = z.infer<typeof session>;
+type Item = z.infer<typeof item>;
 const provisional = z.object({
     answer: choice,
     at: time,
@@ -104,7 +116,12 @@ export const LearnerStateSchema = z.object({
         digest: z.string(),
         activityId: z.string().nullable(),
         viewKind: z.enum(["course", "study", "mock", "help", "answer"])
-    }))
+    })),
+    league: z.object({
+        displayName: z.string(),
+        joinedAt: time,
+        hidden: z.boolean()
+    }).nullable().default(null)
 });
 export type LearnerState = z.infer<typeof LearnerStateSchema>;
 const base = {
@@ -331,6 +348,13 @@ type AnswerFact = Extract<z.infer<typeof fact>, { kind: "answer" }>;
 function answerFacts(evidence: LearnerState["evidence"]) {
     return evidence.filter((e): e is AnswerFact => e.kind === "answer").sort((a, b) => a.at - b.at || a.sequence - b.sequence);
 }
+function feedbackOf(e: AnswerFact) {
+    return {
+        ...submitAnswer(e.questionId, e.answer),
+        sourceId: `question-bank.json#${e.questionId}`,
+        teachingStatus: "bank_text_unreviewed"
+    };
+}
 function answerResults(answers: AnswerFact[]) {
     const correctAttempts = answers.filter(e => e.correct).length;
     return {
@@ -446,6 +470,13 @@ function findSession(state: LearnerState, id: string) {
         throw new Error("SESSION_NOT_FOUND");
     return s;
 }
+function activeItem(s: Session) {
+    return s.items.find(i => i.questionId === s.activeQuestionId && (i.repairOf !== undefined) === s.activeRepair);
+}
+function activate(s: Session, i: Item | undefined) {
+    s.activeQuestionId = i?.questionId ?? null;
+    s.activeRepair = i?.repairOf !== undefined;
+}
 function findMock(state: LearnerState, id: string) {
     const m = state.mocks.find(m => m.id === id);
     if (!m)
@@ -455,8 +486,10 @@ function findMock(state: LearnerState, id: string) {
 export function studyView(state: LearnerState, sessionId: string, now: number) {
     const s = findSession(state, sessionId);
     const q = s.activeQuestionId;
+    const active = activeItem(s);
     const answers = answerFacts(state.evidence).filter(e => e.activityId === s.id);
     const results = answerResults(answers);
+    const activeAnswer = active?.status !== "answered" ? undefined : active.answerId ? answers.find(e => e.id === active.answerId) : answers.filter(e => e.questionId === q).at(-1);
     return {
         kind: "study" as const,
         sessionId: s.id,
@@ -474,13 +507,9 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
         },
         question: q ? safeQuestion(q) : null,
         confusionEnabled: q ? questionProgress(state).get(q)?.confused ?? false : false,
-        questionStatus: s.items.find(i => i.questionId === q)?.status ?? null,
+        questionStatus: active?.status ?? null,
         queue: s.items,
-        currentFeedback: answers.filter(e => e.questionId === q).slice(-1).map(e => e.kind === "answer" ? {
-            ...submitAnswer(e.questionId, e.answer),
-            sourceId: `question-bank.json#${e.questionId}`,
-            teachingStatus: "bank_text_unreviewed"
-        } : null)[0] ?? null,
+        currentFeedback: activeAnswer ? feedbackOf(activeAnswer) : null,
         help: q && state.evidence.some(e => e.kind === "help" && e.questionId === q && e.at >= s.createdAt) ? helpView(q) : null,
         sessionResults: {
             answered: results.totalAttempts,
@@ -585,14 +614,14 @@ function reconcile(state: LearnerState, s: z.infer<typeof session>, now: number)
                     bindingAt: now
                 });
     s.items.sort((a, b) => Number(b.kind === "review") - Number(a.kind === "review"));
-    s.activeQuestionId = s.items.find(i => i.status === "pending" && !blocked.has(i.questionId))?.questionId ?? null;
+    activate(s, s.items.find(i => i.status === "pending" && !blocked.has(i.questionId)));
     s.status = s.activeQuestionId ? "active" : s.items.some(i => i.status === "pending") ? "paused" : "complete";
 }
 export function runningMockQuestions(state: LearnerState) {
     return new Set(state.mocks.flatMap(m => m.status === "active" ? m.questionIds : []));
 }
 function reopen(state: LearnerState, s: z.infer<typeof session>, now: number) {
-    if (s.items.some(i => i.questionId === s.activeQuestionId && i.status === "answered"))
+    if (activeItem(s)?.status === "answered")
         s.status = "active";
     else
         reconcile(state, s, now);
@@ -759,7 +788,9 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
                     status: "pending",
                     bindingAt: now
                 })),
-                activeQuestionId: ids[0] ?? null
+                activeQuestionId: ids[0] ?? null,
+                activeRepair: false,
+                mode: "lesson"
             };
             state.sessions.push(s);
             viewKind = "study";
@@ -771,10 +802,11 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
             viewKind = "study";
             if (s.status !== "active")
                 throw new Error("SESSION_NOT_ACTIVE");
-            if (s.activeQuestionId !== command.questionId)
-                throw new Error("QUESTION_BINDING_MISMATCH");
-            const i = s.items.find(i => i.questionId === command.questionId && i.status === "pending");
+            const active = activeItem(s);
+            const i = s.activeQuestionId === command.questionId ? active : active?.group === undefined ? undefined : s.items.find(i => i.group === active.group && i.questionId === command.questionId);
             if (!i)
+                throw new Error("QUESTION_BINDING_MISMATCH");
+            if (i.status !== "pending")
                 throw new Error("QUESTION_NOT_PENDING");
             assertNotInRunningMock(state, command.questionId);
             const scored = submitAnswer(command.questionId, command.answer);
@@ -790,6 +822,7 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
                 activityId: s.id
             });
             i.status = "answered";
+            i.answerId = state.evidence.at(-1)?.id;
             append(state, command.questionId, now, {
                 kind: "help",
                 feedback: true
@@ -802,7 +835,8 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
             viewKind = "study";
             if (s.status !== "active")
                 throw new Error("SESSION_NOT_ACTIVE");
-            if (s.items.some(i => i.questionId === s.activeQuestionId && i.status === "pending"))
+            const active = activeItem(s);
+            if (active?.status === "pending" || (active?.group !== undefined && s.items.some(i => i.group === active.group && i.status === "pending")))
                 throw new Error("ANSWER_OR_SKIP_FIRST");
             reconcile(state, s, now);
             break;
@@ -813,11 +847,11 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
             viewKind = "study";
             if (s.status !== "active")
                 throw new Error("SESSION_NOT_ACTIVE");
-            const i = s.items.findIndex(i => i.questionId === s.activeQuestionId);
-            const skipped = s.items.splice(i, 1)[0];
-            if (skipped)
-                s.items.push(skipped);
-            s.activeQuestionId = s.items.find(i => i.status === "pending" && i.questionId !== skipped?.questionId && (skipped?.kind!=="review"||i.kind==="review"))?.questionId ?? null;
+            const active = activeItem(s);
+            // A compare-the-pair group is skipped and requeued as one step.
+            const skipped = active?.group === undefined ? active ? [active] : [] : s.items.filter(i => i.group === active.group);
+            s.items = [...s.items.filter(i => !skipped.includes(i)), ...skipped];
+            activate(s, s.items.find(i => i.status === "pending" && !skipped.includes(i) && (active?.kind!=="review"||i.kind==="review")));
             if (!s.activeQuestionId)
                 s.status = "paused";
             break;
