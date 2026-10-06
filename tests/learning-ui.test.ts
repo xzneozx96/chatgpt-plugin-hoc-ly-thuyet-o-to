@@ -83,7 +83,7 @@ test("learning preview drives course, goal, families, lesson, confusion, help, p
     await action("resume").click();
     await app.getByRole("heading", { name: "Làn đường là gì?" }).waitFor();
     await app.locator("#verdict").waitFor();
-    await app.getByText("2/20", { exact: true }).waitFor();
+    await app.getByText("2/23", { exact: true }).waitFor();
 
     assert.equal(await app.locator(".brand").isVisible(), false, "no global navigation during a lesson");
     await page.reload();
