@@ -513,3 +513,19 @@ test("the verdict's pop, bounce, sparks and shake start after Kiểm tra", async
     await startsAll(["shake"]);
   });
 });
+
+test("a question without bank text says so and offers Hỏi ChatGPT inside the verdict", async () => {
+  await withPreview(async ({ origin, page, app, tool, open }) => {
+    const started = await tool("start_study", { questionIds: ["q010"], requestId: randomUUID() });
+    const sessionId = started.structuredContent.sessionId as string;
+    const scored = await tool("submit_study_answer", { sessionId, questionId: "q010", answer: right("q010"), requestId: randomUUID() });
+    assert.equal((scored.structuredContent.currentFeedback as { teachingStatus: string }).teachingStatus, "teaching_gap");
+    await page.goto(`${origin}/preview`);
+    await app.locator("[data-action]").first().waitFor();
+    await open(await tool("get_study_session", { sessionId }));
+    await app.locator(".panel").getByText("Chưa có giải thích được duyệt cho câu này.").waitFor();
+    assert.equal(await app.locator('.panel [data-action="help"]').count(), 1, "Hỏi ChatGPT is the panel's suggestion");
+    assert.equal(await app.getByRole("button", { name: "Hỏi ChatGPT" }).count(), 1, "and it is offered once");
+    assert.equal(await app.getByText("Ngân hàng câu hỏi chưa có", { exact: false }).count(), 0, "no fallback sentence stands in for an explanation");
+  });
+});

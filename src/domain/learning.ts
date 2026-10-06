@@ -389,7 +389,8 @@ function feedbackOf(e: AnswerFact) {
         assisted: e.assisted,
         confidence: e.confidence,
         sourceId: `question-bank.json#${e.questionId}`,
-        teachingStatus: "bank_text_unreviewed"
+        // As in helpView: a question without bank text has no explanation to show, only the fallback sentence.
+        teachingStatus: bankQuestions.find(q => q.questionId === e.questionId)?.explanation ? "bank_text_unreviewed" : "teaching_gap"
     };
 }
 function answerResults(answers: AnswerFact[]) {
