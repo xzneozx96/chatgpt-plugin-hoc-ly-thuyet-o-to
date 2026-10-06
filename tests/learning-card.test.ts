@@ -351,3 +351,42 @@ test("the home card draws the goal ring and the three numbers from the course vi
     assert.deepEqual([call?.arguments?.unitId, call?.arguments?.override], ["bien_bao", true]);
   });
 });
+
+test("joining the league shows the server's name errors in the card's words, then the board, hiding and an in-card leave", async () => {
+  await withPreview(async ({ origin, page, app, tool }) => {
+    const started = await tool("start_study", { questionIds: ["q001"], requestId: randomUUID() });
+    const sessionId = started.structuredContent.sessionId as string;
+    await tool("submit_study_answer", { sessionId, questionId: "q001", answer: right("q001"), requestId: randomUUID() });
+    await tool("next_study_question", { sessionId, requestId: randomUUID() });
+    await page.goto(`${origin}/preview`);
+    await app.getByRole("button", { name: /Tham gia nhóm thi đua tuần/ }).click();
+    await app.getByRole("heading", { name: "Thi đua XP mỗi tuần" }).waitFor();
+    const name = app.getByLabel("Tên hiển thị");
+    await name.fill("ab");
+    await app.getByRole("button", { name: "Tham gia nhóm" }).click();
+    await app.getByRole("alert").getByText("Tên cần 3–20 ký tự: chữ, số, khoảng trắng hoặc . _ -").waitFor();
+    assert.equal(await name.inputValue(), "ab", "the typed name stays for correcting");
+    await name.fill("vcl abc");
+    await app.getByRole("button", { name: "Tham gia nhóm" }).click();
+    await app.getByRole("alert").getByText("Tên này không phù hợp. Chọn tên khác nhé.").waitFor();
+    assert.equal(await app.getByText(/join_league|LEAGUE_/).count(), 0, "no tool names or codes reach the learner");
+    await name.fill("lan.hoc.lai");
+    await app.getByRole("button", { name: "Tham gia nhóm" }).click();
+    await app.getByRole("heading", { name: "Nhóm tuần này" }).waitFor();
+    await app.locator(".brow.me").getByText("Bạn (lan.hoc.lai)").waitFor();
+    await app.getByText(/^còn \d ngày$/).waitFor();
+    await app.getByRole("button", { name: "Ẩn tôi khỏi bảng" }).click();
+    await app.getByText("Bạn đang ẩn: người khác không thấy bạn trên bảng.").waitFor();
+    await app.getByRole("button", { name: "Hiện tôi trên bảng" }).click();
+    await app.getByRole("button", { name: "Ẩn tôi khỏi bảng" }).waitFor();
+    await app.getByRole("button", { name: "Rời nhóm" }).click();
+    await app.getByRole("alertdialog", { name: "Rời nhóm?" }).waitFor();
+    await app.getByRole("button", { name: "Ở lại nhóm" }).click();
+    await app.getByRole("alertdialog").waitFor({ state: "detached" });
+    await app.getByRole("button", { name: "Rời nhóm" }).click();
+    await app.getByRole("alertdialog").getByRole("button", { name: "Rời nhóm" }).click();
+    await app.getByRole("heading", { name: "Thi đua XP mỗi tuần" }).waitFor();
+    const league = await tool("get_league", {});
+    assert.equal(league.structuredContent.joined, false);
+  });
+});
