@@ -386,3 +386,16 @@ test("returning to an open session keeps the answered question's feedback until 
     assert.equal(resumed.state.sessions.at(-1)?.status, "active");
     assert.notEqual("currentFeedback" in resumed.view ? resumed.view.currentFeedback : null, null);
 });
+test("course and session views report right and wrong answers from saved evidence", () => {
+    let s = run(createLearner(clock), { kind: "start_study", requestId: requestId(), questionIds: ["q001", "q002", "q003"] }, clock);
+    const session = s.sessions.at(-1);
+    assert.ok(session);
+    s = run(s, { kind: "answer_study", requestId: requestId(), sessionId: session.id, questionId: "q001", answer: right("q001") }, clock + 1000);
+    s = run(s, { kind: "next_study", requestId: requestId(), sessionId: session.id }, clock + 2000);
+    const view = executeLearning(s, { kind: "answer_study", requestId: requestId(), sessionId: session.id, questionId: "q002", answer: wrong("q002") }, clock + 3000);
+    assert.ok(view.view.kind === "study");
+    assert.deepEqual(view.view.sessionResults, { answered: 2, correct: 1, wrong: 1, items: [{ questionId: "q001", answer: right("q001"), correct: true }, { questionId: "q002", answer: wrong("q002"), correct: false }] });
+    const course = courseView(view.state, clock + 4000);
+    assert.deepEqual(course.results, { totalAttempts: 2, correctAttempts: 1, wrongAttempts: 1, accuracyPercent: 50 });
+    assert.deepEqual(course.recentAnswers.map(a => [a.questionId, a.correct]), [["q002", false], ["q001", true]]);
+});

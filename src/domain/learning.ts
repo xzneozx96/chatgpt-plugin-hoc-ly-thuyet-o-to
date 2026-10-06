@@ -326,6 +326,19 @@ function dueIds(state: LearnerState, now: number) {
         return Number(y?.lastWrong) - Number(x?.lastWrong) || Number(b.isCritical) - Number(a.isCritical) || (x?.dueAt ?? 0) - (y?.dueAt ?? 0) || a.id - b.id;
     }).map(q => q.questionId);
 }
+type AnswerFact = Extract<z.infer<typeof fact>, { kind: "answer" }>;
+function answerFacts(evidence: LearnerState["evidence"]) {
+    return evidence.filter((e): e is AnswerFact => e.kind === "answer").sort((a, b) => a.at - b.at || a.sequence - b.sequence);
+}
+function answerResults(answers: AnswerFact[]) {
+    const correctAttempts = answers.filter(e => e.correct).length;
+    return {
+        totalAttempts: answers.length,
+        correctAttempts,
+        wrongAttempts: answers.length - correctAttempts,
+        accuracyPercent: answers.length ? Math.round(correctAttempts * 100 / answers.length) : 0
+    };
+}
 export function courseView(state: LearnerState, now: number) {
     const p = questionProgress(state);
     const covered = [...p.values()].filter(q => q.coveredAt !== null);
@@ -366,6 +379,14 @@ export function courseView(state: LearnerState, now: number) {
         units: listUnits(state, "", now).units.filter(u => u.kind === "category"),
         customCategory: listUnits(state, "", now).customCategory,
         mockLibraryAvailable: false,
+        results: answerResults(answerFacts(state.evidence)),
+        recentAnswers: answerFacts(state.evidence).slice(-20).reverse().map(e => ({
+            questionId: e.questionId,
+            answer: e.answer,
+            correct: e.correct,
+            at: e.at,
+            origin: e.origin
+        })),
         sessions: state.sessions.map(s => ({
             id: s.id,
             status: s.status
@@ -430,7 +451,8 @@ function findMock(state: LearnerState, id: string) {
 export function studyView(state: LearnerState, sessionId: string, now: number) {
     const s = findSession(state, sessionId);
     const q = s.activeQuestionId;
-    const answers = state.evidence.filter(e => e.kind === "answer" && e.activityId === s.id);
+    const answers = answerFacts(state.evidence).filter(e => e.activityId === s.id);
+    const results = answerResults(answers);
     return {
         kind: "study" as const,
         sessionId: s.id,
@@ -454,7 +476,13 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
             sourceId: `question-bank.json#${e.questionId}`,
             teachingStatus: "bank_text_unreviewed"
         } : null)[0] ?? null,
-        help: q && state.evidence.some(e => e.kind === "help" && e.questionId === q && e.at >= s.createdAt) ? helpView(q) : null
+        help: q && state.evidence.some(e => e.kind === "help" && e.questionId === q && e.at >= s.createdAt) ? helpView(q) : null,
+        sessionResults: {
+            answered: results.totalAttempts,
+            correct: results.correctAttempts,
+            wrong: results.wrongAttempts,
+            items: answers.map(e => ({ questionId: e.questionId, answer: e.answer, correct: e.correct }))
+        }
     };
 }
 export function mockView(state: LearnerState, attemptId: string, now: number) {

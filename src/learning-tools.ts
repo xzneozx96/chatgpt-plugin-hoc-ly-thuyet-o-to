@@ -98,7 +98,7 @@ function questionBlock(question: ShownQuestion, origin: string) {
 export function learningText(view: object, origin: string) {
   if (!("kind" in view) || view.kind !== "study") return JSON.stringify(view);
   const study = view as ReturnType<typeof studyView>;
-  const lines = [`Buổi học ${study.sessionId} · ${study.completed}/${study.total} câu đã xử lý · ${study.status}`];
+  const lines = [`Buổi học ${study.sessionId} · ${study.completed}/${study.total} câu đã xử lý · ${study.status}`, `Kết quả buổi này: ${study.sessionResults.correct}/${study.sessionResults.answered} đúng${study.sessionResults.wrong ? ` · sai: ${study.sessionResults.items.filter(item => !item.correct).map(item => item.questionId).join(", ")}` : ""}`];
   if (study.currentFeedback) {
     const feedback = study.currentFeedback;
     lines.push(`Kết quả ${feedback.questionId}: ${feedback.correct ? "Đúng" : "Sai"}. Đáp án gốc: ${feedback.correctAnswer}.`, `Giải thích từ ngân hàng: ${feedback.explanation}`, "Call next_study_question for the next original question. Do not write a question yourself.");

@@ -68,7 +68,7 @@ after(async () => {
 
 test("MCP get, submit, next and UI resource work over HTTP", async () => {
   const tools = await client.listTools();
-  assert.deepEqual(tools.tools.map((tool) => tool.name).sort(), ["abandon_mock_test", "finalise_mock_test", "get_course", "get_due_reviews", "get_mock_test", "get_progress", "get_question", "get_study_session", "list_units", "next_study_question", "pause_study", "request_study_help", "resume_study", "save_mock_choice", "search_theory", "set_question_confusion", "skip_study_question", "start_mock_test", "start_study", "submit_answer", "submit_study_answer", "update_profile"]);
+  assert.deepEqual(tools.tools.map((tool) => tool.name).sort(), ["abandon_mock_test", "finalise_mock_test", "get_course", "get_mock_test", "get_progress", "get_question", "get_study_session", "list_units", "next_study_question", "pause_study", "request_study_help", "resume_study", "save_mock_choice", "search_theory", "set_question_confusion", "skip_study_question", "start_mock_test", "start_study", "submit_answer", "submit_study_answer", "update_profile"]);
   const courseTool = tools.tools.find((tool) => tool.name === "get_course");
   const learningUri = (courseTool?._meta as { ui?: { resourceUri?: string } })?.ui?.resourceUri;
   assert.match(learningUri ?? "", /^ui:\/\/ly-thuyet-lai-xe\/learning-[0-9a-f]{12}\.html$/);
@@ -111,8 +111,7 @@ test("MCP get, submit, next and UI resource work over HTTP", async () => {
 
   const progress = await client.callTool({ name: "get_progress", arguments: {} });
   assert.equal((progress.structuredContent as { totalAttempts: number }).totalAttempts, 2);
-  const due = await client.callTool({ name: "get_due_reviews", arguments: {} });
-  assert.ok(Array.isArray((due.structuredContent as { items: unknown[] }).items));
+  assert.equal((progress.structuredContent as { correctAttempts: number }).correctAttempts, 1);
   const search = await client.callTool({ name: "search_theory", arguments: { query: "phần đường xe chạy" } });
   assert.ok((search.structuredContent as { hits: Array<{ questionId: string }> }).hits.some((hit) => hit.questionId === "q001"));
 
