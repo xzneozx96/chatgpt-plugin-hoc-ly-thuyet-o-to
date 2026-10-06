@@ -240,6 +240,7 @@ test("a compare-the-pair step submits both answers, shows both verdicts and the 
     await app.locator(".vchip").getByText("Chính xác!").waitFor();
     await app.locator(".vchip").getByText("Chưa đúng").waitFor();
     assert.equal(await app.locator(".diff .axes li").count() > 0, true, "the family's aspects are named");
+    assert.equal(await app.locator(".diff").getByRole("button", { name: "Giải thích: Bản nháp" }).count(), 1, "BẢN NHÁP explains itself");
     const calls = () => sent().then((log) => log.filter((m) => m.method === "tools/call" && m.name !== "get_study_session").map((m) => [m.name, m.arguments?.questionId ?? null]));
     assert.deepEqual(await calls(), [["submit_study_answer", a], ["submit_study_answer", b]], "two answers, no next yet");
     await app.locator(".diff").getByRole("button", { name: "Tiếp tục" }).click();
@@ -695,5 +696,60 @@ test("a popover fits inside the card at 360 px and narrower, with no sideways sc
         assert.deepEqual([fit.inside, fit.scroll], [true, 0], `${label} popover inside a ${fit.card} px card`);
       }
     }
+  });
+});
+
+test("the ⓘ beside Tôi đoán, THỬ LẠI, the combo, XP, the goal, the mock rule, the league and BẢN NHÁP each open their own explanation", async () => {
+  await withPreview(async ({ origin, page, app, tool, open }) => {
+    const started = await tool("start_study", { questionIds: ["q001", "q002", "q003", "q004"], requestId: randomUUID() });
+    await page.goto(`${origin}/preview`);
+    await app.locator("[data-action]").first().waitFor();
+    await open(started);
+    const explains = async (label: string, title: string) => {
+      await app.getByRole("button", { name: `Giải thích: ${label}`, exact: true }).click();
+      await app.getByRole("dialog").getByRole("heading", { name: title, exact: true }).waitFor();
+      await page.keyboard.press("Escape");
+      await app.getByRole("dialog").waitFor({ state: "hidden" });
+    };
+    const answer = async (choice: string) => {
+      await app.locator(`input[name="answer"][value="${choice}"]`).check();
+      await app.locator('[data-action="answer"]').click();
+      await app.locator("#verdict").waitFor();
+    };
+    const next = async () => {
+      await app.getByRole("button", { name: "Tiếp tục" }).click();
+      await app.locator("#verdict").waitFor({ state: "detached" });
+    };
+    await app.getByRole("button", { name: "Bắt đầu" }).click();
+    await explains("Tôi đoán", "Tôi đoán");
+    await answer(wrong("q001"));
+    for (const q of ["q002", "q003"]) {
+      await next();
+      await answer(right(q));
+    }
+    await next();
+    await app.getByText("THỬ LẠI", { exact: true }).waitFor();
+    await explains("Thử lại", "Thử lại");
+    await answer(right("q001"));
+    await app.getByText("Combo 3 câu liên tiếp").waitFor();
+    await explains("Combo", "Combo");
+    await next();
+    await answer(right("q004"));
+    await next();
+    await app.getByRole("heading", { name: "Hoàn thành bài học!" }).waitFor();
+    await explains("XP", "XP");
+    await explains("Mục tiêu hôm nay", "Mục tiêu hôm nay");
+
+    await app.getByRole("button", { name: "Xong hôm nay" }).click();
+    await app.getByRole("button", { name: "Thi thử" }).click();
+    await explains("Luật thi thử", "Luật thi thử");
+    await app.getByRole("button", { name: "Về trang chính" }).click();
+    await app.getByRole("button", { name: /^Tham gia nhóm thi đua tuần/ }).click();
+    await explains("Nhóm thi đua tuần", "Nhóm thi đua tuần");
+    await app.getByRole("button", { name: "Về trang chính" }).click();
+    await app.getByRole("button", { name: "Chọn chủ đề" }).click();
+    await app.getByRole("button", { name: /^Câu hỏi dễ nhầm lẫn/ }).click();
+    await app.getByRole("button", { name: "Chọn nhóm" }).click();
+    await explains("Bản nháp", "Bản nháp");
   });
 });
