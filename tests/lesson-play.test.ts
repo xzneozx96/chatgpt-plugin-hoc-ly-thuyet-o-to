@@ -62,7 +62,7 @@ test("the repair step plays as its own step, earns 2 XP, and is never repaired a
     assert.equal(repair.lastAward, null);
     const answered = executeLearning(s, { kind: "answer_study", requestId: requestId(), sessionId, questionId: "q001", answer: wrong("q001") }, morning + 3 * MINUTE);
     assert.ok(answered.view.kind === "study");
-    assert.deepEqual(answered.view.lastAward, { xp: 2, reason: "repair", masteredNow: false });
+    assert.deepEqual(answered.view.lastAward, { xp: 2, reason: "repair", masteredNow: false, baseXp: 2, bonusXp: 0 });
     assert.equal(answered.view.currentFeedback?.correct, false);
     assert.deepEqual(queue(answered.state, sessionId), ["q001", "q002", "q003", "repair:q001"], "a wrong repair adds no second repair");
     const done = next(answered.state, sessionId, morning + 3 * MINUTE);
@@ -275,4 +275,26 @@ test("an answer after the 60 seconds is rejected and records nothing, and the ro
     assert.ok(resumed.kind === "study");
     assert.equal(resumed.status, "complete", "an ended round cannot be resumed");
     store.close();
+});
+
+test("a lightning round reveals the right answers to its mistakes only once it is over", () => {
+    const seen = answered(3);
+    const round = lightning(seen, morning + DAY);
+    const sessionId = round.sessionId;
+    const order = round.state.sessions.at(-1)?.items.map(i => i.questionId) ?? [];
+    const [first] = order;
+    assert.ok(first);
+    const missed = executeLearning(round.state, { kind: "answer_study", requestId: requestId(), sessionId, questionId: first, answer: wrong(first) }, morning + DAY + 1000);
+    assert.ok(missed.view.kind === "study");
+    assert.equal(missed.view.review, null, "no answer key while the round runs");
+    const running = next(missed.state, sessionId, morning + DAY + 2000);
+    assert.equal(study(running, { kind: "resume_study", requestId: requestId(), sessionId }, morning + DAY + 3000).review, null);
+    const over = study(running, { kind: "resume_study", requestId: requestId(), sessionId }, morning + DAY + MINUTE);
+    assert.equal(over.status, "complete");
+    assert.deepEqual(over.review?.map(r => [r.question.id, r.chosen, r.correctAnswer]), [[first, wrong(first), right(first)]]);
+    assert.equal("correctAnswer" in (over.review?.[0]?.question ?? {}), false, "the question itself carries no key");
+    let early = running;
+    for (const q of order.slice(1)) early = next(answerIn(early, sessionId, q, morning + DAY + 5000), sessionId, morning + DAY + 5000);
+    const done = study(early, { kind: "resume_study", requestId: requestId(), sessionId }, morning + DAY + 6000);
+    assert.deepEqual([done.status, done.review?.length], ["complete", 1], "answering every question early also ends the round");
 });

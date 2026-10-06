@@ -98,7 +98,16 @@ export function createLearningTools(runtime: LearningRuntime | null, persistence
       return decorate(await runtime.league());
     }
   });
+  // The study card marks its own calls, so their text tells ChatGPT the card is showing the result (see cardText).
+  for (const tool of tools) tool.inputSchema = { ...tool.inputSchema, caller: callerSchema };
   return runtime ? tools : tools.filter(tool => tool.name === "get_course" || tool.name === "list_units");
+}
+
+const callerSchema = z.literal("card").optional().describe("Set only by the study card for its own calls. Never set it yourself.");
+
+/** True when the study card made this call; its result is already on screen. */
+export function calledByCard(input: unknown) {
+  return typeof input === "object" && input !== null && "caller" in input && input.caller === "card";
 }
 
 type ShownQuestion = Pick<NonNullable<ReturnType<typeof studyView>["question"]>, "id" | "question" | "options" | "imagePath">;
@@ -175,7 +184,31 @@ function pairLines(study: ReturnType<typeof studyView>, pair: NonNullable<Return
   ];
 }
 
-export function learningText(view: object, origin: string) {
+const CARD_SILENT = "The card shows this to the learner and handles the next step itself. Stay silent: do not repeat, judge or continue it, and call no tool unless the learner asks in chat.";
+
+// A call the card made needs no instructions to show anything; the full text below is for text-only use.
+function cardText(view: object) {
+  const kind = "kind" in view ? view.kind : null;
+  const teaching = "teaching" in view ? view.teaching as ReturnType<typeof questionTeaching> : null;
+  if (kind === "study") {
+    const study = view as ReturnType<typeof studyView>;
+    const lines = [`Thẻ học đang hiển thị ${study.mode === "lightning" ? "lượt chớp nhoáng" : "buổi học"} ${study.sessionId} · ${study.completed}/${study.total} câu đã xử lý · ${study.status}${study.question ? ` · câu đang mở ${study.question.id}` : ""}.`, CARD_SILENT];
+    if (teaching) lines.push(helpText(teaching), "The card posts the learner's request next; answer that message only, from this bank explanation.");
+    return lines.join("\n");
+  }
+  if (kind === "help" && teaching) return [helpText(teaching), "The card posts the learner's request next; answer that message only."].join("\n");
+  if (kind === "mock") {
+    const mock = view as ReturnType<typeof mockView>;
+    if (mock.status === "abandoned") return `Thẻ đang hiển thị bài thi thử ${mock.attemptId} đã dừng. ${CARD_SILENT}`;
+    if ("score" in mock) return `Thẻ đang hiển thị kết quả thi thử ${mock.attemptId}: ${mock.score}/30 · ${mock.passed ? "Đạt" : "Chưa đạt"}. ${CARD_SILENT}`;
+    return `Thẻ thi thử đang hiển thị bài ${mock.attemptId} · đã chọn ${mock.answeredCount}/30. Never reveal correctness before submission. ${CARD_SILENT}`;
+  }
+  const screen = kind === "league" ? "nhóm thi đua tuần" : kind === "units" ? "danh sách chủ đề và nhóm" : "trang chính của khóa học";
+  return `Thẻ đang hiển thị ${screen}. ${CARD_SILENT}`;
+}
+
+export function learningText(view: object, origin: string, card = false) {
+  if (card) return cardText(view);
   const kind = "kind" in view ? view.kind : null;
   const teaching = "teaching" in view ? view.teaching as ReturnType<typeof questionTeaching> : null;
   if (kind === "course") return courseText(view as ReturnType<typeof courseView>);
@@ -222,11 +255,14 @@ const errorMessages: Record<string, string> = {
   LEAGUE_NOT_JOINED: "Bạn chưa tham gia nhóm thi đua tuần."
 };
 
-export function learningError(error: unknown) {
+export function learningError(error: unknown, withCode = true) {
+  const code = error instanceof z.ZodError ? "INVALID_INPUT" : error instanceof Error && error.message in errorMessages ? error.message : "UNKNOWN";
   const reason = error instanceof z.ZodError
     ? `Dữ liệu gửi lên không hợp lệ: ${error.issues.map(issue => issue.path.join(".") || "input").join(", ")}.`
     : error instanceof RangeError && /time zone/i.test(error.message)
       ? "Múi giờ không hợp lệ. Dùng tên múi giờ IANA, ví dụ Asia/Ho_Chi_Minh."
       : errorMessages[error instanceof Error ? error.message : ""] ?? `Chưa xử lý được yêu cầu học tập (${error instanceof Error ? error.message : "lỗi không xác định"}). Không có thay đổi nào được lưu.`;
-  return { isError: true, content: [{ type: "text" as const, text: reason }] };
+  // The code lets the card word its own message; the text is for ChatGPT and may name tools.
+  const content = [{ type: "text" as const, text: reason }];
+  return withCode ? { isError: true, structuredContent: { kind: "error", code }, content } : { isError: true, content };
 }

@@ -170,3 +170,24 @@ test("a running mock is summarised in text and its questions cannot be looked up
   assert.match(text(finished), /^Kết quả thi thử .*: 0\/30 · Chưa đạt/);
   assert.equal((finished.structuredContent as { remainingMs: number }).remainingMs, 0);
 });
+
+test("the card's own calls get short text that keeps ChatGPT silent, a replay ignores the marker, and errors carry a code", async () => {
+  const text = (result: Awaited<ReturnType<typeof client.callTool>>) => (result.content as { type: string; text: string }[])[0]?.text ?? "";
+  const started = await client.callTool({ name: "start_study", arguments: { questionIds: ["q010"], requestId: randomUUID(), caller: "card" } });
+  const session = started.structuredContent as { sessionId: string; question: { id: string; question: string } };
+  assert.match(text(started), /Stay silent/);
+  assert.equal(text(started).includes(session.question.question), false, "the card shows the question, so the text does not");
+  assert.doesNotMatch(text(started), /Show it to the learner/);
+  const args = { sessionId: session.sessionId, questionId: session.question.id, answer: "A", requestId: randomUUID() };
+  const answered = await client.callTool({ name: "submit_study_answer", arguments: { ...args, caller: "card" } });
+  assert.match(text(answered), /Stay silent/);
+  assert.doesNotMatch(text(answered), /next_study_question|Kết quả q010/, "no instruction to continue and no restated verdict");
+  const replay = await client.callTool({ name: "submit_study_answer", arguments: args });
+  assert.notEqual(replay.isError, true, "the marker is not part of the request, so the replay matches");
+  assert.match(text(replay), /Kết quả q010: (Đúng|Sai)\. Đáp án gốc/, "without the marker ChatGPT gets the full text-only reply");
+  const results = (replay.structuredContent as { sessionResults: { answered: number } }).sessionResults;
+  assert.equal(results.answered, 1, "the replay saved nothing new");
+  const mismatch = await client.callTool({ name: "submit_study_answer", arguments: { ...args, questionId: "q011", requestId: randomUUID(), caller: "card" } });
+  assert.equal(mismatch.isError, true);
+  assert.deepEqual(mismatch.structuredContent, { kind: "error", code: "QUESTION_BINDING_MISMATCH" });
+});

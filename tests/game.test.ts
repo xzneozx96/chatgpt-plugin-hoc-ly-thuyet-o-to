@@ -168,7 +168,7 @@ test("the study view reports session XP, the latest award, the step kind and the
     s = run(s, { kind: "next_study", requestId: requestId(), sessionId }, morning + MINUTE);
     const done = executeLearning(s, { kind: "answer_study", requestId: requestId(), sessionId, questionId: "q002", answer: right("q002") }, morning + 2 * MINUTE);
     assert.ok(done.view.kind === "study");
-    assert.deepEqual(done.view.lastAward, { xp: 10, reason: "first_correct", masteredNow: false });
+    assert.deepEqual(done.view.lastAward, { xp: 10, reason: "first_correct", masteredNow: false, baseXp: 10, bonusXp: 0 });
     assert.equal(done.view.xp, 20);
     const finished = executeLearning(done.state, { kind: "next_study", requestId: requestId(), sessionId }, morning + 3 * MINUTE).view;
     assert.ok(finished.kind === "study" && finished.status === "complete");
@@ -235,4 +235,30 @@ test("the course view carries the XP summary and what comes back tomorrow", () =
     assert.equal(courseView(s, evening + DAY).tomorrowDue, 0, "once due they count as due now, not tomorrow");
     assert.equal(courseView(s, evening + DAY).dueCount, 2);
     assert.equal(courseView(s, evening - 2 * DAY).tomorrowDue, 0, "due two days later is not tomorrow");
+});
+
+test("the study view splits a mastery award and counts mastered, guessed, assisted and skipped answers for the finish screen", () => {
+    const at = morning + DAY;
+    let s = answer(createLearner(morning), "q001", morning).state;
+    const started = lesson(s, ["q001", "q002", "q003", "q004"], at);
+    const sessionId = started.sessionId;
+    const mastered = executeLearning(started.state, { kind: "answer_study", requestId: requestId(), sessionId, questionId: "q001", answer: right("q001") }, at);
+    assert.ok(mastered.view.kind === "study");
+    assert.deepEqual(mastered.view.lastAward, { xp: 25, reason: "review_correct", masteredNow: true, baseXp: 10, bonusXp: 15 });
+    s = next(mastered.state, sessionId, at);
+    s = run(s, { kind: "answer_study", requestId: requestId(), sessionId, questionId: "q002", answer: right("q002"), confidence: "guess" }, at);
+    s = next(s, sessionId, at);
+    s = run(s, { kind: "skip_study", requestId: requestId(), sessionId }, at);
+    const skippedView = executeLearning(s, { kind: "resume_study", requestId: requestId(), sessionId }, at).view;
+    assert.ok(skippedView.kind === "study");
+    assert.deepEqual([skippedView.question?.id, skippedView.skippedCount, skippedView.skippedPending], ["q004", 1, 1]);
+    s = run(s, { kind: "record_help", requestId: requestId(), sessionId, questionId: "q004" }, at);
+    s = next(answerIn(s, sessionId, "q004", at), sessionId, at);
+    s = next(answerIn(s, sessionId, "q003", at, wrong("q003")), sessionId, at);
+    const finished = executeLearning(s, { kind: "resume_study", requestId: requestId(), sessionId }, at + MINUTE).view;
+    assert.ok(finished.kind === "study" && finished.status === "complete");
+    assert.deepEqual([finished.masteredCount, finished.guessedCount, finished.assistedCount, finished.skippedCount, finished.skippedPending], [1, 1, 1, 1, 0]);
+    const course = courseView(s, at + MINUTE);
+    assert.deepEqual(finished.goal, { newToday: course.newToday, dailyGoal: course.dailyGoal, dueCount: course.dueCount, tomorrowDue: course.tomorrowDue });
+    assert.deepEqual([finished.goal.newToday, finished.goal.tomorrowDue], [3, 3], "q002 to q004 are new today and come back tomorrow; mastered q001 waits three days");
 });

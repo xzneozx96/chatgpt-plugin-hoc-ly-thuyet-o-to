@@ -2,7 +2,7 @@ import { randomUUID, createHash } from "node:crypto";
 import { z } from "zod";
 import { submitAnswer } from "./quiz.js";
 import { bankQuestions, bankVersion, categories, categoryTitles, CONFUSING_CATEGORY_ID, families, safeQuestion, unitQuestions } from "./course.js";
-import { answerAwards, comboOf, hasFinishedLesson, lessonXp, xpSummary } from "./game.js";
+import { answerAwards, awardParts, comboOf, hasFinishedLesson, lessonXp, xpSummary } from "./game.js";
 import { leagueDisplayName } from "./league.js";
 export const DAY = 86400000;
 const LIGHTNING_MS = 60000;
@@ -54,7 +54,9 @@ const item = z.object({
     // Compare-the-pair items share their family ID here (INT-02).
     group: z.string().optional(),
     // The answer fact that resolved this item in this session.
-    answerId: id.optional()
+    answerId: id.optional(),
+    // Set once the learner skips this item; a skip is never scored, so this is its only trace.
+    skipped: z.boolean().optional()
 });
 const session = z.object({
     id,
@@ -399,12 +401,26 @@ function answerResults(answers: AnswerFact[]) {
         accuracyPercent: answers.length ? Math.round(correctAttempts * 100 / answers.length) : 0
     };
 }
+/** Today's goal ring and what comes back tomorrow, shared by the home card and the finish screen. */
+function dailySummary(state: LearnerState, now: number, p = questionProgress(state)) {
+    const today = localDay(now, state.profile.timezone);
+    const tomorrow = localDay(now + DAY, state.profile.timezone);
+    const progress = [...p.values()];
+    return {
+        newToday: progress.filter(q => q.coveredAt !== null && q.coveredDay === today).length,
+        dailyGoal: state.profile.dailyGoal,
+        dueCount: progress.filter(q => q.dueAt !== null && q.dueAt <= now).length,
+        // Not due yet, but due by the end of the learner-local tomorrow: what the finish screen says comes back tomorrow.
+        // Answers given just now are due 24 hours after they were given, which is slightly under now + 24 hours.
+        tomorrowDue: progress.filter(q => q.dueAt !== null && q.dueAt > now && q.dueAt < now + 3 * DAY && localDay(q.dueAt, state.profile.timezone) <= tomorrow).length
+    };
+}
 export function courseView(state: LearnerState, now: number, nothingToStudy = false) {
     const p = questionProgress(state);
     const covered = [...p.values()].filter(q => q.coveredAt !== null);
-    const today = localDay(now, state.profile.timezone);
+    const daily = dailySummary(state, now, p);
     const requiredStudyDays = Math.ceil((600 - covered.length) / state.profile.dailyGoal);
-    const todayNew=covered.filter(q=>q.coveredDay===today).length;
+    const todayNew = daily.newToday;
     let cursor = todayNew>=state.profile.dailyGoal?now+DAY:now, availableStudyDays = 0, forecastFinishAt: number | null = requiredStudyDays === 0 ? now : null;
     for (let i = 0; i < 10000 && forecastFinishAt === null; i++, cursor += DAY) {
         const weekday = new Date(new Intl.DateTimeFormat("en-US", {
@@ -420,7 +436,7 @@ export function courseView(state: LearnerState, now: number, nothingToStudy = fa
         }
     }
     const calendarCapacity = Math.max(0, Math.ceil((state.profile.targetDate - now) / DAY));
-    const tomorrow = localDay(now + DAY, state.profile.timezone);
+    const unitList = listUnits(state, "", now);
     return {
         kind: "course" as const,
         nothingToStudy,
@@ -428,9 +444,9 @@ export function courseView(state: LearnerState, now: number, nothingToStudy = fa
         total: 600,
         covered: covered.length,
         learned: [...p.values()].filter(q => q.successes >= 2).length,
-        newToday: covered.filter(q => q.coveredDay === today).length,
-        dailyGoal: state.profile.dailyGoal,
-        dueCount: dueIds(state, now).length,
+        newToday: daily.newToday,
+        dailyGoal: daily.dailyGoal,
+        dueCount: daily.dueCount,
         requiredStudyDays,
         calendarCapacity,
         bufferDays: calendarCapacity - requiredStudyDays,
@@ -438,14 +454,12 @@ export function courseView(state: LearnerState, now: number, nothingToStudy = fa
         targetCompatible: forecastFinishAt !== null && forecastFinishAt <= state.profile.targetDate,
         profile: state.profile,
         familyStatus: "draft_bank_analysis",
-        units: listUnits(state, "", now).units.filter(u => u.kind === "category"),
-        customCategory: listUnits(state, "", now).customCategory,
+        units: unitList.units.filter(u => u.kind === "category"),
+        customCategory: unitList.customCategory,
         mockLibraryAvailable: false,
         results: answerResults(answerFacts(state.evidence)),
         xp: xpSummary(state, now),
-        // Not due yet, but due by the end of the learner-local tomorrow: what the finish screen says comes back tomorrow.
-        // Answers given just now are due 24 hours after they were given, which is slightly under now + 24 hours.
-        tomorrowDue: [...p.values()].filter(q => q.dueAt !== null && q.dueAt > now && q.dueAt < now + 3 * DAY && localDay(q.dueAt, state.profile.timezone) <= tomorrow).length,
+        tomorrowDue: daily.tomorrowDue,
         recentAnswers: answerFacts(state.evidence).slice(-20).reverse().map(e => ({
             questionId: e.questionId,
             answer: e.answer,
@@ -498,7 +512,11 @@ export function listUnits(state: LearnerState, query = "", now = Date.now()) {
             familyCount: families.length,
             total: new Set(families.flatMap(f => f.questionIds)).size,
             covered: [...new Set(families.flatMap(f => f.questionIds))].filter(id => p.get(id)?.coveredAt !== null).length,
-            learned: [...new Set(families.flatMap(f => f.questionIds))].filter(id => (p.get(id)?.successes ?? 0) >= 2).length
+            learned: [...new Set(families.flatMap(f => f.questionIds))].filter(id => (p.get(id)?.successes ?? 0) >= 2).length,
+            due: [...new Set(families.flatMap(f => f.questionIds))].filter(id => {
+                const due = p.get(id)?.dueAt;
+                return due !== null && due !== undefined && due <= now;
+            }).length
         },
         units: selected,
         suggestions: selected.filter(u => u.kind === "family").sort((a, b) => b.due - a.due || a.covered - b.covered).slice(0, 3)
@@ -539,6 +557,8 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
     const repairStep = active?.repairOf !== undefined && active.status === "pending" ? active : undefined;
     const pairItems = active?.group === undefined ? [] : s.items.filter(i => i.group === active.group);
     const family = families.find(f => f.id === active?.group);
+    const wrongItems = [...new Set(answers.filter(e => !e.correct).map(e => e.questionId))];
+    const lightningOver = s.mode === "lightning" && (s.status === "complete" || (s.deadline !== undefined && now >= s.deadline));
     return {
         kind: "study" as const,
         sessionId: s.id,
@@ -572,7 +592,7 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
         repairOf: active?.repairOf ?? null,
         xp: answers.reduce((sum, e) => sum + (awards.get(e.id)?.xp ?? 0), 0) + lessonXp(state, s),
         combo: comboOf(answers),
-        lastAward: activeAnswer ? awards.get(activeAnswer.id) ?? null : null,
+        lastAward: activeAnswer ? awardParts(awards.get(activeAnswer.id)) : null,
         // The lesson plan for the intro screen; repair steps and compare-the-pair items are counted separately.
         steps: {
             review: planned.filter(i => i.kind === "review").length,
@@ -584,7 +604,19 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
         remainingMs: s.deadline === undefined ? null : Math.max(0, s.deadline - now),
         serverNow: now,
         correctCount: results.correctAttempts,
-        wrongItems: [...new Set(answers.filter(e => !e.correct).map(e => e.questionId))],
+        wrongItems,
+        // Finish-screen counts for this session: newly mastered questions, then the muted assisted, guessed and skipped line.
+        masteredCount: answers.filter(e => awards.get(e.id)?.masteredNow).length,
+        assistedCount: answers.filter(e => e.assisted).length,
+        guessedCount: answers.filter(e => e.confidence === "guess").length,
+        skippedCount: s.items.filter(i => i.skipped).length,
+        skippedPending: s.items.filter(i => i.skipped && i.status === "pending").length,
+        goal: dailySummary(state, now),
+        // Once a lightning round is over, the answers it got wrong, so the card can show them without recording help.
+        review: lightningOver ? wrongItems.map(questionId => {
+            const chosen = answers.filter(e => e.questionId === questionId && !e.correct).at(-1)?.answer ?? "A";
+            return { question: safeQuestion(questionId), chosen, correctAnswer: submitAnswer(questionId, chosen).correctAnswer };
+        }) : null,
         pair: active?.group === undefined ? null : {
             group: active.group,
             familyId: active.group,
@@ -594,7 +626,7 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
             questions: pairItems.map(i => safeQuestion(i.questionId)),
             feedback: pairItems.map(i => {
                 const e = answerOf(i);
-                return e ? feedbackOf(e) : null;
+                return e ? { ...feedbackOf(e), award: awardParts(awards.get(e.id)) } : null;
             })
         }
     };
@@ -612,6 +644,8 @@ export function mockView(state: LearnerState, attemptId: string, now: number, re
         createdAt: m.createdAt,
         status: m.status,
         deadline: m.deadline,
+        // When the test was submitted, expired or left; the result screen shows the time used.
+        closedAt: m.status === "active" ? null : m.closedAt,
         serverNow: now,
         remainingMs: m.status === "active" ? Math.max(0, m.deadline - now) : 0,
         expired: m.status === "active" && now >= m.deadline,
@@ -1007,6 +1041,9 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
             const active = activeItem(s);
             // A compare-the-pair group is skipped and requeued as one step.
             const skipped = active?.group === undefined ? active ? [active] : [] : s.items.filter(i => i.group === active.group);
+            for (const i of skipped)
+                if (i.status === "pending")
+                    i.skipped = true;
             s.items = [...s.items.filter(i => !skipped.includes(i)), ...skipped];
             activate(s, s.items.find(i => i.status === "pending" && !skipped.includes(i) && (active?.kind!=="review"||i.kind==="review")));
             if (!s.activeQuestionId)

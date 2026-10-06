@@ -73,6 +73,14 @@ export function answerAwards(state: LearnerState) {
     return awards;
 }
 
+/** An award split into the answer's own XP and the mastery bonus it includes, so the card shows both without arithmetic. */
+export function awardParts(award: Award | undefined) {
+    if (!award)
+        return null;
+    const bonusXp = award.masteredNow ? MASTERED_BONUS : 0;
+    return { ...award, baseXp: award.xp - bonusXp, bonusXp };
+}
+
 function sessionAnswers(state: LearnerState, sessionId: string) {
     return state.evidence.filter((e): e is AnswerFact => e.kind === "answer" && e.activityId === sessionId).sort((a, b) => a.at - b.at || a.sequence - b.sequence);
 }

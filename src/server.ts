@@ -11,7 +11,7 @@ import { AttemptStore } from "./persistence/attempts.js";
 import { authenticateBearer, createAuthKitVerifier, readAuthKitConfig, type TokenVerifier } from "./auth/authkit.js";
 import { createRemoteAttemptStore } from "./persistence/remote-attempts.js";
 import { LearningRuntime } from "./domain/learning-runtime.js";
-import { createLearningTools, learningError, learningText } from "./learning-tools.js";
+import { calledByCard, createLearningTools, learningError, learningText } from "./learning-tools.js";
 import { createRemoteLearningStore, SqliteLearningStore, type LearningStore } from "./persistence/learning-store.js";
 
 const UI_MIME = "text/html;profile=mcp-app";
@@ -62,7 +62,7 @@ export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", worksp
     }, async (input) => {
       try {
         const view = await tool.run(input);
-        return { structuredContent: { ...view }, content: [{ type: "text", text: learningText(view, baseUrl.origin) }] };
+        return { structuredContent: { ...view }, content: [{ type: "text", text: learningText(view, baseUrl.origin, calledByCard(input)) }] };
       } catch (error) { return learningError(error); }
     });
   }
@@ -110,7 +110,8 @@ export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", worksp
           content: [{ type: "text", text: `${result.correct ? "Đúng" : "Chưa đúng"}. Đáp án đúng: ${result.correctAnswer}. ${result.explanation}${result.memoryTip ? ` Mẹo nhớ: ${result.memoryTip}` : ""}` }]
         };
       } catch (error) {
-        return learningError(error);
+        // submit_answer has an output schema, so its errors carry text only.
+        return learningError(error, false);
       }
     }
   );
@@ -270,7 +271,7 @@ export function createHttpHandler(options: {
         if (learningTool) {
           try {
             const view = await learningTool.run(request.arguments);
-            return void res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }).end(JSON.stringify({ structuredContent: view, content: [{ type: "text", text: learningText(view, new URL(publicBaseUrl).origin) }] }));
+            return void res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }).end(JSON.stringify({ structuredContent: view, content: [{ type: "text", text: learningText(view, new URL(publicBaseUrl).origin, calledByCard(request.arguments)) }] }));
           } catch (error) { return void res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }).end(JSON.stringify(learningError(error))); }
         }
         const baseUrl = new URL(publicBaseUrl);

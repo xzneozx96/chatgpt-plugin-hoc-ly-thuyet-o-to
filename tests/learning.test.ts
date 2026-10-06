@@ -470,3 +470,15 @@ test("a running mock keeps its questions out of study and finished mocks report 
     assert.equal(view.remainingMs, 0);
     assert.throws(() => run(s, { kind: "abandon_mock", requestId: requestId(), attemptId: m.id }, clock + 4000), /MOCK_NOT_ACTIVE/);
 });
+
+test("the confusing-question category counts its due reviews, and a closed mock says when it closed", () => {
+    const s = answer(createLearner(clock), "q001", clock, wrong("q001"));
+    assert.equal(listUnits(s, "", clock).customCategory.due, 0);
+    assert.equal(listUnits(s, "", clock + DAY).customCategory.due, 1, "q001 belongs to a confusing-question family");
+    const started = executeLearning(s, { kind: "start_mock", requestId: requestId(), mode: "random" }, clock);
+    assert.ok(started.view.kind === "mock");
+    assert.equal(started.view.closedAt, null);
+    const done = executeLearning(started.state, { kind: "finalise_mock", requestId: requestId(), attemptId: started.view.attemptId, confirmUnanswered: true }, clock + 5 * 60000).view;
+    assert.ok(done.kind === "mock");
+    assert.equal(done.closedAt, clock + 5 * 60000);
+});
