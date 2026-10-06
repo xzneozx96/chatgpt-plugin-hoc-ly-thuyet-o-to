@@ -261,7 +261,7 @@ export function createLearner(now: number): LearnerState {
         receipts: {}
     });
 }
-export function localDay(at: number, timezone: string) {
+function localDay(at: number, timezone: string) {
     return new Intl.DateTimeFormat("en-CA", {
         timeZone: timezone,
         year: "numeric",
