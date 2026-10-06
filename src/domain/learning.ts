@@ -359,7 +359,7 @@ export function questionProgress(state: LearnerState, observe?: (fact: AnswerFac
         if (p.confused && due)
             p.dueAt = earlier(p.dueAt, soon);
         p.prior = true;
-        observe?.(e, { first, due, learnedBefore, learnedAfter: p.successes >= 2 });
+        observe?.(e, { first, due, qualified: qualifies, learnedBefore, learnedAfter: p.successes >= 2 });
     }
     return result;
 }
@@ -377,6 +377,8 @@ export type AnswerFact = Extract<z.infer<typeof fact>, { kind: "answer" }>;
 export interface AnswerStep {
     first: boolean;
     due: boolean;
+    // The answer counted toward learning (B4): a qualifying correct answer.
+    qualified: boolean;
     learnedBefore: boolean;
     learnedAfter: boolean;
 }
@@ -402,18 +404,29 @@ function answerResults(answers: AnswerFact[]) {
         accuracyPercent: answers.length ? Math.round(correctAttempts * 100 / answers.length) : 0
     };
 }
-/** Today's goal ring and what comes back tomorrow, shared by the home card and the finish screen. */
+/** Questions with one qualifying success: not learned yet, learned by the next qualifying answer. */
+function onTheWay(questions: { successes: number }[]) {
+    return questions.filter(q => q.successes === 1).length;
+}
+/**
+ * Today's goal ring, what comes back tomorrow and the questions on the way to Đã thuộc, shared by the home
+ * card and the finish screen. nextLearnAt is the earliest time one of those can count: a due review that is
+ * also eligible, since help after the success delays eligibility past the due time.
+ */
 function dailySummary(state: LearnerState, now: number, p = questionProgress(state)) {
     const today = localDay(now, state.profile.timezone);
     const tomorrow = localDay(now + DAY, state.profile.timezone);
     const progress = [...p.values()];
+    const learnAt = progress.flatMap(q => q.successes === 1 && q.dueAt !== null ? [Math.max(q.dueAt, q.eligibleAt)] : []);
     return {
         newToday: progress.filter(q => q.coveredAt !== null && q.coveredDay === today).length,
         dailyGoal: state.profile.dailyGoal,
         dueCount: progress.filter(q => q.dueAt !== null && q.dueAt <= now).length,
         // Not due yet, but due by the end of the learner-local tomorrow: what the finish screen says comes back tomorrow.
         // Answers given just now are due 24 hours after they were given, which is slightly under now + 24 hours.
-        tomorrowDue: progress.filter(q => q.dueAt !== null && q.dueAt > now && q.dueAt < now + 3 * DAY && localDay(q.dueAt, state.profile.timezone) <= tomorrow).length
+        tomorrowDue: progress.filter(q => q.dueAt !== null && q.dueAt > now && q.dueAt < now + 3 * DAY && localDay(q.dueAt, state.profile.timezone) <= tomorrow).length,
+        onTheWay: onTheWay(progress),
+        nextLearnAt: learnAt.length ? Math.min(...learnAt) : null
     };
 }
 export function courseView(state: LearnerState, now: number, nothingToStudy = false) {
@@ -445,6 +458,8 @@ export function courseView(state: LearnerState, now: number, nothingToStudy = fa
         total: 600,
         covered: covered.length,
         learned: [...p.values()].filter(q => q.successes >= 2).length,
+        onTheWay: daily.onTheWay,
+        nextLearnAt: daily.nextLearnAt,
         newToday: daily.newToday,
         dailyGoal: daily.dailyGoal,
         dueCount: daily.dueCount,
@@ -499,6 +514,7 @@ export function listUnits(state: LearnerState, query = "", now = Date.now()) {
         firstQuestionId: questionIds[0] ?? null,
         covered: questionIds.filter(id => p.get(id)?.coveredAt !== null).length,
         learned: questionIds.filter(id => (p.get(id)?.successes ?? 0) >= 2).length,
+        onTheWay: onTheWay(questionIds.flatMap(id => p.get(id) ?? [])),
         due: questionIds.filter(id => {
             const due = p.get(id)?.dueAt;
             return due !== null && due !== undefined && due <= now;
@@ -514,6 +530,7 @@ export function listUnits(state: LearnerState, query = "", now = Date.now()) {
             total: new Set(families.flatMap(f => f.questionIds)).size,
             covered: [...new Set(families.flatMap(f => f.questionIds))].filter(id => p.get(id)?.coveredAt !== null).length,
             learned: [...new Set(families.flatMap(f => f.questionIds))].filter(id => (p.get(id)?.successes ?? 0) >= 2).length,
+            onTheWay: onTheWay([...new Set(families.flatMap(f => f.questionIds))].flatMap(id => p.get(id) ?? [])),
             due: [...new Set(families.flatMap(f => f.questionIds))].filter(id => {
                 const due = p.get(id)?.dueAt;
                 return due !== null && due !== undefined && due <= now;
@@ -554,6 +571,11 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
     const answerOf = (i: Item) => i.status !== "answered" ? undefined : i.answerId ? answers.find(e => e.id === i.answerId) : answers.filter(e => e.questionId === i.questionId).at(-1);
     const activeAnswer = active ? answerOf(active) : undefined;
     const awards = answerAwards(state);
+    const firstSuccesses = new Set<string>();
+    questionProgress(state, (e, step) => {
+        if (step.first && step.qualified)
+            firstSuccesses.add(e.id);
+    });
     const planned = s.items.filter(i => i.repairOf === undefined && i.group === undefined);
     const repairStep = active?.repairOf !== undefined && active.status === "pending" ? active : undefined;
     const pairItems = active?.group === undefined ? [] : s.items.filter(i => i.group === active.group);
@@ -614,6 +636,8 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
         wrongItems,
         // Finish-screen counts for this session: newly mastered questions, then the muted assisted, guessed and skipped line.
         masteredCount: answers.filter(e => awards.get(e.id)?.masteredNow).length,
+        // First answers to a question that counted toward learning: correct, unassisted, not a guess, with no earlier help.
+        firstCorrectCount: answers.filter(e => firstSuccesses.has(e.id)).length,
         assistedCount: answers.filter(e => e.assisted).length,
         guessedCount: answers.filter(e => e.confidence === "guess").length,
         skippedCount: s.items.filter(i => i.skipped).length,
