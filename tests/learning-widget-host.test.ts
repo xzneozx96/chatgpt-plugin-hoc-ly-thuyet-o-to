@@ -255,7 +255,7 @@ test("confusion keeps the chosen answer, the card shrinks after long screens, an
     await app.locator('input[name="goal"][value="10"]').check();
     await app.getByRole("button", { name: "Lưu mục tiêu" }).click();
     await app.getByText("10 câu mỗi ngày").waitFor();
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 40; i++) {
       const view = await (await fetch(`${origin}/preview/tool`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "start_study", arguments: { requestId: randomUUID() } }) })).json();
       const study = view.structuredContent as { sessionId: string; question: { id: string } | null };
       if (!study.question) break;

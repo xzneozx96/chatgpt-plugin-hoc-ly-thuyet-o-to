@@ -508,6 +508,7 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
     const activeAnswer = active?.status !== "answered" ? undefined : active.answerId ? answers.find(e => e.id === active.answerId) : answers.filter(e => e.questionId === q).at(-1);
     const awards = answerAwards(state);
     const planned = s.items.filter(i => i.repairOf === undefined && i.group === undefined);
+    const repairStep = active?.repairOf !== undefined && active.status === "pending" ? active : undefined;
     return {
         kind: "study" as const,
         sessionId: s.id,
@@ -528,7 +529,8 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
         questionStatus: active?.status ?? null,
         queue: s.items,
         currentFeedback: activeAnswer ? feedbackOf(activeAnswer) : null,
-        help: q && state.evidence.some(e => e.kind === "help" && e.questionId === q && e.at >= s.createdAt) ? helpView(q) : null,
+        // A waiting repair step shows help only when asked for again, not because the wrong answer's feedback was shown.
+        help: q && state.evidence.some(e => e.kind === "help" && e.questionId === q && (repairStep ? !e.feedback && e.at >= repairStep.bindingAt : e.at >= s.createdAt)) ? helpView(q) : null,
         sessionResults: {
             answered: results.totalAttempts,
             correct: results.correctAttempts,
@@ -647,6 +649,23 @@ function reconcile(state: LearnerState, s: z.infer<typeof session>, now: number)
     s.items.sort((a, b) => Number(b.kind === "review") - Number(a.kind === "review"));
     activate(s, s.items.find(i => i.status === "pending" && !blocked.has(i.questionId)));
     s.status = s.activeQuestionId ? "active" : s.items.some(i => i.status === "pending") ? "paused" : "complete";
+}
+/**
+ * PLAY-05: one repair step after a wrong answer, placed after the next two pending steps, or last when
+ * fewer remain. With no other step left, nothing separates it from the feedback that just showed the
+ * answer, so no repair is added. It never lands inside a compare-the-pair group.
+ */
+function insertRepair(s: Session, answered: Item, now: number) {
+    const at = s.items.indexOf(answered);
+    const later = s.items.flatMap((i, index) => index > at && i.status === "pending" ? [index] : []);
+    const siblingWaiting = answered.group !== undefined && s.items.some(i => i.group === answered.group && i.status === "pending");
+    if (!later.length && !siblingWaiting)
+        return;
+    let position = later[1] === undefined ? s.items.length : later[1] + 1;
+    while (position < s.items.length && s.items[position]?.group !== undefined && s.items[position]?.group === s.items[position - 1]?.group)
+        position++;
+    // bindingAt equals the feedback event's time, so B4 treats the repair answer as assisted.
+    s.items.splice(position, 0, { questionId: answered.questionId, kind: "practice", status: "pending", bindingAt: now, repairOf: answered.questionId });
 }
 export function runningMockQuestions(state: LearnerState) {
     return new Set(state.mocks.flatMap(m => m.status === "active" ? m.questionIds : []));
@@ -858,6 +877,8 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
                 kind: "help",
                 feedback: true
             });
+            if (!scored.correct && s.mode === "lesson" && i.repairOf === undefined)
+                insertRepair(s, i, now);
             break;
         }
         case "next_study": {
