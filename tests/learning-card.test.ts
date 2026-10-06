@@ -422,7 +422,9 @@ test("the mock result groups wrong and blank questions by category, and Ôn các
     await app.getByRole("button", { name: "Bắt đầu" }).waitFor();
     const call = (await sent()).find((m) => m.name === "start_study");
     assert.deepEqual([...(call?.arguments?.questionIds as string[])].sort(), [...missed].sort(), "exactly the wrong and blank questions");
-    await app.getByText(`${missed.length} câu bạn chọn.`, { exact: false }).waitFor();
+    // The learner did not pick these questions, so the intro says they are the test's misses.
+    await app.getByRole("heading", { name: "Ôn các câu sai" }).waitFor();
+    await app.getByText(`${missed.length} câu sai hoặc bỏ trống trong bài thi thử.`, { exact: false }).waitFor();
   });
 });
 
