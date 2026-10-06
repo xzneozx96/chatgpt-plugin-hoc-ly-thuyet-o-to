@@ -7,7 +7,7 @@ import { test } from "node:test";
 import { chromium } from "playwright";
 import { startHttpServer } from "../src/server.js";
 
-test("learning preview drives course, goal, families, study, confusion, help, pause and mock through the shared tools", async () => {
+test("learning preview drives course, goal, families, lesson, confusion, help, pause and mock through the shared tools", async () => {
   const dir = mkdtempSync(join(tmpdir(), "driving-learning-ui-"));
   const dataPath = join(dir, "study.sqlite");
   let server = startHttpServer(0, { dataPath });
@@ -45,31 +45,32 @@ test("learning preview drives course, goal, families, study, confusion, help, pa
     await action("course").click();
 
     await action("daily").click();
+    await action("lesson-start").click();
     await app.getByRole("heading", { name: /Phần của đường bộ được sử dụng/ }).waitFor();
     await app.locator('input[name="answer"][value="A"]').check();
     await action("answer").click();
-    await app.getByText("Cần xem lại").waitFor();
-    await app.getByText("Đáp án gốc: B").waitFor();
+    await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
+    await app.getByText("Đáp án đúng: B ·").waitFor();
     await page.reload();
     await action("inspect-session").click();
-    await app.getByText("Cần xem lại").waitFor();
+    await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
     await app.getByRole("heading", { name: /Phần của đường bộ được sử dụng/ }).waitFor();
-    assert.equal(await action("skip").isDisabled(), true, "feedback stays bound and skip is unavailable until next");
+    assert.equal(await action("skip").count(), 0, "feedback stays bound and skip is unavailable until next");
 
     await action("study-next").click();
     await app.getByRole("heading", { name: "Làn đường là gì?" }).waitFor();
+    await app.locator('input[name="answer"]').first().check();
+    await action("answer").click();
+    await app.locator("#verdict").waitFor();
 
-    await app.locator("details.more-actions summary").click();
     await app.getByRole("button", { name: "Tôi còn phân vân" }).click();
-    await app.getByRole("heading", { name: "Làn đường là gì?" }).waitFor();
-    await app.getByRole("button", { name: "Bỏ dấu phân vân" }).waitFor();
-    await app.locator("details.more-actions summary").click();
+    await app.locator('[data-action="confusion"][aria-pressed="true"]').waitFor();
+    await app.getByText("Đang phân vân").waitFor();
+    assert.equal(await app.locator("#verdict").count(), 1, "the verdict stays after flagging confusion");
 
     await action("help").click();
     await app.locator("#status").getByText(/Host này không gửi được yêu cầu vào ChatGPT/).waitFor();
-    await app.getByText(/Kho kiến thức và video bổ sung chưa kết nối/).waitFor();
 
-    await app.locator("details.more-actions summary").click();
     await action("pause").click();
     await app.getByRole("heading", { name: "Buổi học đã tạm dừng" }).waitFor();
 
@@ -81,8 +82,12 @@ test("learning preview drives course, goal, families, study, confusion, help, pa
     await app.getByText("20 câu mỗi ngày").waitFor();
     await action("resume").click();
     await app.getByRole("heading", { name: "Làn đường là gì?" }).waitFor();
-    await app.getByText("1/20 câu đã xử lý", { exact: false }).waitFor();
+    await app.locator("#verdict").waitFor();
+    await app.getByText("2/20", { exact: true }).waitFor();
 
+    assert.equal(await app.locator(".brand").isVisible(), false, "no global navigation during a lesson");
+    await page.reload();
+    await app.getByRole("heading", { name: "Khóa học bằng B" }).waitFor();
     await app.locator(".brand nav [data-action='mock-entry']").click();
     await action("mock-start").click();
     await app.getByRole("heading", { name: "Thi thử ngẫu nhiên" }).waitFor();

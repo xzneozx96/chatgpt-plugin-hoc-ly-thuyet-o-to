@@ -46,8 +46,10 @@ test("a widget opened by a tool call shows that tool's result, not the course ov
       const frame = document.querySelector<HTMLIFrameElement>("#widget");
       frame?.contentWindow?.postMessage({ jsonrpc: "2.0", method: "ui/notifications/tool-result", params }, location.origin);
     }, toolResult);
-    await app.getByRole("heading", { name: /Phần của đường bộ được sử dụng/ }).waitFor({ timeout: 5000 });
+    await app.getByRole("button", { name: "Bắt đầu" }).waitFor({ timeout: 5000 });
     assert.equal(await app.getByRole("heading", { name: "Khóa học bằng B" }).count(), 0);
+    await app.getByRole("button", { name: "Bắt đầu" }).click();
+    await app.getByRole("heading", { name: /Phần của đường bộ được sử dụng/ }).waitFor({ timeout: 5000 });
   } finally {
     await browser.close();
     server.close();
@@ -70,10 +72,10 @@ test("the widget follows the host theme at start and when the host changes it", 
     const cardColors = () => app.locator(".card").evaluate((card) => ({ background: getComputedStyle(card).backgroundColor, text: getComputedStyle(card).color }));
     await page.goto(`${origin}/preview`);
     await app.getByRole("heading", { name: "Khóa học bằng B" }).waitFor();
-    assert.deepEqual(await cardColors(), { background: "rgb(255, 255, 255)", text: "rgb(24, 43, 73)" });
+    assert.deepEqual(await cardColors(), { background: "rgb(255, 255, 255)", text: "rgb(0, 0, 0)" });
     await page.goto(`${origin}/preview?theme=dark`);
     await app.getByRole("heading", { name: "Khóa học bằng B" }).waitFor();
-    assert.deepEqual(await cardColors(), { background: "rgb(26, 33, 49)", text: "rgb(231, 236, 246)" });
+    assert.deepEqual(await cardColors(), { background: "rgb(0, 0, 0)", text: "rgb(255, 255, 255)" });
     await page.evaluate(() => {
       const frame = document.querySelector<HTMLIFrameElement>("#widget");
       frame?.contentWindow?.postMessage({ jsonrpc: "2.0", method: "ui/notifications/host-context-changed", params: { theme: "light" } }, location.origin);
@@ -101,12 +103,13 @@ test("in ChatGPT the card's answer button scores the choice through tools/call a
     await page.goto(`${origin}/preview?chat=1`);
     const app = page.frameLocator("#widget");
     await app.locator('[data-action="daily"]').click();
+    await app.getByRole("button", { name: "Bắt đầu" }).click();
     await app.getByRole("heading", { name: /Phần của đường bộ được sử dụng/ }).waitFor();
     const messages = await recordWidgetMessages(page);
     await app.locator('input[name="answer"][value="A"]').check();
-    await app.getByText("Tôi đoán").click();
+    await app.getByRole("button", { name: "Tôi đoán" }).click();
     await app.locator('[data-action="answer"]').click();
-    await app.getByText("Cần xem lại").waitFor();
+    await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
     const sent = await messages();
     assert.deepEqual(sent.filter((m) => m.name === "submit_study_answer").map((m) => [m.method, m.arguments?.answer, m.arguments?.confidence]), [["tools/call", "A", "guess"]]);
     assert.equal(sent.filter((m) => m.method === "ui/message").length, 0, "the card never posts an answer into the chat");
@@ -234,7 +237,7 @@ test("a card opened by get_question shows the practice screen with the question 
   }
 });
 
-test("confusion keeps the chosen answer, the card shrinks after long screens, and nothing due says so", async () => {
+test("confusion keeps the chosen answer and verdict, the card shrinks after long screens, and nothing due says so", async () => {
   const dir = mkdtempSync(join(tmpdir(), "driving-widget-polish-"));
   const server = startHttpServer(0, { dataPath: join(dir, "study.sqlite") });
   if (!server.listening) await once(server, "listening");
@@ -249,16 +252,18 @@ test("confusion keeps the chosen answer, the card shrinks after long screens, an
     const app = page.frameLocator("#widget");
     await app.getByRole("heading", { name: "Khóa học bằng B" }).waitFor();
     await app.locator('[data-action="unit"][data-value="van_hoa"]').click();
+    await app.getByRole("button", { name: "Bắt đầu" }).click();
     await app.locator('input[name="answer"][value="A"]').check();
-    await app.getByText("Tôi tự tin").click();
-    await app.locator("details.more-actions summary").click();
+    await app.locator('[data-action="answer"]').click();
+    const verdict = await app.locator("#verdict").innerText();
     await app.getByRole("button", { name: "Tôi còn phân vân" }).click();
-    await app.getByRole("button", { name: "Bỏ dấu phân vân" }).waitFor();
-    assert.equal(await app.locator('[data-action="answer"]').isDisabled(), false, "answer stays available after the confusion toggle");
-    assert.equal(await app.locator('input[name="confidence"][value="confident"]').isChecked(), true, "confidence is kept");
+    await app.locator('[data-action="confusion"][aria-pressed="true"]').waitFor();
+    assert.equal(await app.locator("#verdict").innerText(), verdict, "the verdict stays after the confusion toggle");
+    assert.equal(await app.locator('input[name="answer"][value="A"]').isChecked(), true, "the chosen answer is kept");
 
     const frameHeight = () => page.locator("#widget").evaluate((frame: HTMLIFrameElement) => frame.getBoundingClientRect().height);
-    await app.locator(".brand nav [data-action='course']").click();
+    await app.getByRole("button", { name: "Tạm dừng và lưu" }).click();
+    await app.getByRole("button", { name: "Về khóa học" }).click();
     await app.getByRole("button", { name: "Nhóm dễ nhầm lẫn" }).click();
     await app.locator(".course-row").nth(20).waitFor();
     await page.waitForTimeout(300);
@@ -282,6 +287,127 @@ test("confusion keeps the chosen answer, the card shrinks after long screens, an
     await page.reload();
     await app.locator('[data-action="daily"]').click();
     await app.getByText(/Hôm nay không còn câu đến hạn ôn và bạn đã đạt mục tiêu câu mới/).waitFor();
+  } finally {
+    await browser.close();
+    server.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a lost answer response shows no verdict, and Thử lại resends the same request without a second attempt", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "driving-widget-retry-"));
+  const server = startHttpServer(0, { dataPath: join(dir, "study.sqlite") });
+  if (!server.listening) await once(server, "listening");
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("Missing preview port");
+  const origin = `http://127.0.0.1:${address.port}`;
+  const executablePath = process.env.CHROME_PATH ?? (existsSync("/usr/bin/google-chrome") ? "/usr/bin/google-chrome" : undefined);
+  const browser = await chromium.launch({ executablePath, headless: true, args: ["--no-sandbox"] });
+  try {
+    const page = await browser.newPage();
+    const submits: string[] = [];
+    await page.route(`${origin}/preview/tool`, async (route) => {
+      const body = JSON.parse(route.request().postData() ?? "{}") as { name?: string; arguments?: { requestId?: string } };
+      if (body.name !== "submit_study_answer") return route.continue();
+      submits.push(body.arguments?.requestId ?? "");
+      const response = await route.fetch();
+      // The server saves the first answer, but its response never reaches the card.
+      if (submits.length === 1) return route.fulfill({ status: 502, body: "" });
+      return route.fulfill({ response });
+    });
+    await page.goto(`${origin}/preview`);
+    const app = page.frameLocator("#widget");
+    await app.locator('[data-action="daily"]').click();
+    await app.getByRole("button", { name: "Bắt đầu" }).click();
+    await app.locator('input[name="answer"][value="A"]').check();
+    await app.locator('[data-action="answer"]').click();
+    await app.getByText("Chưa gửi được — thử lại").waitFor();
+    assert.equal(await app.locator("#verdict").count(), 0, "no verdict before the server's result arrives");
+    assert.equal(await app.locator('input[name="answer"][value="A"]').isChecked(), true, "the choice is kept");
+    assert.equal(await app.getByRole("button", { name: "Thử lại" }).count(), 1, "one retry control");
+    await app.getByRole("button", { name: "Thử lại" }).click();
+    await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
+    assert.equal(submits.length, 2);
+    assert.equal(submits[1], submits[0], "the retry reuses the request ID");
+    const course = await (await fetch(`${origin}/preview/tool`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "get_course", arguments: {} }) })).json();
+    assert.equal(course.structuredContent.results.totalAttempts, 1, "the retry does not save a second attempt");
+  } finally {
+    await browser.close();
+    server.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("Hỏi ChatGPT records help on the server before posting exactly one chat message", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "driving-widget-help-"));
+  const server = startHttpServer(0, { dataPath: join(dir, "study.sqlite") });
+  if (!server.listening) await once(server, "listening");
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("Missing preview port");
+  const origin = `http://127.0.0.1:${address.port}`;
+  const executablePath = process.env.CHROME_PATH ?? (existsSync("/usr/bin/google-chrome") ? "/usr/bin/google-chrome" : undefined);
+  const browser = await chromium.launch({ executablePath, headless: true, args: ["--no-sandbox"] });
+  try {
+    const page = await browser.newPage();
+    await page.goto(`${origin}/preview?chat=1`);
+    const app = page.frameLocator("#widget");
+    await app.locator('[data-action="daily"]').click();
+    await app.getByRole("button", { name: "Bắt đầu" }).click();
+    await app.locator('input[name="answer"][value="A"]').check();
+    await app.locator('[data-action="answer"]').click();
+    await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
+    const messages = await recordWidgetMessages(page);
+    await app.getByRole("button", { name: "Hỏi ChatGPT" }).click();
+    await page.locator("#host-message").getByText("Giải thích giúp mình câu 1: mình chọn A, đáp án là B. [q001 · chọn A · sai]").waitFor();
+    const sent = (await messages()).filter((m) => m.method === "ui/message" || m.name === "request_study_help").map((m) => m.name ?? m.method);
+    assert.deepEqual(sent, ["request_study_help", "ui/message"], "help is recorded before the one chat message");
+    await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
+  } finally {
+    await browser.close();
+    server.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the finish screen posts the lesson summary once, and reopening the finished lesson does not post it again", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "driving-widget-finish-"));
+  const server = startHttpServer(0, { dataPath: join(dir, "study.sqlite") });
+  if (!server.listening) await once(server, "listening");
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("Missing preview port");
+  const origin = `http://127.0.0.1:${address.port}`;
+  const executablePath = process.env.CHROME_PATH ?? (existsSync("/usr/bin/google-chrome") ? "/usr/bin/google-chrome" : undefined);
+  const browser = await chromium.launch({ executablePath, headless: true, args: ["--no-sandbox"] });
+  const tool = async (name: string, args: object) => (await fetch(`${origin}/preview/tool`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, arguments: args }) })).json();
+  const open = (page: Page, params: unknown) => page.evaluate((result) => {
+    document.querySelector<HTMLIFrameElement>("#widget")?.contentWindow?.postMessage({ jsonrpc: "2.0", method: "ui/notifications/tool-result", params: result }, location.origin);
+  }, params);
+  try {
+    const started = await tool("start_study", { questionIds: ["q001"], requestId: randomUUID() });
+    const page = await browser.newPage();
+    await page.goto(`${origin}/preview?chat=1`);
+    const app = page.frameLocator("#widget");
+    await app.getByRole("heading", { name: "Khóa học bằng B" }).waitFor();
+    await open(page, started);
+    await app.getByRole("button", { name: "Bắt đầu" }).click();
+    await app.locator('input[name="answer"][value="B"]').check();
+    await app.locator('[data-action="answer"]').click();
+    await app.getByRole("heading", { name: "Chính xác!" }).waitFor();
+    const messages = await recordWidgetMessages(page);
+    await app.getByRole("button", { name: "Tiếp tục" }).click();
+    await app.getByRole("heading", { name: "Hoàn thành bài học!" }).waitFor();
+    const sessionId = started.structuredContent.sessionId as string;
+    await page.locator("#host-message").getByText(`Xong bài: 1/1 đúng. [session ${sessionId} · tổng kết]`).waitFor();
+    assert.equal((await messages()).filter((m) => m.method === "ui/message").length, 1);
+
+    await page.reload();
+    const app2 = page.frameLocator("#widget");
+    await app2.getByRole("heading", { name: "Khóa học bằng B" }).waitFor();
+    const reopened = await recordWidgetMessages(page);
+    await open(page, await tool("get_study_session", { sessionId }));
+    await app2.getByRole("heading", { name: "Hoàn thành bài học!" }).waitFor();
+    await page.waitForTimeout(300);
+    assert.equal((await reopened()).filter((m) => m.method === "ui/message").length, 0, "the summary is not posted twice");
   } finally {
     await browser.close();
     server.close();
