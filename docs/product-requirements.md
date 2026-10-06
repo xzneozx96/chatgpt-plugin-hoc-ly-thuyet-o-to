@@ -190,27 +190,27 @@ The home card shows the goal ring, these three numbers out of 600, weekly XP and
 
 ## 9. Visual design
 
-This section supersedes direction B (navy and blue) in `PRODUCT.md` and `DESIGN.md`.
+This section supersedes direction B (navy and blue). The owner chose the original game-like monochrome style on 6 October 2026. `DESIGN.md` holds the full design system, and `ui design/` holds the reference screens.
 
-| Token | Light | Dark |
-| --- | --- | --- |
-| background | `#FFFFFF` | `#000000` |
-| surface (card, option) | `#FFFFFF` | `#000000` |
-| ink (text, primary button fill) | `#000000` | `#FFFFFF` |
-| on-ink (text on primary button) | `#FFFFFF` | `#000000` |
-| muted text | `#5C5C5C` | `#A3A3A3` |
-| line (dividers only) | `#E5E5E5` | `#2E2E2E` |
-| option-line (option, tile and input borders, ≥ 3:1) | `#8A8A8A` | `#6B6B6B` |
-| subtle fill (hover, track) | `#F4F4F4` | `#1A1A1A` |
+| Token | Light | Dark | Use |
+| --- | --- | --- | --- |
+| `--bg` | `#ffffff` | `#000000` | Card ground |
+| `--fg` | `#000000` | `#ffffff` | Text, icons, primary fills, correct-option fill |
+| `--mute` | `#5d5d5d` | `#a8a8a8` | Secondary text, bottom edge of filled buttons |
+| `--line` | `#e2e2e2` | `#2b2b2b` | Idle borders and edges, dividers |
+| `--soft` | `#f4f4f4` | `#121212` | Inset panels, selected tile fill |
+| `--soft2` | `#ebebeb` | `#1f1f1f` | Empty progress, disabled buttons |
 
-- Theme follows the ChatGPT host theme automatically. No in-card toggle. Before release, check the card surface against ChatGPT's actual light and dark backgrounds. If the dark host is not pure black, the surface token matches the host so the card does not look like a box on a box.
-- Correct = filled ink (inverted option + filled check). Wrong = outlined ✕ with a heavy outline on the correct option. Selected = 2 px ink border. Feedback never relies on colour.
-- Typography: system UI font stack to match ChatGPT, with full Vietnamese diacritics. Question text is 17 px and options 16 px. Numbers on the progress and finish screens are large (32–40 px) and bold.
-- Shapes: option radius 12 px, card radius 16 px, buttons fully rounded pills. Minimum tap target is 48 px.
-- Motion: verdict ≤ 400 ms; XP float 600 ms; the goal ring fills with a 300 ms ease per segment; the finish screen counts up numbers in sequence. All motion respects `prefers-reduced-motion`.
-- No emoji in UI chrome. Illustrations, if any, are black line art.
+- The theme follows the ChatGPT host automatically, with no in-card toggle. Before release, check `--bg` against ChatGPT's actual light and dark backgrounds, and match the host if they differ.
+- Tiles and buttons are pressable. Each has a 2 px border plus a solid bottom edge that collapses 3 px on press.
+- Correct inverts the option and pops a check. Wrong strikes the chosen option with diagonal stripes and an ✕, shakes it, and inverts the correct option with "Đáp án đúng". Feedback never relies on colour.
+- Every state indicator has at least 3:1 contrast. Idle tiles may use the light `--line` border because their text identifies them.
+- Typography: Be Vietnam Pro for text and JetBrains Mono for numbers, both bundled with the widget. Question 18 px / 700, options 15 px / 600, headlines 21–24 px / 800.
+- Shapes: card 22 px radius, tiles and buttons 16 px, chips are pills. Minimum tap target is 44 px, and primary buttons are 52–54 px high.
+- Motion: pop, rise, shake, bounce, sparks, XP float, count-up and stamp, per `DESIGN.md`. All motion respects `prefers-reduced-motion`.
+- No emoji, mascots or decorative illustrations in the chrome.
 
-Contrast meets WCAG 2.2 AA in both themes. Keyboard focus is a visible 2 px offset ring.
+Contrast meets WCAG 2.2 AA in both themes. Keyboard focus is a visible 3 px `--fg` outline with a 2 px offset.
 
 ## 10. Mock test: "Thi thử"
 

@@ -1,248 +1,264 @@
 ---
-name: "Lý Thuyết Lái Xe · Monochrome Play"
-description: "Black-and-white, game-like learning card for ChatGPT. Supersedes direction B (Đường học) per PRD v1.0."
+name: "Lý Thuyết Lái Xe · Game-like monochrome"
+description: "Black-and-white, pressable, game-like learning card for ChatGPT. Owner-selected original style, 6 October 2026. Supersedes direction B and the flat Monochrome Play draft."
 colors:
-  background: "#FFFFFF"
-  surface: "#FFFFFF"
-  ink: "#000000"
-  on-ink: "#FFFFFF"
-  muted: "#5C5C5C"
-  line: "#E5E5E5"
-  option-line: "#8A8A8A"
-  subtle: "#F4F4F4"
-  dark-background: "#000000"
-  dark-surface: "#000000"
-  dark-ink: "#FFFFFF"
-  dark-on-ink: "#000000"
-  dark-muted: "#A3A3A3"
-  dark-line: "#2E2E2E"
-  dark-option-line: "#6B6B6B"
-  dark-subtle: "#1A1A1A"
+  bg: "#ffffff"
+  fg: "#000000"
+  mute: "#5d5d5d"
+  line: "#e2e2e2"
+  soft: "#f4f4f4"
+  soft2: "#ebebeb"
+  dark-bg: "#000000"
+  dark-fg: "#ffffff"
+  dark-mute: "#a8a8a8"
+  dark-line: "#2b2b2b"
+  dark-soft: "#121212"
+  dark-soft2: "#1f1f1f"
 typography:
-  hero-number:
-    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
-    fontSize: "40px"
-    fontWeight: 700
-    lineHeight: 1.1
-    letterSpacing: "-.02em"
-  headline:
-    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
-    fontSize: "22px"
-    fontWeight: 700
-    lineHeight: 1.35
+  text:
+    fontFamily: "'Be Vietnam Pro', system-ui, sans-serif"
+    weights: [400, 600, 700, 800]
+  mono:
+    fontFamily: "'JetBrains Mono', ui-monospace, monospace"
+    weights: [700]
   question:
-    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
-    fontSize: "17px"
-    fontWeight: 600
-    lineHeight: 1.55
+    fontSize: "18px"
+    fontWeight: 700
+    lineHeight: 1.4
   option:
-    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
-    fontSize: "16px"
-    fontWeight: 500
-    lineHeight: 1.5
-  body:
-    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
     fontSize: "15px"
-    fontWeight: 400
-    lineHeight: 1.6
-  label:
-    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
-    fontSize: "13px"
-    fontWeight: 500
-    lineHeight: 1.5
+    fontWeight: 600
+    lineHeight: 1.35
+  headline:
+    fontSize: "21-24px"
+    fontWeight: 800
+  hero-number:
+    fontFamily: mono
+    fontSize: "26-64px"
+    fontWeight: 700
+  chip:
+    fontSize: "11px"
+    fontWeight: 800
+    textTransform: uppercase
 rounded:
-  progress: "999px"
-  option: "12px"
-  panel: "12px"
-  card: "16px"
-  button: "999px"
+  card: "22px"
+  panel: "18px"
+  tile: "16px"
+  tile-in-panel: "14px"
+  small-tile: "12px"
+  letter-box: "10px"
+  segment: "5px"
+  chip: "999px"
 spacing:
-  step-4: "4px"
-  step-8: "8px"
-  step-12: "12px"
-  step-16: "16px"
-  step-24: "24px"
-  step-32: "32px"
+  card-padding: "14px 16px 16px"
+  gap-tight: "6px"
+  gap: "10px"
+  gap-section: "14px"
 motion:
-  verdict: "400ms"
-  xp-float: "600ms"
-  ring-segment: "300ms"
-  press: "100ms"
-  easing: "cubic-bezier(.2,.8,.2,1)"
+  pop: "scale .4 → 1.15 → 1, 450-500ms, cubic-bezier(.2,.9,.3,1.25)"
+  rise: "translateY 14px → 0 + fade, 300ms ease-out"
+  shake: "±7px, 420ms"
+  bounce: "4-5px up, 400ms"
+  spark: "shapes fly outward, 700-900ms"
+  xp-float: "26px up + fade, 700ms"
+  stamp: "scale 1.6 → 1, -3deg tilt"
+  press: "translateY 3px, edge 4px → 1px, 80ms"
+  reduced: "150ms fade or none"
 components:
-  button-primary:
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.on-ink}"
-    rounded: "{rounded.button}"
-    padding: "14px 24px"
-    width: "100%"
-  button-secondary:
-    backgroundColor: "transparent"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.button}"
-    padding: "10px 16px"
-  answer-option:
-    backgroundColor: "{colors.surface}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.option}"
-    padding: "16px 18px"
-  answer-option-correct:
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.on-ink}"
-  progress-bar:
-    backgroundColor: "{colors.subtle}"
-    rounded: "{rounded.progress}"
-    height: "8px"
-  lesson-card:
-    backgroundColor: "{colors.surface}"
-    rounded: "{rounded.card}"
+  pressable-primary:
+    background: "{colors.fg}"
+    text: "{colors.bg}"
+    border: "2px {colors.fg}"
+    edge: "0 4px 0 {colors.mute}"
+    rounded: "{rounded.tile}"
+    height: "52-54px"
+  pressable-idle:
+    background: "{colors.bg}"
+    border: "2px {colors.line}"
+    edge: "0 4px 0 {colors.line}"
+  pressable-selected:
+    background: "{colors.soft}"
+    border: "2px {colors.fg}"
+    edge: "0 4px 0 {colors.fg}"
+  pressable-disabled:
+    background: "{colors.soft2}"
+    text: "{colors.mute}"
+    edge: none
+  letter-box:
+    size: "32px"
+    rounded: "{rounded.letter-box}"
+    font: mono 14px 700
+  progress-segment:
+    height: "10px"
+    rounded: "{rounded.segment}"
 ---
 
-# Design System: Lý Thuyết Lái Xe · Monochrome Play
+# Design System: Lý Thuyết Lái Xe · Game-like monochrome
 
 ## Overview
 
-**Creative North Star: "Black, white, alive."**
+**Creative North Star: "A black-and-white game you can press."**
 
-The card looks as quiet as ChatGPT and feels as lively as Duolingo. Colour is removed entirely. Energy comes from motion, big bold numbers, inversion (black ↔ white) and short celebration moments. Original question images are the only imagery that carries meaning.
+The card is as quiet as ChatGPT in colour and as tactile as Duolingo in feel. There is no hue. Energy comes from pressable tiles with a solid bottom edge, inversion (black ↔ white), diagonal stripes for mistakes, monospace numbers, and short pops, shakes and sparks. Original question images keep their own colours and are the only meaningful imagery.
 
-This document is the target design for PRD v1.0 (`docs/product-requirements.md`, section 9). It supersedes direction B (Đường học). The prototype in `design/chatgpt-learning/` and the widget in `src/ui/learning.html` still implement direction B until they are rebuilt. Host compatibility, especially the dark surface colour, needs to be checked in real ChatGPT.
+The owner chose this style on 6 October 2026, over the flat "Monochrome Play" draft. The reference screens are in `ui design/screens/*.dc.html`, and the handoff notes are in `ui design/README.md`. Those files are a visual reference with sample data and fake logic. The widget is `src/ui/learning.html`.
 
 **Key characteristics:**
 
-- Pure black and white in both themes. Greys only for secondary text, lines and tracks.
-- One living lesson card with a progress bar, one question, large options and one primary button.
-- Verdicts are felt through motion, an icon and words.
-- Big numbers for XP, goal ring and progress.
+- Strict black and white in both themes. The theme follows the ChatGPT host, and there is no in-card toggle.
+- Pressable tiles and buttons: a 2 px border plus a solid bottom edge that collapses on press.
+- One primary action per screen.
+- Be Vietnam Pro for words. JetBrains Mono for numbers, timers, answer letters and question numbers.
+- Every verdict is shown through shape, icon, motion and words, never colour.
 
 ## Colors
 
-There are two themes with the same roles. The theme follows the ChatGPT host theme automatically. There is no in-card toggle.
-
-| Role | Light | Dark | Use |
+| Token | Light | Dark | Use |
 | --- | --- | --- | --- |
-| background | `#FFFFFF` | `#000000` | Card ground |
-| surface | `#FFFFFF` | `#000000` | Options, panels. In dark mode, match the host surface if ChatGPT's is not pure black. |
-| ink | `#000000` | `#FFFFFF` | Text, icons, primary button fill, correct-option fill, ring fill |
-| on-ink | `#FFFFFF` | `#000000` | Text on ink fills |
-| muted | `#5C5C5C` | `#A3A3A3` | Metadata, captions, secondary actions |
-| line | `#E5E5E5` | `#2E2E2E` | Dividers and decorative separators only |
-| option-line | `#8A8A8A` | `#6B6B6B` | Borders of answer options, tiles and inputs (≥ 3:1 against the surface, WCAG 1.4.11) |
-| subtle | `#F4F4F4` | `#1A1A1A` | Hover, pressed, empty progress track |
+| `--bg` | `#ffffff` | `#000000` | Card and screen ground |
+| `--fg` | `#000000` | `#ffffff` | Text, icons, primary fills, correct-option fill, selected borders |
+| `--mute` | `#5d5d5d` | `#a8a8a8` | Secondary text; the bottom edge of filled buttons |
+| `--line` | `#e2e2e2` | `#2b2b2b` | Idle borders, the bottom edge of idle tiles, dividers |
+| `--soft` | `#f4f4f4` | `#121212` | Inset panels, selected tile fill, chat composer |
+| `--soft2` | `#ebebeb` | `#1f1f1f` | Empty progress segments, disabled buttons |
 
-**The No-Colour Rule.** No hue appears anywhere in the UI chrome. Feedback, selection and status use fill, outline weight, icons, motion and words. Question images keep their original colours.
+**The No-Hue Rule.** No hue appears in the UI chrome. Question images keep their original colours.
+
+**Contrast.** Text, icons and every state indicator meet WCAG 2.2 AA in both themes:
+
+- Text and icons are `--fg` or `--mute` on `--bg`, which is at least 4.5:1.
+- Selected, correct and wrong states change to a `--fg` border or fill, which is at least 3:1 against both the background and the idle state.
+
+Idle tiles use the light `--line` border on purpose. The tile's own text and letter box identify it as a control, and WCAG 1.4.11 does not require a high-contrast boundary for a control its text already identifies. Never make `--line` the only signal of a state.
+
+**Host surface.** Check `--bg` against ChatGPT's real light and dark backgrounds. If they differ, match the host so the card does not look like a box on a box (ui-ux-design §8.5).
 
 ## Typography
 
-**Font:** the system UI stack, to match ChatGPT. It must render all Vietnamese diacritics. Be Vietnam Pro is retired.
+- **Text:** Be Vietnam Pro, weights 400, 600, 700 and 800. Full Vietnamese diacritics.
+- **Numbers:** JetBrains Mono 700 for counts, XP, timers, answer letters and "Câu 145".
+- Both fonts are bundled in `src/ui/assets`. Each mixes latin and vietnamese subsets, so every `@font-face` must declare its `unicode-range`. The widget's resource policy forbids external font hosts.
 
-| Role | Size | Weight | Use |
-| --- | --- | --- | --- |
-| Hero number | 40 px (32 px under 400 px width) | 700 | XP earned, score, goal count on finish and home screens |
-| Headline | 22 px | 700 | Verdict ("Chính xác!", "Chưa đúng"), lesson intro title |
-| Question | 17 px | 600 | Question text |
-| Option | 16 px | 500 | Answer options |
-| Body | 15 px | 400 | Explanation, coach copy |
-| Label | 13 px | 500 | Progress labels, metadata, chips |
-
-Numbers use tabular figures. Explanation lines stop at 68ch.
+| Role | Size / weight | Use |
+| --- | --- | --- |
+| Question | 18 px / 700, line height 1.4 | Question stem |
+| Option | 15 px / 600 | Answer text |
+| Headline | 21–24 px / 800 | Screen titles, verdict ("Chính xác!" 19 px / 800 in the feedback panel) |
+| Hero number | 26–64 px mono / 700 | Ring centre, finish counts, test score |
+| Body | 14–15 px / 400–600 | Explanations, coach copy |
+| Chip | 11 px / 800, uppercase | Step chips (ÔN LẠI, MỚI), status tags |
+| Small | 12–13 px / 600–700 | Metadata, secondary text buttons |
 
 ## Layout
 
-- The card fills the available host width. Its content column is at most 640 px wide, with 20 px padding (16 px under 400 px).
-- Card structure, top to bottom: a close/pause icon and progress bar row, the step label ("Ôn lại", "Mới", "Thử lại"), question and image, options, then a sticky bottom action area.
-- The bottom action area holds one full-width primary button. After a verdict it expands upward into the feedback sheet: icon, verdict, a one-line reason, "Xem thêm", the primary "Tiếp tục" button, and one quiet row of secondary actions.
-- Options stack vertically at every width. Image questions show the image above the options at full column width.
-- Home card: goal ring at the left or top, the three progress numbers, weekly XP and league rank, and one "Học tiếp" button. Course map: a two-column grid of category tiles (one column under 400 px).
+- The card fills the host width up to a 640 px content column. It has a 1 px `--line` border, a 22 px radius, and `14px 16px 16px` padding. Sections inside are separated by 14 px.
+- Lesson card order, top to bottom: a pause ✕ with the segmented progress bar and a mono "5/10", the chips row, the question, an optional image, options, then the action area.
+- The action area holds the "Tôi đoán" chip, "Bỏ qua" and the full-width "Kiểm tra". After a verdict, the feedback panel replaces it, and a three-tile helper row follows ("Hỏi ChatGPT", "Tôi còn phân vân", "Video").
+- Options stack vertically at every width in lessons.
+- Minimum tap target is 44 px. Primary buttons are 52–54 px high.
 
 ## Elevation & Depth
 
-Flat. No shadows. Depth comes from inversion (a black fill on white), 1 px lines and the feedback sheet sliding up over the action area.
+Depth is tactile, not ambient. Pressable elements carry a solid bottom edge (`box-shadow: 0 4px 0 <edge>`, or 3 px for small tiles). There are no blurred shadows inside the card. The edge colour follows the pressable state table below. On press the element moves down 3 px and the edge shrinks to 1 px.
 
 ## Shapes
 
-- Options and panels have a 12 px radius, and the card has a 16 px radius.
-- Buttons and progress bars are fully rounded.
-- Minimum tap target is 48 px.
-- Icons have a 2 px stroke, are 24 px in the card and 40 px in verdicts. Correct is a filled circle with a check, and wrong is an outlined circle with a ✕.
+- Card 22 px. Feedback panel 18 px. Tiles and primary buttons 16 px, or 14 px inside a panel. Small helper tiles 12 px. Letter box 32 × 32 px with a 10 px radius. Chips are full pills.
+- Progress is a row of 10 px-high segments, one per step, separated by 3 px gaps:
+  - done is filled with `--fg`
+  - wrong has diagonal stripes and a `--fg` border
+  - current is outlined with `--fg`
+  - skipped has a dashed border
+  - upcoming is `--soft2`
+- Icons are 2–3.4 px stroke SVG. A check means correct and an ✕ means wrong. A bolt marks a combo.
 
 ## Motion
 
-Motion carries the feeling that colour used to. Every animation has a reduced-motion alternative: a 150 ms opacity fade.
-
-| Moment | Animation | Duration |
+| Name | Animation | Used for |
 | --- | --- | --- |
-| Option press | Scale to .98 | 100 ms |
-| Correct verdict | Option inverts to ink; check icon draws in; card does a 4 px vertical bounce | 400 ms |
-| Wrong verdict | Selected option shakes ±6 px horizontally three times; correct option gets a 2 px ink outline | 400 ms |
-| XP float | "+10 XP" rises 24 px and fades out | 600 ms |
-| Combo | From 3 correct in a row, the counter scales from .8 to 1 | 250 ms |
-| Progress bar | Width eases to the new step | 300 ms |
-| Goal ring | Each new segment fills clockwise | 300 ms per segment |
-| Finish screen | XP, correct count and Mastered count count up one after another | 800 ms total |
-| Mastered | "Đã thuộc!" label pops in (scale .9 → 1) on the step | 250 ms |
+| pop | scale .4 → 1.15 → 1, ~500 ms | Check in the letter box, chips appearing, the "Đã thuộc!" chip, the verdict icon |
+| rise | 14 px up + fade, 300 ms | Feedback panel, chat bubbles, new sections |
+| shake | ±7 px, 420 ms | Wrong chosen option, the wrong icon |
+| bounce | 5 px up, 400 ms | Correct option after an independent correct answer |
+| spark | four small shapes fly outward, 700 ms | Correct verdict icon |
+| xp-float | 26 px up + fade, 700 ms | "+XP" pill, only when the server returns XP |
+| count-up | numbers tick up in sequence | Finish and Result screens |
+| stamp | scale 1.6 → 1 with −3° tilt | ĐẠT / CHƯA ĐẠT on Result |
+| press | 3 px down, edge 4 → 1 px, 80 ms | Every pressable element |
 
-Easing is `cubic-bezier(.2,.8,.2,1)`. Nothing loops, flashes or plays sound.
+Under `prefers-reduced-motion`, pop, rise, shake and bounce become a 150 ms fade. Sparks and XP floats are hidden. Nothing loops, strobes or plays sound.
 
 ## Components
 
-### Buttons
+### Pressable states
 
-- **Primary:** an ink pill with on-ink text, full width in the action area, 600 weight. It is disabled until an option is selected ("Kiểm tra"). Exactly one per screen.
-- **Secondary:** transparent text buttons in muted ink, used in the quiet row ("Hỏi ChatGPT", "Tôi còn phân vân", "Xem video").
-- Focus is a visible 2 px ink ring with a 2 px offset.
+| State | Fill | Text | Border | Edge |
+| --- | --- | --- | --- | --- |
+| Primary | `--fg` | `--bg` | 2 px `--fg` | `--mute` |
+| Idle tile | `--bg` | `--fg` | 2 px `--line` | `--line` |
+| Selected tile | `--soft` | `--fg` | 2 px `--fg` | `--fg`, and the letter box filled with `--fg` |
+| Disabled | `--soft2` | `--mute` | 2 px `--soft2` | none |
 
-### Answer options
+### Answer options and verdicts
 
-- Default: a 1 px option-line border, surface fill, and a letter badge (A–D) in a 24 px outlined circle.
-- Selected: a 2 px ink border, with the letter badge filled in ink.
-- Correct (after verdict): ink fill, on-ink text, and a check icon at the end.
-- Wrong selected (after verdict): a dashed 2 px ink border and an ✕ icon at the end.
-- Correct but not chosen (after a wrong verdict): a 2 px ink border with the label "Đáp án đúng".
-- Options lock after the verdict.
+| State | Treatment |
+| --- | --- |
+| Correct | The option inverts (`--fg` fill, `--bg` text). A check pops into the letter box, and the option bounces. The feedback panel is inverted, with a 4-spark burst on the icon. |
+| Wrong (chosen) | `--fg` border. The letter box is filled with diagonal stripes and carries an ✕ in a small circle. A "Bạn chọn" tag is added, and the option shakes. The panel has a striped top edge and an outlined, shaking ✕. |
+| Correct option after a wrong answer | Inverted, labelled "Đáp án đúng" |
+| Other options after a verdict | 40% opacity, locked |
+| Correct after help | Bordered (not inverted) panel, outlined check, no sparks, "Đúng (có hỗ trợ)" |
+| Guessed correct | As correct; headline "Đúng — lần sau thử không đoán nhé" |
+| Newly Mastered | The "Đã thuộc!" chip pops in. Shown only when the server reports it. |
+| Combo ≥ 3 | Bolt with "Combo N câu liên tiếp". An in-lesson display of consecutive correct answers in this session, not a streak. |
+| Request not delivered | A dashed row "Chưa gửi được — thử lại" with "Thử lại". No verdict is shown, because the server has not scored anything (PRD PLAY-07). |
+| Skipped | Dashed panel "Đã bỏ qua · vẫn cần ôn" with "Tiếp tục" |
 
-### Feedback sheet
+Every verdict goes to an `aria-live` region. Options are native radio inputs inside styled labels, so arrow keys and screen readers work without extra code.
 
-An icon, the headline verdict, a reason of at most two lines (approved text), "Xem thêm" to expand, the primary "Tiếp tục" button, and the quiet secondary row. A screen reader announces the verdict through a live region.
+### Chips
 
-### Progress bar and step labels
-
-An 8 px rounded track in the subtle colour with an ink fill. The step label sits above the question as a small outlined chip: "Ôn lại", "Mới", "Thử lại" or "Thử thách".
+- Step chip: filled `--fg` pill, 11 px / 800 uppercase (ÔN LẠI, MỚI, THỬ LẠI, THỬ THÁCH).
+- Question number chip: outlined with a 1.5 px `--line` border, mono ("Câu 145").
+- "Đang phân vân": dashed `--fg` border, pops in.
 
 ### Goal ring
 
-A 96 px ring (64 px on the home card in compact layouts). Segments fill in ink. The centre shows "7/12" and a small check once due reviews are done. A closed ring triggers a one-time scale-and-check celebration.
+A ring of segments, one per new question in today's goal. Filled segments fade in one by one. The centre shows the mono count ("7/12"), and a small check appears once today's due reviews are done.
 
 ### Progress numbers
 
-The three labels Đã gặp, Đã thuộc and Cần ôn hôm nay always appear together, in this order, as hero numbers with labels. Overlapping detail counts are never shown as if they add up.
-
-### League row
-
-Rank, display name and weekly XP. The learner's own row is inverted (ink fill). There are no avatars, colours or accuracy figures.
+The three labels Đã gặp, Đã thuộc and Cần ôn hôm nay always appear together in this order, as mono hero numbers with labels underneath. Overlapping detail counts are never shown as if they add up.
 
 ### Mock test
 
-A timer chip, a question navigator grid (6 columns on mobile, 10 on desktop), and Previous/Next buttons. No verdict motion or XP during the test. The result screen counts the score up, then shows "Đạt" or "Chưa đạt" with the reason in words.
+Fullscreen if the host allows. The test has:
+
+- a mono timer chip, "Câu X/30" and the answered count
+- an expandable navigator of 6 columns on mobile and 10 on desktop, whose cells show current, answered and unanswered without correctness
+- "Câu trước" and "Lưu và tiếp theo"
+
+There is no verdict motion, XP or help during the test. The Result screen has a count-up score, a stamped "ĐẠT" or "CHƯA ĐẠT", a 30-tick score bar, the reason in words, and wrong items grouped by category.
 
 ## Do's and Don'ts
 
 ### Do:
 
 - **Do** keep exactly one primary action per screen.
-- **Do** let the card show every verdict instantly. ChatGPT never repeats it.
-- **Do** use the three progress labels consistently in the card and in ChatGPT.
-- **Do** celebrate finished lessons, closed rings and newly Mastered questions.
+- **Do** let the card show every verdict instantly, from the server's result. ChatGPT never repeats it.
+- **Do** use the same three progress labels in the card and in ChatGPT.
+- **Do** show XP, combos, mastery and league data only when the server provides them.
 - **Do** preserve original question images and their proportions, with zoom.
-- **Do** meet WCAG 2.2 AA contrast, 48 px targets and visible focus in both themes.
+- **Do** keep native form semantics (radio inputs, buttons) behind the pressable styling.
 
 ### Don't:
 
 - **Don't** use any hue: no green for correct, no red for wrong, no blue for actions.
+- **Don't** compute XP, verdicts or mastery in the card.
+- **Don't** show a verdict for an answer the server has not scored.
 - **Don't** add lives, streak-loss warnings or shaming copy.
 - **Don't** use emoji, mascots or decorative illustrations in the chrome.
-- **Don't** add shadows, gradients or looping animation.
-- **Don't** imply a question is learned from a single correct answer.
+- **Don't** use blurred drop shadows or looping animation.
 - **Don't** open a new card per question.
 
-Source scope: `docs/product-requirements.md` v1.0 sections 2–10 and `PRODUCT.md`. Direction-B documents (`docs/ui-ux-direction-b-*.md`) are historical.
+Source scope: `ui design/README.md`, `ui design/screens/*.dc.html`, `docs/product-requirements.md` v1.0 and `docs/ui-ux-design.md`. Direction-B documents are historical.
