@@ -2,7 +2,8 @@ import { randomUUID, createHash } from "node:crypto";
 import { z } from "zod";
 import { submitAnswer } from "./quiz.js";
 import { bankQuestions, bankVersion, categories, categoryTitles, CONFUSING_CATEGORY_ID, families, safeQuestion, unitQuestions } from "./course.js";
-import { answerAwards, comboOf, lessonXp, xpSummary } from "./game.js";
+import { answerAwards, comboOf, hasFinishedLesson, lessonXp, xpSummary } from "./game.js";
+import { leagueDisplayName } from "./league.js";
 export const DAY = 86400000;
 const LIGHTNING_MS = 60000;
 const id = z.string().uuid();
@@ -225,6 +226,20 @@ export const LearningCommandSchema = z.discriminatedUnion("kind", [
     z.object({
         ...base,
         kind: z.literal("start_lightning")
+    }),
+    z.object({
+        ...base,
+        kind: z.literal("join_league"),
+        displayName: z.string().max(100)
+    }),
+    z.object({
+        ...base,
+        kind: z.literal("leave_league")
+    }),
+    z.object({
+        ...base,
+        kind: z.literal("set_league_hidden"),
+        hidden: z.boolean()
     })
 ]);
 export type LearningCommand = z.infer<typeof LearningCommandSchema>;
@@ -1151,6 +1166,22 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
             viewKind = "study";
             break;
         }
+        case "join_league": {
+            // LEA-01: after a finished lesson, under a name the learner chose; joining again only renames.
+            if (!hasFinishedLesson(state))
+                throw new Error("LEAGUE_NEEDS_LESSON");
+            const displayName = leagueDisplayName(command.displayName);
+            state.league = state.league ? { ...state.league, displayName } : { displayName, joinedAt: now, hidden: false };
+            break;
+        }
+        case "leave_league":
+            state.league = null;
+            break;
+        case "set_league_hidden":
+            if (!state.league)
+                throw new Error("LEAGUE_NOT_JOINED");
+            state.league.hidden = command.hidden;
+            break;
         default: {
             const exhaustive: never = command;
             throw new Error(String(exhaustive));

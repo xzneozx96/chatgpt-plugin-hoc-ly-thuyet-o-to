@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createLearner, courseView, listUnits, LearningCommandSchema, type mockView, type studyView } from "./domain/learning.js";
 import { LearningRuntime } from "./domain/learning-runtime.js";
 import { questionTeaching } from "./domain/teaching.js";
+import type { leagueView } from "./domain/league.js";
 
 export interface LearningTool {
   name: string;
@@ -14,7 +15,8 @@ export interface LearningTool {
   run(input: unknown): Promise<object>;
 }
 
-const cardCommands = new Set(["start_study", "resume_study", "next_study", "skip_study", "start_mock", "view_mock", "start_lightning"]);
+const cardCommands = new Set(["start_study", "resume_study", "next_study", "skip_study", "start_mock", "view_mock", "start_lightning", "join_league", "leave_league", "set_league_hidden"]);
+const leagueCommands = new Set(["join_league", "leave_league", "set_league_hidden"]);
 
 const commands: Record<string, { name: string; title: string; description: string }> = {
   start_study: { name: "start_study", title: "Start a study session", description: "Use whenever the learner wants to study, learn, review or continue. Reopens the open daily session or starts one: all due reviews, then new questions within the daily goal. Explicit category or family requests may override review ordering while retaining due work. unitId accepts a bank category, a confusing-question group, or de_nham_lan for all confusing-question groups. Pass count for a specific number of questions, such as 5. Supply selected original question IDs to assemble a focused source-supported lesson." },
@@ -31,7 +33,10 @@ const commands: Record<string, { name: string; title: string; description: strin
   finalise_mock: { name: "finalise_mock_test", title: "Submit the mock test", description: "Finalise the test once and publish answered learning results atomically. Before early submission with unanswered items, obtain learner confirmation and pass confirmUnanswered=true. Expiry finalises automatically." },
   abandon_mock: { name: "abandon_mock_test", title: "Leave the mock test", description: "Abandon a running test only after the learner confirms leaving. Provisional answers never become scored learning evidence." },
   view_mock: { name: "get_mock_test", title: "Resume or inspect a mock test", description: "Retrieve an own saved test. The server finalises an expired attempt before returning its result." },
-  start_lightning: { name: "start_lightning", title: "Start a lightning round (chớp nhoáng)", description: "Start a 60-second lightning round over up to 30 original questions the learner has already answered. Use only when the learner asks for one or taps it on the card. Every answer is a normal scored attempt: a wrong answer lapses the question and schedules its review, and a correct answer to a question that is not due is early practice. The card shows a counter and no explanations during the round. Answers after 60 seconds are rejected and not saved." }
+  start_lightning: { name: "start_lightning", title: "Start a lightning round (chớp nhoáng)", description: "Start a 60-second lightning round over up to 30 original questions the learner has already answered. Use only when the learner asks for one or taps it on the card. Every answer is a normal scored attempt: a wrong answer lapses the question and schedules its review, and a correct answer to a question that is not due is early practice. The card shows a counter and no explanations during the round. Answers after 60 seconds are rejected and not saved." },
+  join_league: { name: "join_league", title: "Join the weekly league", description: "Join the opt-in weekly league, or change the display name, only when the learner asks, using the display name they chose: 3–20 letters, digits, spaces, dots, underscores or hyphens. Never use their account or ChatGPT name. Requires one finished lesson. Boards show only display name, rank and weekly XP; answers, accuracy, weak areas and exam dates are never shared. Returns the league board." },
+  leave_league: { name: "leave_league", title: "Leave the weekly league", description: "Leave the weekly league when the learner asks. Their display name leaves every board at once; study history is unaffected. Returns the league view." },
+  set_league_hidden: { name: "set_league_hidden", title: "Hide from the league board", description: "Hide the learner from other members' league boards (hidden=true) or show them again (hidden=false), when the learner asks. They still see their own rank. Returns the league board." }
 };
 
 export function createLearningTools(runtime: LearningRuntime | null, persistence: "local" | "authenticated" | "unavailable"): LearningTool[] {
@@ -79,10 +84,20 @@ export function createLearningTools(runtime: LearningRuntime | null, persistence
         const input = z.object(inputSchema).parse(raw);
         const command = LearningCommandSchema.parse({ ...input, kind, requestId: input.requestId ?? randomUUID() });
         const view = await runtime.command(command);
+        if (leagueCommands.has(command.kind)) return decorate(await runtime.league());
         return decorate(command.kind === "record_help" ? { ...view, teaching: questionTeaching(command.questionId) } : view);
       }
     });
   }
+  tools.push({
+    name: "get_league", title: "Show the weekly league",
+    description: "Show the learner's weekly league board when they ask about the league or their rank: rank, display name and weekly XP for their cohort of up to 30 members, Monday to Sunday Vietnam time. Leagues are opt-in and pseudonymous and never share learning data. If joined=false and canJoin=true, the learner may be invited once to join with a display name they choose.",
+    inputSchema: {}, readOnly: true, card: true,
+    async run() {
+      if (!runtime) throw new Error("HISTORY_UNAVAILABLE");
+      return decorate(await runtime.league());
+    }
+  });
   return runtime ? tools : tools.filter(tool => tool.name === "get_course" || tool.name === "list_units");
 }
 
@@ -135,12 +150,21 @@ function helpText(teaching: ReturnType<typeof questionTeaching>) {
   return [`Đã ghi nhận yêu cầu hỗ trợ cho ${teaching.questionId}; câu trả lời sau đó không được tính là tự nhớ.`, teaching.explanation ? `Giải thích từ ngân hàng: ${teaching.explanation}` : teaching.message].join("\n");
 }
 
+function leagueText(league: ReturnType<typeof leagueView>) {
+  if (!league.joined) return league.canJoin ? "Người học chưa tham gia nhóm thi đua tuần. Có thể mời tham gia một lần bằng tên hiển thị do họ tự chọn (join_league)." : "Người học chưa tham gia nhóm thi đua tuần; cần hoàn thành một bài học trước khi tham gia.";
+  return [
+    `Nhóm thi đua tuần · còn ${league.daysLeft} ngày · ${league.displayName}${league.hidden ? " (đang ẩn với người khác)" : ""}`,
+    ...league.rows.map(row => `${row.rank ?? "–"}. ${row.displayName}${row.you ? " (bạn)" : ""}: ${row.weekXp} XP`)
+  ].join("\n");
+}
+
 export function learningText(view: object, origin: string) {
   const kind = "kind" in view ? view.kind : null;
   const teaching = "teaching" in view ? view.teaching as ReturnType<typeof questionTeaching> : null;
   if (kind === "course") return courseText(view as ReturnType<typeof courseView>);
   if (kind === "help" && teaching) return helpText(teaching);
   if (kind === "mock") return mockText(view as ReturnType<typeof mockView>, origin);
+  if (kind === "league") return leagueText(view as ReturnType<typeof leagueView>);
   if (kind !== "study") return JSON.stringify(view);
   const study = view as ReturnType<typeof studyView>;
   const lines = [`Buổi học ${study.sessionId} · ${study.completed}/${study.total} câu đã xử lý · ${study.status}`, `Kết quả buổi này: ${study.sessionResults.correct}/${study.sessionResults.answered} đúng${study.sessionResults.wrong ? ` · sai: ${study.sessionResults.items.filter(item => !item.correct).map(item => item.questionId).join(", ")}` : ""}`];
@@ -173,7 +197,11 @@ const errorMessages: Record<string, string> = {
   MOCK_ABANDONED: "Bài thi thử này đã dừng nên không thể nộp. Hãy bắt đầu bài mới.",
   CONFIRM_UNANSWERED: "Còn câu chưa trả lời. Hỏi người học xác nhận, rồi nộp lại với confirmUnanswered=true.",
   LIGHTNING_EXPIRED: "Đã hết 60 giây của lượt chớp nhoáng nên câu trả lời này không được ghi. Xem kết quả lượt hoặc bắt đầu lượt mới.",
-  LIGHTNING_NEEDS_HISTORY: "Chưa có câu nào đã trả lời để chơi chớp nhoáng. Hãy học vài câu trước bằng start_study."
+  LIGHTNING_NEEDS_HISTORY: "Chưa có câu nào đã trả lời để chơi chớp nhoáng. Hãy học vài câu trước bằng start_study.",
+  LEAGUE_NEEDS_LESSON: "Hãy hoàn thành ít nhất một bài học trước khi tham gia nhóm thi đua tuần.",
+  LEAGUE_NAME_INVALID: "Tên hiển thị cần 3–20 ký tự, gồm chữ cái, chữ số, khoảng trắng hoặc . _ -",
+  LEAGUE_NAME_REJECTED: "Tên hiển thị này không phù hợp. Hãy chọn một tên khác.",
+  LEAGUE_NOT_JOINED: "Bạn chưa tham gia nhóm thi đua tuần."
 };
 
 export function learningError(error: unknown) {

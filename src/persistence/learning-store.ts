@@ -14,6 +14,8 @@ export interface LearningStore {
   load(userId: string): Promise<LearningRecord | null>;
   compareAndSwap(userId: string, revision: number | null, state: LearnerState): Promise<boolean>;
   delete(userId: string): Promise<boolean>;
+  /** Every learner whose saved state has a league membership. */
+  leagueMembers(): Promise<{ userId: string; state: LearnerState }[]>;
 }
 
 const rowSchema = z.object({ revision: z.coerce.number().int().nonnegative(), state: z.unknown() });
@@ -21,6 +23,10 @@ const rowSchema = z.object({ revision: z.coerce.number().int().nonnegative(), st
 function record(value: unknown): LearningRecord {
   const row = rowSchema.parse(value);
   return { revision: row.revision, state: LearnerStateSchema.parse(typeof row.state === "string" ? JSON.parse(row.state) : row.state) };
+}
+
+function member(value: unknown) {
+  return { userId: z.object({ user_id: z.string() }).parse(value).user_id, state: record(value).state };
 }
 
 export class SqliteLearningStore implements LearningStore {
@@ -53,6 +59,10 @@ export class SqliteLearningStore implements LearningStore {
     return this.db.prepare("DELETE FROM learner_workspaces WHERE user_id = ?").run(userId).changes === 1;
   }
 
+  async leagueMembers() {
+    return this.db.prepare("SELECT user_id, revision, state FROM learner_workspaces WHERE json_type(state, '$.league') = 'object'").all().map(member);
+  }
+
   close() { this.db.close(); }
 }
 
@@ -71,6 +81,10 @@ export function createRemoteLearningStore(databaseUrl: string): LearningStore {
     },
     async delete(userId) {
       return (await sql.query("DELETE FROM learner_workspaces WHERE user_id = $1 RETURNING user_id", [userId])).length === 1;
+    },
+    async leagueMembers() {
+      // A JSON null league is not SQL NULL in jsonb, so test for an object.
+      return (await sql.query("SELECT user_id, revision, state FROM learner_workspaces WHERE jsonb_typeof(state->'league') = 'object'")).map(member);
     }
   };
 }
