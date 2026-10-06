@@ -73,14 +73,14 @@ test("MCP get, submit, next and UI resource work over HTTP", async () => {
   const learningUri = (courseTool?._meta as { ui?: { resourceUri?: string } })?.ui?.resourceUri;
   assert.match(learningUri ?? "", /^ui:\/\/ly-thuyet-lai-xe\/learning-[0-9a-f]{12}\.html$/);
   const cardTools = tools.tools.filter((tool) => (tool._meta as { ui?: { resourceUri?: string } })?.ui?.resourceUri === learningUri).map((tool) => tool.name).sort();
-  assert.deepEqual(cardTools, ["get_course", "get_mock_test", "next_study_question", "resume_study", "skip_study_question", "start_mock_test", "start_study"], "only entry points open a new card");
+  assert.deepEqual(cardTools, ["get_course", "get_mock_test", "get_question", "next_study_question", "resume_study", "skip_study_question", "start_mock_test", "start_study"], "only entry points open a new card");
   const learningResource = await client.readResource({ uri: learningUri ?? "" });
   const learningHtml = learningResource.contents[0] as { mimeType: string; text: string };
   assert.equal(learningHtml.mimeType, "text/html;profile=mcp-app");
   assert.match(learningHtml.text, /Lý Thuyết Lái Xe/);
   assert.equal(learningHtml.text.includes("{{BASE_URL}}"), false);
   const getTool = tools.tools.find((tool) => tool.name === "get_question");
-  assert.equal((getTool?._meta as { ui?: { resourceUri?: string } })?.ui?.resourceUri, "ui://ly-thuyet-lai-xe/quiz-v1.html");
+  assert.match((getTool?._meta as { ui?: { resourceUri?: string } })?.ui?.resourceUri ?? "", /^ui:\/\/ly-thuyet-lai-xe\/learning-[0-9a-f]{12}\.html$/, "single questions use the Direction B widget");
 
   const first = await client.callTool({ name: "get_question", arguments: {} });
   const question = first.structuredContent as { id: string; options: unknown[] };
@@ -115,10 +115,8 @@ test("MCP get, submit, next and UI resource work over HTTP", async () => {
   const search = await client.callTool({ name: "search_theory", arguments: { query: "phần đường xe chạy" } });
   assert.ok((search.structuredContent as { hits: Array<{ questionId: string }> }).hits.some((hit) => hit.questionId === "q001"));
 
-  const resource = await client.readResource({ uri: "ui://ly-thuyet-lai-xe/quiz-v1.html" });
-  assert.equal(resource.contents[0]?.mimeType, "text/html;profile=mcp-app");
-  assert.ok(resource.contents[0] && "text" in resource.contents[0]);
-  assert.match(resource.contents[0].text, /Kiểm tra đáp án/);
+  const resources = await client.listResources();
+  assert.equal(resources.resources.some((resource) => resource.uri.includes("quiz-v1")), false, "the legacy quiz card is no longer served over MCP");
 });
 
 test("study tools tell ChatGPT to show the original bank question verbatim, with its image", async () => {
@@ -134,4 +132,41 @@ test("study tools tell ChatGPT to show the original bank question verbatim, with
   const answered = await client.callTool({ name: "submit_study_answer", arguments: { sessionId: session.sessionId, questionId: session.question.id, answer: "A", requestId: randomUUID() } });
   assert.match(text(answered), /Do not write a question yourself/);
   assert.doesNotMatch(text(answered), /"queue"/);
+});
+
+test("text replies are readable summaries and errors are plain Vietnamese", async () => {
+  const text = (result: Awaited<ReturnType<typeof client.callTool>>) => (result.content as { type: string; text: string }[])[0]?.text ?? "";
+  const course = text(await client.callTool({ name: "get_course", arguments: {} }));
+  assert.match(course, /^Khóa học bằng B: đã thử \d+\/600 câu/m);
+  assert.match(course, /Câu hỏi dễ nhầm lẫn \(de_nham_lan\)/);
+  assert.ok(course.length < 2000, `course summary stays short (${course.length} chars)`);
+  assert.match(text(await client.callTool({ name: "get_question", arguments: { questionId: "q001" } })), /^q001: Phần của đường bộ/m);
+  const lesson = await client.callTool({ name: "start_study", arguments: { questionIds: ["q002"], requestId: randomUUID() } });
+  const lessonView = lesson.structuredContent as { sessionId: string };
+  const help = text(await client.callTool({ name: "request_study_help", arguments: { questionId: "q002", sessionId: lessonView.sessionId, requestId: randomUUID() } }));
+  assert.match(help, /Đã ghi nhận yêu cầu hỗ trợ cho q002/);
+  const mismatch = await client.callTool({ name: "submit_study_answer", arguments: { sessionId: lessonView.sessionId, questionId: "q003", answer: "A", requestId: randomUUID() } });
+  assert.equal(mismatch.isError, true);
+  assert.equal(text(mismatch), "Câu này không phải câu đang mở trong buổi học. Hãy trả lời câu hiện tại.");
+  await client.callTool({ name: "submit_study_answer", arguments: { sessionId: lessonView.sessionId, questionId: "q002", answer: "A", requestId: randomUUID() } });
+  const done = text(await client.callTool({ name: "next_study_question", arguments: { sessionId: lessonView.sessionId, requestId: randomUUID() } }));
+  assert.match(done, /Hoàn thành buổi học: \d\/1 câu đúng\./);
+});
+
+test("a running mock is summarised in text and its questions cannot be looked up or scored elsewhere", async () => {
+  const text = (result: Awaited<ReturnType<typeof client.callTool>>) => (result.content as { type: string; text: string }[])[0]?.text ?? "";
+  const started = await client.callTool({ name: "start_mock_test", arguments: { mode: "random", requestId: randomUUID() } });
+  const mock = started.structuredContent as { attemptId: string; questions: { id: string; question: string; critical: boolean | null }[] };
+  const first = mock.questions[0];
+  assert.ok(first);
+  assert.match(text(started), /^Bài thi thử .* · đã chọn 0\/30\./);
+  assert.ok(text(started).includes(`Câu 1/30 · ${first.id}: ${first.question}`));
+  assert.ok(mock.questions.every((question) => question.critical === null), "critical questions are not flagged during the test");
+  const search = await client.callTool({ name: "search_theory", arguments: { query: first.question.slice(0, 40) } });
+  assert.equal((search.structuredContent as { hits: { questionId: string }[] }).hits.some((hit) => hit.questionId === first.id), false);
+  const scored = await client.callTool({ name: "submit_answer", arguments: { questionId: first.id, selectedAnswer: "A" } });
+  assert.equal(text(scored), "Câu này đang nằm trong bài thi thử chưa nộp. Hãy nộp hoặc dừng bài thi trước.");
+  const finished = await client.callTool({ name: "finalise_mock_test", arguments: { attemptId: mock.attemptId, confirmUnanswered: true, requestId: randomUUID() } });
+  assert.match(text(finished), /^Kết quả thi thử .*: 0\/30 · Chưa đạt/);
+  assert.equal((finished.structuredContent as { remainingMs: number }).remainingMs, 0);
 });

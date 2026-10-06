@@ -325,15 +325,16 @@ test("any command first finalises an expired mock at its deadline so review-firs
     assert.equal(session?.items[0]?.kind, "review");
 });
 test("a running mock question cannot be answered or explained through study", () => {
-    const { state, m } = mockState(createLearner(clock), clock);
-    const q = m.questionIds[0];
-    assert.ok(q);
-    const s = run(state, { kind: "start_study", requestId: requestId(), questionIds: [q] }, clock + 1000);
+    let s = run(createLearner(clock), { kind: "start_study", requestId: requestId(), questionIds: ["q001"] }, clock);
     const session = s.sessions.at(-1);
     assert.ok(session);
-    assert.throws(() => run(s, { kind: "answer_study", requestId: requestId(), sessionId: session.id, questionId: q, answer: wrong(q) }, clock + 2000), /MOCK_IN_PROGRESS/);
-    assert.throws(() => run(s, { kind: "answer_question", requestId: requestId(), questionId: q, answer: wrong(q) }, clock + 2000), /MOCK_IN_PROGRESS/);
-    assert.throws(() => run(s, { kind: "record_help", requestId: requestId(), questionId: q }, clock + 2000), /MOCK_IN_PROGRESS/);
+    s = run(s, { kind: "start_mock", requestId: requestId(), mode: "random" }, clock + 1000);
+    const m = s.mocks.at(-1);
+    assert.ok(m);
+    if (!m.questionIds.includes("q001")) m.questionIds[0] = "q001";
+    assert.throws(() => run(s, { kind: "answer_study", requestId: requestId(), sessionId: session.id, questionId: "q001", answer: wrong("q001") }, clock + 2000), /MOCK_IN_PROGRESS/);
+    assert.throws(() => run(s, { kind: "answer_question", requestId: requestId(), questionId: "q001", answer: wrong("q001") }, clock + 2000), /MOCK_IN_PROGRESS/);
+    assert.throws(() => run(s, { kind: "record_help", requestId: requestId(), questionId: "q001" }, clock + 2000), /MOCK_IN_PROGRESS/);
 });
 test("default study and mock starts resume the open activity instead of duplicating it", () => {
     let s = run(createLearner(clock), { kind: "start_study", requestId: requestId() }, clock);
@@ -343,9 +344,10 @@ test("default study and mock starts resume the open activity instead of duplicat
     s = run(s, { kind: "start_study", requestId: requestId() }, clock + 2000);
     assert.equal(s.sessions.length, 1);
     assert.equal(s.sessions[0]?.status, "active");
-    s = run(s, { kind: "start_study", requestId: requestId(), reviewOnly: true }, clock + 3000);
-    s = run(s, { kind: "start_study", requestId: requestId(), unitId: "bien_bao" }, clock + 4000);
-    assert.equal(s.sessions.length, 3);
+    const nothingDue = executeLearning(s, { kind: "start_study", requestId: requestId(), reviewOnly: true }, clock + 3000);
+    assert.ok(nothingDue.view.kind === "course" && nothingDue.view.nothingToStudy, "nothing due says so instead of saving an empty session");
+    s = run(nothingDue.state, { kind: "start_study", requestId: requestId(), unitId: "bien_bao" }, clock + 4000);
+    assert.equal(s.sessions.length, 2);
     s = run(s, { kind: "start_mock", requestId: requestId(), mode: "random" }, clock + 5000);
     s = run(s, { kind: "start_mock", requestId: requestId(), mode: "random" }, clock + 6000);
     assert.equal(s.mocks.length, 1);
@@ -422,4 +424,32 @@ test("the custom confusing-question category starts a session of the requested s
     assert.deepEqual(items.slice(0, Math.min(5, firstFamily.questionIds.length)), firstFamily.questionIds.slice(0, 5), "siblings in one family come together");
     const daily = run(createLearner(clock), { kind: "start_study", requestId: requestId(), count: 3 }, clock);
     assert.equal(daily.sessions.at(-1)?.items.length, 3);
+});
+test("unit listings carry counts instead of every question ID, and explicit sessions stay tidy", () => {
+    const units = listUnits(createLearner(clock), "", clock).units;
+    const signs = units.find(u => u.id === "bien_bao");
+    assert.ok(signs);
+    assert.equal(signs.questionCount, 185);
+    assert.equal(typeof signs.firstQuestionId, "string");
+    assert.equal("questionIds" in signs, false);
+    let s = run(createLearner(clock), { kind: "start_study", requestId: requestId() }, clock);
+    s = run(s, { kind: "start_study", requestId: requestId(), count: 5 }, clock + 1000);
+    assert.equal(s.sessions.length, 2, "a requested count starts its own session even with the daily one open");
+    assert.equal(s.sessions.at(-1)?.items.length, 5);
+    s = run(s, { kind: "start_study", requestId: requestId(), unitId: "bien_bao", count: 3 }, clock + 2000);
+    assert.deepEqual(s.sessions.map(x => [x.override, x.status]), [[false, "active"], [true, "paused"], [true, "active"]]);
+});
+test("a running mock keeps its questions out of study and finished mocks report no time left", () => {
+    const { state, m } = mockState(createLearner(clock), clock);
+    const q = m.questionIds[0];
+    assert.ok(q);
+    const other = bankQuestions.map(x => x.questionId).find(id => !m.questionIds.includes(id));
+    assert.ok(other);
+    let s = run(state, { kind: "start_study", requestId: requestId(), questionIds: [q, other] }, clock + 1000);
+    assert.deepEqual(s.sessions.at(-1)?.items.map(i => i.questionId), [other], "mock questions are left out of new study sessions");
+    s = run(s, { kind: "finalise_mock", requestId: requestId(), attemptId: m.id, confirmUnanswered: true }, clock + 2000);
+    const view = executeLearning(s, { kind: "view_mock", requestId: requestId(), attemptId: m.id }, clock + 3000).view;
+    assert.ok(view.kind === "mock");
+    assert.equal(view.remainingMs, 0);
+    assert.throws(() => run(s, { kind: "abandon_mock", requestId: requestId(), attemptId: m.id }, clock + 4000), /MOCK_NOT_ACTIVE/);
 });

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { createLearner, courseView, listUnits, LearningCommandSchema, type studyView } from "./domain/learning.js";
+import { createLearner, courseView, listUnits, LearningCommandSchema, type mockView, type studyView } from "./domain/learning.js";
 import { LearningRuntime } from "./domain/learning-runtime.js";
 import { questionTeaching } from "./domain/teaching.js";
 
@@ -37,7 +37,7 @@ export function createLearningTools(runtime: LearningRuntime | null, persistence
   const decorate = (view: object) => ({ ...view, historyAvailable: runtime !== null, persistence, serverNow: Date.now() });
   const tools: LearningTool[] = [{
     name: "get_course", title: "Open the driving-theory course",
-    description: "Show the course overview only when the learner asks about the course, their progress or goals; to study, call start_study instead. Returns category progress, daily goal, due reviews and saved activities. Distinguish first-pass coverage from qualifying delayed learning. If historyAvailable=false, disclose unavailable history rather than personalise.",
+    description: "Show the course overview only when the learner asks about the course, their progress or goals. To study with saved history, call start_study; without saved history, practise with get_question. Returns category progress, daily goal, due reviews and saved activities. Distinguish first-pass coverage from qualifying delayed learning. If historyAvailable=false, disclose unavailable history rather than personalise.",
     inputSchema: {}, readOnly: true, card: true,
     async run() { return decorate(runtime ? await runtime.course() : courseView(createLearner(Date.now()), Date.now())); }
   }, {
@@ -85,7 +85,7 @@ export function createLearningTools(runtime: LearningRuntime | null, persistence
   return runtime ? tools : tools.filter(tool => tool.name === "get_course" || tool.name === "list_units");
 }
 
-type ShownQuestion = NonNullable<ReturnType<typeof studyView>["question"]>;
+type ShownQuestion = Pick<NonNullable<ReturnType<typeof studyView>["question"]>, "id" | "question" | "options" | "imagePath">;
 
 function questionBlock(question: ShownQuestion, origin: string) {
   return [
@@ -95,25 +95,89 @@ function questionBlock(question: ShownQuestion, origin: string) {
   ].join("\n");
 }
 
+function courseText(course: ReturnType<typeof courseView> & { historyAvailable?: boolean }) {
+  const lines = [
+    ...(course.historyAvailable === false ? ["Lịch sử học chưa khả dụng trên kết nối này; không có tiến độ nào được lưu."] : []),
+    ...(course.nothingToStudy ? ["Không có buổi học mới: chưa có câu đến hạn ôn và đã đạt mục tiêu câu mới hôm nay. Gợi ý luyện theo chủ đề (start_study với unitId và count) hoặc thi thử."] : []),
+    `Khóa học bằng B: đã thử ${course.covered}/${course.total} câu, đã nhớ ${course.learned}, đến hạn ôn ${course.dueCount}.`,
+    `Mục tiêu ${course.dailyGoal} câu mới mỗi ngày; hôm nay đã học ${course.newToday} câu mới.`,
+    `Kết quả: ${course.results.correctAttempts}/${course.results.totalAttempts} lượt đúng (${course.results.accuracyPercent}%).`,
+    ...course.units.map(unit => `- ${unit.title} (${unit.id}): ${unit.covered}/${unit.questionCount} đã thử, ${unit.learned} đã nhớ`),
+    `- ${course.customCategory.title} (${course.customCategory.id}): ${course.customCategory.covered}/${course.customCategory.total} đã thử, ${course.customCategory.familyCount} nhóm nháp`
+  ];
+  const open = course.sessions.filter(session => session.status !== "complete");
+  if (open.length) lines.push(`Buổi học đang mở: ${open.map(session => `${session.id} (${session.status})`).join(", ")}.`);
+  const running = course.mocks.filter(mock => mock.status === "active");
+  if (running.length) lines.push(`Bài thi thử chưa nộp: ${running.map(mock => mock.id).join(", ")}.`);
+  return lines.join("\n");
+}
+
+function mockText(mock: ReturnType<typeof mockView>, origin: string) {
+  if (mock.status === "abandoned") return `Bài thi thử ${mock.attemptId} đã dừng; các lựa chọn không được chấm và không tính vào lịch sử học.`;
+  if ("score" in mock) {
+    const wrong = mock.results.filter(result => "correct" in result && !result.correct).map(result => result.questionId);
+    const blank = mock.results.filter(result => "unanswered" in result).map(result => result.questionId);
+    return [
+      `Kết quả thi thử ${mock.attemptId}: ${mock.score}/30 · ${mock.passed ? "Đạt" : "Chưa đạt"} (cần 27/30 và không sai câu điểm liệt).`,
+      `Sai: ${wrong.join(", ") || "không có"}. Bỏ trống: ${blank.join(", ") || "không có"}. Câu điểm liệt sai hoặc bỏ trống: ${mock.criticalFailures.join(", ") || "không có"}.`
+    ].join("\n");
+  }
+  const seconds = Math.ceil(mock.remainingMs / 1000);
+  return [
+    `Bài thi thử ${mock.attemptId}${mock.resumed ? " (đang làm tiếp bài chưa nộp)" : ""} · còn ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")} · đã chọn ${mock.answeredCount}/30.`,
+    "Do not reveal correctness before submission. If the learner sees the card, do not repeat the questions; otherwise show one question at a time exactly as written:",
+    ...mock.questions.map((question, index) => `Câu ${index + 1}/30 · ${questionBlock(question, origin)}${mock.choices[question.id] ? `\nĐã chọn: ${mock.choices[question.id]?.answer}` : ""}`)
+  ].join("\n\n");
+}
+
+function helpText(teaching: ReturnType<typeof questionTeaching>) {
+  return [`Đã ghi nhận yêu cầu hỗ trợ cho ${teaching.questionId}; câu trả lời sau đó không được tính là tự nhớ.`, teaching.explanation ? `Giải thích từ ngân hàng: ${teaching.explanation}` : teaching.message].join("\n");
+}
+
 export function learningText(view: object, origin: string) {
-  if (!("kind" in view) || view.kind !== "study") return JSON.stringify(view);
+  const kind = "kind" in view ? view.kind : null;
+  const teaching = "teaching" in view ? view.teaching as ReturnType<typeof questionTeaching> : null;
+  if (kind === "course") return courseText(view as ReturnType<typeof courseView>);
+  if (kind === "help" && teaching) return helpText(teaching);
+  if (kind === "mock") return mockText(view as ReturnType<typeof mockView>, origin);
+  if (kind !== "study") return JSON.stringify(view);
   const study = view as ReturnType<typeof studyView>;
   const lines = [`Buổi học ${study.sessionId} · ${study.completed}/${study.total} câu đã xử lý · ${study.status}`, `Kết quả buổi này: ${study.sessionResults.correct}/${study.sessionResults.answered} đúng${study.sessionResults.wrong ? ` · sai: ${study.sessionResults.items.filter(item => !item.correct).map(item => item.questionId).join(", ")}` : ""}`];
+  if (teaching) lines.push(helpText(teaching));
   if (study.currentFeedback) {
     const feedback = study.currentFeedback;
     lines.push(`Kết quả ${feedback.questionId}: ${feedback.correct ? "Đúng" : "Sai"}. Đáp án gốc: ${feedback.correctAnswer}.`, `Giải thích từ ngân hàng: ${feedback.explanation}`, "Call next_study_question for the next original question. Do not write a question yourself.");
   } else if (study.question) {
     lines.push("Original bank question. Show it to the learner exactly as written, with every option and the image link:", questionBlock(study.question, origin));
-  } else lines.push("Không còn câu hỏi trong buổi học này.");
+  } else lines.push(`Hoàn thành buổi học: ${study.sessionResults.correct}/${study.sessionResults.answered} câu đúng.`);
   return lines.join("\n");
 }
 
+const errorMessages: Record<string, string> = {
+  HISTORY_UNAVAILABLE: "Lịch sử học tập chưa được bật cho kết nối này. Bạn vẫn có thể luyện câu hỏi không lưu. Cần kết nối tài khoản để ôn và tiếp tục qua nhiều cuộc trò chuyện.",
+  LIBRARY_UNAVAILABLE: "Bộ đề chính thức chưa được cung cấp. Bạn có thể chọn đề ngẫu nhiên.",
+  LEARNING_SAVE_CONFLICT: "Chưa lưu được vì có thay đổi đồng thời. Hãy thử lại với cùng mã yêu cầu.",
+  UNIT_NOT_FOUND: "Không tìm thấy chủ đề hoặc nhóm này. Dùng list_units để lấy đúng mã chủ đề.",
+  QUESTION_NOT_FOUND: "Không có câu hỏi này trong bộ 600 câu.",
+  SESSION_NOT_FOUND: "Không tìm thấy buổi học này. Mở buổi học hôm nay bằng start_study.",
+  SESSION_NOT_ACTIVE: "Buổi học đang tạm dừng hoặc đã xong. Tiếp tục bằng resume_study hoặc bắt đầu buổi mới.",
+  QUESTION_BINDING_MISMATCH: "Câu này không phải câu đang mở trong buổi học. Hãy trả lời câu hiện tại.",
+  QUESTION_NOT_PENDING: "Câu này đã được trả lời trong buổi học. Chuyển sang câu tiếp theo bằng next_study_question.",
+  ANSWER_OR_SKIP_FIRST: "Hãy trả lời hoặc bỏ qua câu hiện tại trước khi sang câu tiếp theo.",
+  INVALID_ANSWER: "Đáp án không hợp lệ cho câu này. Chọn một chữ cái có trong các lựa chọn.",
+  REQUEST_CONFLICT: "Mã yêu cầu này đã dùng cho một thao tác khác. Hãy gửi lại với requestId mới.",
+  MOCK_IN_PROGRESS: "Câu này đang nằm trong bài thi thử chưa nộp. Hãy nộp hoặc dừng bài thi trước.",
+  MOCK_NOT_FOUND: "Không tìm thấy bài thi thử này.",
+  MOCK_NOT_ACTIVE: "Bài thi thử này đã kết thúc nên không thể lưu thêm lựa chọn.",
+  MOCK_ABANDONED: "Bài thi thử này đã dừng nên không thể nộp. Hãy bắt đầu bài mới.",
+  CONFIRM_UNANSWERED: "Còn câu chưa trả lời. Hỏi người học xác nhận, rồi nộp lại với confirmUnanswered=true."
+};
+
 export function learningError(error: unknown) {
-  const reason = error instanceof Error ? error.message : "LEARNING_REQUEST_FAILED";
-  const messages: Record<string, string> = {
-    HISTORY_UNAVAILABLE: "Lịch sử học tập chưa được bật cho kết nối này. Bạn vẫn có thể luyện câu hỏi không lưu. Cần kết nối tài khoản và kho lưu trữ để ôn và tiếp tục qua nhiều cuộc trò chuyện.",
-    LIBRARY_UNAVAILABLE: "Bộ đề chính thức chưa được cung cấp. Bạn có thể chọn đề ngẫu nhiên.",
-    LEARNING_SAVE_CONFLICT: "Chưa lưu được vì có thay đổi đồng thời. Hãy thử lại với cùng mã yêu cầu."
-  };
-  return { isError: true, content: [{ type: "text" as const, text: messages[reason] ?? `Chưa xử lý được yêu cầu học tập (${reason}). Không ghi nhận hoàn thành nếu chưa lưu thành công.` }] };
+  const reason = error instanceof z.ZodError
+    ? `Dữ liệu gửi lên không hợp lệ: ${error.issues.map(issue => issue.path.join(".") || "input").join(", ")}.`
+    : error instanceof RangeError && /time zone/i.test(error.message)
+      ? "Múi giờ không hợp lệ. Dùng tên múi giờ IANA, ví dụ Asia/Ho_Chi_Minh."
+      : errorMessages[error instanceof Error ? error.message : ""] ?? `Chưa xử lý được yêu cầu học tập (${error instanceof Error ? error.message : "lỗi không xác định"}). Không có thay đổi nào được lưu.`;
+  return { isError: true, content: [{ type: "text" as const, text: reason }] };
 }

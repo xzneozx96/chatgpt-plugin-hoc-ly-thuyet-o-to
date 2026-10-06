@@ -187,3 +187,87 @@ test("asking for a mock while one is unfinished says so and can start a fresh te
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("a card opened by get_question shows the practice screen with the question and image", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "driving-widget-question-"));
+  const server = startHttpServer(0, { dataPath: join(dir, "study.sqlite") });
+  if (!server.listening) await once(server, "listening");
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("Missing preview port");
+  const origin = `http://127.0.0.1:${address.port}`;
+  const executablePath = process.env.CHROME_PATH ?? (existsSync("/usr/bin/google-chrome") ? "/usr/bin/google-chrome" : undefined);
+  const browser = await chromium.launch({ executablePath, headless: true, args: ["--no-sandbox"] });
+  try {
+    const toolResult = await (await fetch(`${origin}/preview/tool`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "get_question", arguments: { questionId: "q373" } }) })).json();
+    const page = await browser.newPage();
+    await page.goto(`${origin}/preview`);
+    const app = page.frameLocator("#widget");
+    await app.getByRole("heading", { name: "Khóa học bằng B" }).waitFor();
+    await page.evaluate((params) => {
+      document.querySelector<HTMLIFrameElement>("#widget")?.contentWindow?.postMessage({ jsonrpc: "2.0", method: "ui/notifications/tool-result", params }, location.origin);
+    }, toolResult);
+    await app.getByRole("heading", { name: "Luyện câu gốc" }).waitFor();
+    await app.getByRole("heading", { name: /Biển nào báo hiệu nguy hiểm giao nhau với đường sắt/ }).waitFor();
+    await app.getByText("Câu trả lời được lưu vào lịch sử học.").waitFor();
+    assert.equal(await app.locator(".question-image").count(), 1);
+  } finally {
+    await browser.close();
+    server.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("confusion keeps the chosen answer, the card shrinks after long screens, and nothing due says so", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "driving-widget-polish-"));
+  const server = startHttpServer(0, { dataPath: join(dir, "study.sqlite") });
+  if (!server.listening) await once(server, "listening");
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("Missing preview port");
+  const origin = `http://127.0.0.1:${address.port}`;
+  const executablePath = process.env.CHROME_PATH ?? (existsSync("/usr/bin/google-chrome") ? "/usr/bin/google-chrome" : undefined);
+  const browser = await chromium.launch({ executablePath, headless: true, args: ["--no-sandbox"] });
+  try {
+    const page = await browser.newPage();
+    await page.goto(`${origin}/preview`);
+    const app = page.frameLocator("#widget");
+    await app.getByRole("heading", { name: "Khóa học bằng B" }).waitFor();
+    await app.locator('[data-action="unit"][data-value="van_hoa"]').click();
+    await app.locator('input[name="answer"][value="A"]').check();
+    await app.getByText("Tôi tự tin").click();
+    await app.locator("details.more-actions summary").click();
+    await app.getByRole("button", { name: "Tôi còn phân vân" }).click();
+    await app.getByRole("button", { name: "Bỏ dấu phân vân" }).waitFor();
+    assert.equal(await app.locator('[data-action="answer"]').isDisabled(), false, "answer stays available after the confusion toggle");
+    assert.equal(await app.locator('input[name="confidence"][value="confident"]').isChecked(), true, "confidence is kept");
+
+    const frameHeight = () => page.locator("#widget").evaluate((frame: HTMLIFrameElement) => frame.getBoundingClientRect().height);
+    await app.locator(".brand nav [data-action='course']").click();
+    await app.getByRole("button", { name: "Nhóm dễ nhầm lẫn" }).click();
+    await app.locator(".course-row").nth(20).waitFor();
+    await page.waitForTimeout(300);
+    const tall = await frameHeight();
+    await app.locator(".brand nav [data-action='course']").click();
+    await app.locator('[data-action="goals"]').click();
+    await app.getByRole("heading", { name: "Mục tiêu mỗi ngày" }).waitFor();
+    await page.waitForTimeout(300);
+    assert.ok(await frameHeight() < tall - 300, `card shrinks after a long screen (${tall} → ${await frameHeight()})`);
+
+    await app.locator('input[name="goal"][value="10"]').check();
+    await app.getByRole("button", { name: "Lưu mục tiêu" }).click();
+    await app.getByText("10 câu mỗi ngày").waitFor();
+    for (let i = 0; i < 10; i++) {
+      const view = await (await fetch(`${origin}/preview/tool`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "start_study", arguments: { requestId: randomUUID() } }) })).json();
+      const study = view.structuredContent as { sessionId: string; question: { id: string } | null };
+      if (!study.question) break;
+      await fetch(`${origin}/preview/tool`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "submit_study_answer", arguments: { sessionId: study.sessionId, questionId: study.question.id, answer: "A", requestId: randomUUID() } }) });
+      await fetch(`${origin}/preview/tool`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "next_study_question", arguments: { sessionId: study.sessionId, requestId: randomUUID() } }) });
+    }
+    await page.reload();
+    await app.locator('[data-action="daily"]').click();
+    await app.getByText(/Hôm nay không còn câu đến hạn ôn và bạn đã đạt mục tiêu câu mới/).waitFor();
+  } finally {
+    await browser.close();
+    server.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

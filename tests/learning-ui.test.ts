@@ -62,7 +62,6 @@ test("learning preview drives course, goal, families, study, confusion, help, pa
     await app.locator("details.more-actions summary").click();
     await app.getByRole("button", { name: "Tôi còn phân vân" }).click();
     await app.getByRole("heading", { name: "Làn đường là gì?" }).waitFor();
-    await app.locator("details.more-actions summary").click();
     await app.getByRole("button", { name: "Bỏ dấu phân vân" }).waitFor();
     await app.locator("details.more-actions summary").click();
 

@@ -340,7 +340,7 @@ function answerResults(answers: AnswerFact[]) {
         accuracyPercent: answers.length ? Math.round(correctAttempts * 100 / answers.length) : 0
     };
 }
-export function courseView(state: LearnerState, now: number) {
+export function courseView(state: LearnerState, now: number, nothingToStudy = false) {
     const p = questionProgress(state);
     const covered = [...p.values()].filter(q => q.coveredAt !== null);
     const today = localDay(now, state.profile.timezone);
@@ -363,6 +363,7 @@ export function courseView(state: LearnerState, now: number) {
     const calendarCapacity = Math.max(0, Math.ceil((state.profile.targetDate - now) / DAY));
     return {
         kind: "course" as const,
+        nothingToStudy,
         bankVersion,
         total: 600,
         covered: covered.length,
@@ -412,12 +413,14 @@ export function listUnits(state: LearnerState, query = "", now = Date.now()) {
             ...f,
             kind: "family"
         }))];
-    const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").toLowerCase();
-    const selected = units.filter(u => normalize(`${u.id} ${u.title} ${u.questionIds.join(" ")} ${u.comparisonAxes.join(" ")}`).includes(normalize(query))).map(u => ({
+    const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/đ/g, "d").trim();
+    const selected = units.filter(u => normalize(`${u.id} ${u.title} ${u.questionIds.join(" ")} ${u.comparisonAxes.join(" ")}`).includes(normalize(query))).map(({ questionIds, ...u }) => ({
         ...u,
-        covered: u.questionIds.filter(id => p.get(id)?.coveredAt !== null).length,
-        learned: u.questionIds.filter(id => (p.get(id)?.successes ?? 0) >= 2).length,
-        due: u.questionIds.filter(id => {
+        questionCount: questionIds.length,
+        firstQuestionId: questionIds[0] ?? null,
+        covered: questionIds.filter(id => p.get(id)?.coveredAt !== null).length,
+        learned: questionIds.filter(id => (p.get(id)?.successes ?? 0) >= 2).length,
+        due: questionIds.filter(id => {
             const due = p.get(id)?.dueAt;
             return due !== null && due !== undefined && due <= now;
         }).length
@@ -459,6 +462,7 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
         sessionId: s.id,
         status: s.status,
         override: s.override,
+        reviewOnly: s.reviewOnly,
         pendingDue: dueIds(state, now).length,
         remaining: s.items.filter(i => i.status === "pending").length,
         completed: s.items.filter(i => i.status === "answered").length,
@@ -496,11 +500,11 @@ export function mockView(state: LearnerState, attemptId: string, now: number, re
         status: m.status,
         deadline: m.deadline,
         serverNow: now,
-        remainingMs: Math.max(0, m.deadline - now),
+        remainingMs: m.status === "active" ? Math.max(0, m.deadline - now) : 0,
         expired: m.status === "active" && now >= m.deadline,
         profile: "owner-30-27-20-v1",
         composition: "random bank practice; official category distribution unvalidated",
-        questions: m.questionIds.map(safeQuestion),
+        questions: m.questionIds.map(id => ({ ...safeQuestion(id), critical: m.status === "active" ? null : safeQuestion(id).critical })),
         choices: m.choices,
         answeredCount: Object.keys(m.choices).length
     };
@@ -570,8 +574,9 @@ function reconcile(state: LearnerState, s: z.infer<typeof session>, now: number)
         if (i.status === "pending" && i.kind === "review" && handled)
             i.status = "answered";
     }
+    const blocked = runningMockQuestions(state);
     if (!s.override)
-        for (const q of dueIds(state, now))
+        for (const q of dueIds(state, now).filter(q => !blocked.has(q)))
             if (!s.items.some(i => i.questionId === q))
                 s.items.push({
                     questionId: q,
@@ -580,8 +585,11 @@ function reconcile(state: LearnerState, s: z.infer<typeof session>, now: number)
                     bindingAt: now
                 });
     s.items.sort((a, b) => Number(b.kind === "review") - Number(a.kind === "review"));
-    s.activeQuestionId = s.items.find(i => i.status === "pending")?.questionId ?? null;
-    s.status = s.activeQuestionId ? "active" : "complete";
+    s.activeQuestionId = s.items.find(i => i.status === "pending" && !blocked.has(i.questionId))?.questionId ?? null;
+    s.status = s.activeQuestionId ? "active" : s.items.some(i => i.status === "pending") ? "paused" : "complete";
+}
+export function runningMockQuestions(state: LearnerState) {
+    return new Set(state.mocks.flatMap(m => m.status === "active" ? m.questionIds : []));
 }
 function reopen(state: LearnerState, s: z.infer<typeof session>, now: number) {
     if (s.items.some(i => i.questionId === s.activeQuestionId && i.status === "answered"))
@@ -686,6 +694,7 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
     let activityId: string | null = null;
     let viewKind: "course" | "study" | "mock" | "help" | "answer" = "course";
     let resumed = false;
+    let nothingToStudy = false;
     switch (command.kind) {
         case "answer_question": {
             assertNotInRunningMock(state, command.questionId);
@@ -711,7 +720,7 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
         }
         case "start_study": {
             const progress = questionProgress(state);
-            const overridden = command.override === true || command.unitId !== undefined || command.questionIds !== undefined;
+            const overridden = command.override === true || command.unitId !== undefined || command.questionIds !== undefined || command.count !== undefined;
             const open = overridden ? undefined : [...state.sessions].reverse().find(s => !s.override && s.reviewOnly === (command.reviewOnly === true) && s.status !== "complete");
             if (open) {
                 reopen(state, open, now);
@@ -719,14 +728,23 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
                 viewKind = "study";
                 break;
             }
-            const pool = command.questionIds ? [...new Set(command.questionIds)] : unitQuestions(command.unitId);
+            const blocked = runningMockQuestions(state);
+            const pool = (command.questionIds ? [...new Set(command.questionIds)] : unitQuestions(command.unitId)).filter(q => !blocked.has(q));
             for (const q of pool)
                 safeQuestion(q);
-            const reviews = overridden ? [] : dueIds(state, now);
+            const reviews = overridden ? [] : dueIds(state, now).filter(q => !blocked.has(q));
             const today = courseView(state, now);
             const remainingQuota = Math.max(0, state.profile.dailyGoal - today.newToday);
             const selected = command.reviewOnly ? [] : overridden ? pool.slice(0, command.count ?? state.profile.dailyGoal) : pool.filter(q => progress.get(q)?.coveredAt === null).slice(0, Math.min(remainingQuota, command.count ?? remainingQuota));
             const ids = [...new Set([...reviews, ...selected])];
+            if (!ids.length) {
+                nothingToStudy = true;
+                break;
+            }
+            if (overridden)
+                for (const other of state.sessions)
+                    if (other.override && other.status === "active")
+                        other.status = "paused";
             activityId = randomUUID();
             const s: z.infer<typeof session> = {
                 id: activityId,
@@ -922,6 +940,8 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
             const m = findMock(state, command.attemptId);
             activityId = m.id;
             viewKind = "mock";
+            if (m.status === "finalised")
+                throw new Error("MOCK_NOT_ACTIVE");
             if (m.status === "active")
                 state.mocks[state.mocks.findIndex(x => x.id === m.id)] = {
                     ...m,
@@ -947,7 +967,7 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
     };
     return {
         state,
-        view: viewKind === "study" && activityId ? studyView(state, activityId, now) : viewKind === "mock" && activityId ? mockView(state, activityId, now, resumed) : viewKind === "help" && activityId ? helpView(activityId) : viewKind === "answer" && activityId ? answerView(state, activityId) : courseView(state, now)
+        view: viewKind === "study" && activityId ? studyView(state, activityId, now) : viewKind === "mock" && activityId ? mockView(state, activityId, now, resumed) : viewKind === "help" && activityId ? helpView(activityId) : viewKind === "answer" && activityId ? answerView(state, activityId) : courseView(state, now, nothingToStudy)
     };
 }
 export const startStudy = (s: LearnerState, c: Omit<Extract<LearningCommand, {

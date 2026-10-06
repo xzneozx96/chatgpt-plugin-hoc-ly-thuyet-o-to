@@ -14,7 +14,6 @@ import { LearningRuntime } from "./domain/learning-runtime.js";
 import { createLearningTools, learningError, learningText } from "./learning-tools.js";
 import { createRemoteLearningStore, SqliteLearningStore, type LearningStore } from "./persistence/learning-store.js";
 
-const UI_URI = "ui://ly-thuyet-lai-xe/quiz-v1.html";
 const UI_MIME = "text/html;profile=mcp-app";
 const htmlPath = process.env.VERCEL ? resolve("src/ui/quiz.html") : fileURLToPath(new URL("./ui/quiz.html", import.meta.url));
 const previewPath = process.env.VERCEL ? resolve("src/ui/preview.html") : fileURLToPath(new URL("./ui/preview.html", import.meta.url));
@@ -50,14 +49,6 @@ export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", worksp
     { instructions: learningRuntime ? `Vietnamese driving-theory course for licence B, backed by 600 original questions in question-bank.json. Show only original questions returned by these tools, verbatim: the question ID, question text, every option with its letter, and the image link when present. Never write, paraphrase, translate, merge or invent a question or an option, including for practice, hints, reviews or teaching. For more practice, call next_study_question or start_study. If a study tool returns an error, tell the learner what failed and stop; never replace it with your own questions. When the learner wants to study, learn, review or continue, call start_study directly: it reopens the open daily session or starts one, running all due reviews before new questions. Call get_course only when the learner asks about the course, progress or goals. start_study runs reviews first; honour an explicit category or family request while reviews stay due. After the learner answers, typed or sent from the card as a message naming a question ID and letter, call submit_study_answer with exactly that question, letter and any stated confidence (tự tin = confident, đoán = guess), show the result, then call next_study_question for the next question. Never choose or infer an answer for the learner, and do not reveal an answer before an attempt unless asked. Call request_study_help before any hint or explanation. Explanations use only the bank explanation and the original question; say so when the bank has none. External knowledge sources and video timestamps are not connected; never invent them. Coverage, learned status, review dates and right or wrong results come only from the tools: get_progress or get_course (results, recentAnswers) for history, and the session's sessionResults for the current session; never claim remembered history, watched videos or exam readiness without tool evidence. Daily goals are 10, 12, 15 or a custom number of new questions; reviews are separate. Start a mock test only on request; when start_mock_test returns resumed=true, say the learner is continuing an unfinished test and offer a fresh one; and confirm before submitting with unanswered questions or leaving. Give each mutating call a new requestId UUID; reuse it only to retry the same call. Confusing-question groups are draft discovery aids, not verified teaching.` : `Vietnamese driving-theory practice, licence B. This connection saves no learner history. Tell the learner that progress, daily goals, review schedules, study sessions and mock tests are unavailable here, and never claim saved or remembered progress. get_course and list_units show the course structure only. Practise with get_question and show each question verbatim with its options and image link; never write, paraphrase or invent questions or options; score only the learner's actual choice through submit_answer. Do not reveal answers before an attempt unless requested. Use search_theory for explanations from question-bank.json only. Report missing explanations explicitly. External knowledge and verified video timestamps are not connected. Do not invent them.` }
   );
 
-  server.registerResource("quiz", UI_URI, { title: "Driving theory quiz", mimeType: UI_MIME }, async () => ({
-    contents: [{
-      uri: UI_URI,
-      mimeType: UI_MIME,
-      text: readFileSync(htmlPath, "utf8"),
-      _meta: { ui: { csp: { connectDomains: [], resourceDomains: [baseUrl.origin] } } }
-    }]
-  }));
 
   server.registerResource("learning", LEARNING_UI_URI, { title: "Lý Thuyết Lái Xe · Đường học", mimeType: UI_MIME }, async () => ({
     contents: [{ uri: LEARNING_UI_URI, mimeType: UI_MIME, text: readFileSync(learningHtmlPath, "utf8").replaceAll("{{BASE_URL}}", baseUrl.origin),
@@ -84,7 +75,7 @@ export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", worksp
       inputSchema: { questionId: z.string().optional(), afterQuestionId: z.string().optional(), beforeQuestionId: z.string().optional(), topic: z.string().optional() },
       outputSchema: questionSchema,
       annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false },
-      _meta: { ui: { resourceUri: UI_URI } }
+      _meta: { ui: { resourceUri: LEARNING_UI_URI, visibility: ["model", "app"] } }
     },
     async ({ questionId, afterQuestionId, beforeQuestionId, topic }) => {
       try {
@@ -92,7 +83,7 @@ export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", worksp
         const imageUrl = imagePath ? new URL(`/images/${imagePath.split("/").at(-1)}`, baseUrl).toString() : null;
         return {
           structuredContent: { ...question, imageUrl },
-          content: [{ type: "text", text: `${question.question}\n${question.options.map((o) => `${o.id}. ${o.text}`).join("\n")}${imageUrl ? `\nHình: ${imageUrl}` : ""}` }]
+          content: [{ type: "text", text: `Original bank question. Show it to the learner exactly as written, with every option and the image link:\n${question.id}: ${question.question}${imageUrl ? `\nHình: ${imageUrl}` : ""}\n${question.options.map((o) => `${o.id}. ${o.text}`).join("\n")}` }]
         };
       } catch {
         return { isError: true, content: [{ type: "text", text: "Không tìm thấy câu hỏi hoặc chủ đề." }] };
@@ -118,8 +109,8 @@ export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", worksp
           structuredContent: { ...result },
           content: [{ type: "text", text: `${result.correct ? "Đúng" : "Chưa đúng"}. Đáp án đúng: ${result.correctAnswer}. ${result.explanation}${result.memoryTip ? ` Mẹo nhớ: ${result.memoryTip}` : ""}` }]
         };
-      } catch {
-        return { isError: true, content: [{ type: "text", text: "Mã câu hỏi hoặc đáp án không hợp lệ." }] };
+      } catch (error) {
+        return learningError(error);
       }
     }
   );
@@ -131,7 +122,8 @@ export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", worksp
     outputSchema: { hits: z.array(z.object({ questionId: z.string(), topic: z.string(), source: z.string(), question: z.string(), excerpt: z.string(), score: z.number() })) },
     annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false }
   }, async ({ query, limit }) => {
-    const hits = workspace.searchTheory(query, limit);
+    const hidden = learningRuntime ? await learningRuntime.runningMockQuestions() : new Set<string>();
+    const hits = workspace.searchTheory(query, limit).filter((hit) => !hidden.has(hit.questionId));
     return { structuredContent: { hits }, content: [{ type: "text", text: hits.length ? hits.map((hit) => `${hit.source}: ${hit.question}\n${hit.excerpt}`).join("\n\n") : "Ngân hàng câu hỏi không có nội dung phù hợp." }] };
   });
 
