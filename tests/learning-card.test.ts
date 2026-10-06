@@ -455,6 +455,10 @@ test("a card left open while another chat continues the lesson shows the server'
     await app.getByRole("heading", { name: "Làn đường là gì?" }).waitFor();
     await app.getByText("Bài học đã tiếp tục ở nơi khác — thẻ đã cập nhật.").waitFor();
     assert.equal(await app.locator('input[name="answer"]:checked').count(), 0, "no stale choice stays editable");
+    // A screen the host opens next does not keep that lesson's notice.
+    await open(await tool("get_question", { questionId: "q301" }));
+    await app.getByRole("heading", { name: "Luyện câu gốc" }).waitFor();
+    assert.equal(await app.locator("#status").innerText(), "", "the old notice is gone");
   });
 });
 

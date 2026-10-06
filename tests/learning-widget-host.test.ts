@@ -333,6 +333,7 @@ test("a lost answer response shows no verdict, and Thử lại resends the same 
     assert.equal(await app.locator("#verdict").count(), 0, "no verdict before the server's result arrives");
     assert.equal(await app.locator('input[name="answer"][value="A"]').isChecked(), true, "the choice is kept");
     assert.equal(await app.getByRole("button", { name: "Thử lại" }).count(), 1, "one retry control");
+    assert.equal(await app.locator("#status").innerText(), "", "the row says it once; the host's error text is not shown as well");
     await app.getByRole("button", { name: "Thử lại" }).click();
     await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
     assert.equal(submits.length, 2);
