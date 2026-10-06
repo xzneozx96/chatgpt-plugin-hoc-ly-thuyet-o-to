@@ -99,8 +99,9 @@ test("learning preview drives course, goal, families, study, confusion, help, pa
     assert.equal(await app.locator(".verdict").count(), 0, "provisional choice reveals no correctness");
 
     await action("mock-confirm").click();
+    await app.getByText("29 câu chưa trả lời. Nộp bài và chấm ngay?").waitFor();
+    await action("confirm-yes").click();
     await app.getByRole("heading", { name: "Kết quả thi thử" }).waitFor();
-    assert.match(dialogs.at(-1) ?? "", /^29 câu chưa trả lời/);
     await app.getByText(/\/30 · Chưa đạt/).waitFor();
     await app.getByText("29 câu bỏ trống", { exact: false }).waitFor();
 
@@ -111,7 +112,9 @@ test("learning preview drives course, goal, families, study, confusion, help, pa
     await app.getByText("Đáp án hiển thị là lựa chọn máy chủ đã lưu.").waitFor();
     await app.locator("details.more-actions summary").click();
     await action("mock-leave").click();
+    await action("confirm-yes").click();
     await app.getByRole("heading", { name: "Đã dừng bài thi" }).waitFor();
+    assert.deepEqual(dialogs, [], "the card never opens browser dialogs");
   } finally {
     await browser.close();
     server.close();
