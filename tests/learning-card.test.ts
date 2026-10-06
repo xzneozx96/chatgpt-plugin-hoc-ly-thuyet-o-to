@@ -210,3 +210,37 @@ test("XP, the combo and a repair step come from the server, and a second miss of
     assert.ok((await sent()).filter((m) => m.method === "tools/call").every((m) => m.arguments?.caller === "card"), "every card call says it came from the card");
   });
 });
+
+test("a compare-the-pair step submits both answers, shows both verdicts and the draft family's aspects, then continues once", async () => {
+  await withPreview(async ({ origin, page, app, tool, open, messages }) => {
+    let view = (await tool("start_study", { requestId: randomUUID() })).structuredContent as { sessionId: string; question: { id: string } | null; pair: { questions: { id: string }[] } | null };
+    const sessionId = view.sessionId;
+    for (let i = 0; i < 20 && !view.pair && view.question; i++) {
+      await tool("submit_study_answer", { sessionId, questionId: view.question.id, answer: right(view.question.id), requestId: randomUUID() });
+      view = (await tool("next_study_question", { sessionId, requestId: randomUUID() })).structuredContent as typeof view;
+    }
+    assert.ok(view.pair, "the daily lesson ends with a pair");
+    const [a, b] = view.pair.questions.map((q) => q.id);
+    assert.ok(a && b);
+    await page.goto(`${origin}/preview`);
+    await app.locator("[data-action]").first().waitFor();
+    await open(await tool("get_study_session", { sessionId }));
+    await app.getByRole("heading", { name: "Hai câu dễ nhầm" }).waitFor();
+    const check = app.getByRole("button", { name: "Kiểm tra cả hai" });
+    assert.equal(await check.isDisabled(), true, "both questions need a choice first");
+    const sent = await messages();
+    await app.locator(`input[name="pair-${b}"][value="${wrong(b)}"]`).check();
+    assert.equal(await check.isDisabled(), true);
+    await app.locator(`input[name="pair-${a}"][value="${right(a)}"]`).check();
+    await check.click();
+    await app.getByText("BẢN NHÁP · chưa duyệt").waitFor();
+    await app.locator(".vchip").getByText("Chính xác!").waitFor();
+    await app.locator(".vchip").getByText("Chưa đúng").waitFor();
+    assert.equal(await app.locator(".diff .axes li").count() > 0, true, "the family's aspects are named");
+    const calls = () => sent().then((log) => log.filter((m) => m.method === "tools/call" && m.name !== "get_study_session").map((m) => [m.name, m.arguments?.questionId ?? null]));
+    assert.deepEqual(await calls(), [["submit_study_answer", a], ["submit_study_answer", b]], "two answers, no next yet");
+    await app.locator(".diff").getByRole("button", { name: "Tiếp tục" }).click();
+    await app.locator(".diff").waitFor({ state: "detached" });
+    assert.deepEqual((await calls()).map(([name]) => name), ["submit_study_answer", "submit_study_answer", "next_study_question"]);
+  });
+});
