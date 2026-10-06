@@ -192,7 +192,10 @@ export function createHttpHandler(options: {
   let authConfig: ReturnType<typeof readAuthKitConfig>;
   let authConfigurationError = false;
   try { authConfig = options.authConfig === undefined ? readAuthKitConfig() : options.authConfig; }
-  catch { authConfig = null; authConfigurationError = true; }
+  catch (error) {
+    authConfig = null; authConfigurationError = true;
+    console.error(`Authentication configuration rejected: ${error instanceof Error ? error.message : "unknown error"}`);
+  }
   const configuredBase = authConfig?.publicBaseUrl ?? options.publicBaseUrl ?? process.env.PUBLIC_BASE_URL;
   const progressEnabled = !options.publicMode && (!configuredBase || new URL(configuredBase).hostname === "127.0.0.1");
   const store = progressEnabled ? new AttemptStore(options.dataPath ?? process.env.DATA_PATH ?? fileURLToPath(new URL("../.data/study.sqlite", import.meta.url))) : null;
