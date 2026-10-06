@@ -641,3 +641,59 @@ test("the Đã thuộc tile keeps its number and names the questions waiting for
     await app.locator(".nums.sm .ntile.mid .nwait").getByText(`+${course.onTheWay}`).waitFor();
   });
 });
+
+test("an ⓘ opens one explanation at a time: the keyboard moves focus in and Esc back, a second ⓘ replaces the first, and a tap outside closes it", async () => {
+  await withPreview(async ({ origin, page, app, tool }) => {
+    const { course } = await learnFirstTime(tool, ["q001", "q002", "q003"]);
+    await page.goto(`${origin}/preview`);
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    const pop = app.getByRole("dialog");
+    const learned = app.getByRole("button", { name: "Giải thích: Đã thuộc", exact: true });
+    const covered = app.getByRole("button", { name: "Giải thích: Đã gặp", exact: true });
+    const focused = (target: typeof learned) => target.evaluate((el) => el === document.activeElement);
+    await learned.press("Enter");
+    await pop.getByRole("heading", { name: "Đã thuộc" }).waitFor();
+    assert.equal(await learned.getAttribute("aria-expanded"), "true");
+    assert.equal(await focused(pop.getByRole("heading")), true, "a keyboard open moves focus to the popover's title");
+    await pop.getByText(`${course.onTheWay} câu đã đúng 1 lần`, { exact: false }).waitFor();
+    await page.keyboard.press("Escape");
+    await pop.waitFor({ state: "hidden" });
+    assert.equal(await focused(learned), true, "Esc returns focus to the button");
+    assert.equal(await learned.getAttribute("aria-expanded"), "false");
+
+    await covered.click();
+    await pop.getByRole("heading", { name: "Đã gặp" }).waitFor();
+    await learned.click();
+    await pop.getByRole("heading", { name: "Đã thuộc" }).waitFor();
+    assert.equal(await covered.getAttribute("aria-expanded"), "false", "the second ⓘ closes the first");
+    assert.equal(await app.getByRole("dialog").count(), 1, "one popover at a time");
+    await learned.click();
+    await pop.waitFor({ state: "hidden" });
+    await covered.click();
+    await pop.waitFor();
+    await app.locator(".lx-title").click();
+    await pop.waitFor({ state: "hidden" });
+    assert.equal(await covered.getAttribute("aria-expanded"), "false", "a tap outside closes it");
+  });
+});
+
+test("a popover fits inside the card at 360 px and narrower, with no sideways scroll", async () => {
+  await withPreview(async ({ origin, page, app, tool }) => {
+    await learnFirstTime(tool, ["q001", "q002", "q003"]);
+    // The preview pads the card 10 px a side: a 380 px window gives a 360 px card.
+    for (const width of [380, 360]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`${origin}/preview`);
+      await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+      for (const label of ["Đã gặp", "Cần ôn hôm nay"]) {
+        await app.getByRole("button", { name: `Giải thích: ${label}`, exact: true }).click();
+        await app.getByRole("dialog").getByRole("heading", { name: label }).waitFor();
+        const fit = await app.locator("main").evaluate((main) => {
+          const card = main.getBoundingClientRect(), pop = document.querySelector("#info-pop")!.getBoundingClientRect();
+          return { card: card.width, inside: pop.left >= card.left && pop.right <= card.right && pop.top >= card.top && pop.bottom <= card.bottom, scroll: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+        });
+        assert.deepEqual([fit.inside, fit.scroll], [true, 0], `${label} popover inside a ${fit.card} px card`);
+      }
+    }
+  });
+});
