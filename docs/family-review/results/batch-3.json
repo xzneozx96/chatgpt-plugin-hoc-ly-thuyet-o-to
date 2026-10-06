@@ -1,0 +1,355 @@
+[
+  {
+    "id": "cross-speed-sign",
+    "verdict": "approve_with_changes",
+    "title": "Tốc độ tối đa và tối thiểu: theo loại đường, loại xe, biển báo và làn",
+    "comparisonAxes": [
+      "Quy tắc chung (không vượt tốc độ tối đa) / tốc độ ghi trên biển hoặc theo làn",
+      "Tốc độ tối đa (biển tròn viền đỏ) / tối thiểu (biển tròn nền xanh) / tối đa ban đêm (biển ĐÊM kèm khung giờ)",
+      "Trong / ngoài khu đông dân cư; đường đôi hoặc một chiều từ 2 làn / đường hai chiều hoặc một chiều 1 làn",
+      "Nhóm xe: xe gắn máy, xe máy chuyên dùng (40) / xe chở hàng bốn bánh (50) / xe chở người bốn bánh / ô tô, mô tô theo từng bậc",
+      "Biển theo làn: chỉ tốc độ từng làn / tốc độ gắn với loại xe từng làn"
+    ],
+    "notes": "All 8 images open and the sign distinctions are real (blue minimum vs red-ring maximum, ĐÊM 70, per-lane vs per-lane-and-vehicle signs). Axes are English and miss the key road-type/vehicle-group axis behind q144-q157; group mixes two sub-families (speed tables vs signs) but stays confusable around 'tối đa/tối thiểu/theo loại xe'.",
+    "imagesChecked": 8
+  },
+  {
+    "id": "motorway-use",
+    "verdict": "approve_with_changes",
+    "title": "Đi trên đường cao tốc: xe được vào, nhập, thoát, làn khẩn cấp và sự cố",
+    "comparisonAxes": [
+      "Xe và người được phép / không được vào đường cao tốc",
+      "Nhập cao tốc: dùng làn tăng tốc, nhường xe đang chạy trên đường",
+      "Thoát cao tốc: làn giảm tốc; lỡ lối ra thì đi tiếp, không lùi hay quay đầu",
+      "Làn dừng khẩn cấp: chỉ khi xe gặp sự cố, không dùng khi ùn tắc",
+      "Sự cố trên cao tốc: đèn khẩn cấp, biển cảnh báo phía sau"
+    ],
+    "notes": "Single image q597 opened: red car cutting diagonally from the ramp into the inner lane, matches answer Sai. Members all concern cao tốc and are confusable by situation; title is generic and axes are English.",
+    "imagesChecked": 1
+  },
+  {
+    "id": "railway-crossing",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "Có rào chắn, chuông, đèn, người gác (dừng bên phải trước vạch) / không có (tự dừng, quan sát hai phía)",
+      "Tàu đang tới / chắn đang dịch chuyển hoặc đã đóng",
+      "Xe hỏng hoặc gặp sự cố ngay trên đường ngang",
+      "Quy trình chung (về số thấp, không đổi số) / tình huống cụ thể"
+    ],
+    "notes": "q596 image opened (barrier moving, red light, gatekeeper): dừng trước rào chắn matches. Coherent group; only the axes are in English. Note q099/q100/q102 are duplicated in rules-railway-stop.",
+    "imagesChecked": 1
+  },
+  {
+    "id": "signs_scenarios_turn_ban_oneway",
+    "verdict": "approve_with_changes",
+    "title": "Giao lộ có biển: cấm rẽ, cấm quay đầu, đường một chiều, cấm đi ngược chiều và cấm theo loại xe",
+    "comparisonAxes": [
+      "Cấm rẽ trái / cấm rẽ phải / cấm đi ngược chiều",
+      "Rẽ / quay đầu (cấm rẽ trái không cấm quay đầu)",
+      "Đường một chiều hoặc bắt buộc rẽ phải / cấm đi vào",
+      "Biển cấm đúng loại xe (ô tô tải, máy kéo) / xe khác vẫn đi được"
+    ],
+    "notes": "All 7 scenario images opened; signs and arrows agree with answers (no-left-turn does not ban U-turn, no-entry, one-way, truck/tractor bans). Title/axes omit the one-way and mandatory-right-turn signs. q521 explanation blames a one-way street, but the picture shows a blue mandatory-right-turn-for-trucks sign plus no-trucks sign instead.",
+    "imagesChecked": 7
+  },
+  {
+    "id": "tech-signs-turn-permission",
+    "verdict": "approve",
+    "notes": "All 6 images opened: same pair (no-left-turn vs no-U-turn / U-turn guide / mandatory left) and answers agree. Real, well-targeted trap.",
+    "imagesChecked": 6
+  },
+  {
+    "id": "signs_scenarios_priority_road_order",
+    "verdict": "approve",
+    "notes": "All 6 images opened; priority-road and give-way signs, with cars on main/side road, support the stated answers and axes.",
+    "imagesChecked": 6
+  },
+  {
+    "id": "tech-signs-tractor-trailer",
+    "verdict": "approve",
+    "notes": "All 5 images opened (bans on trailer, tractor, truck, car, motorcycle); distinctions are real and answers consistent with each other.",
+    "imagesChecked": 5
+  },
+  {
+    "id": "tech-signs-narrow-priority",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "Cảnh báo đường bị thu hẹp (hai bên / một bên) / biển nhường / biển được ưu tiên",
+      "Phía bị hẹp và chiều mũi tên (đỏ phải nhường, trắng được ưu tiên)",
+      "Biển cảnh báo đường hai chiều khác biển nhường hoặc ưu tiên qua đường hẹp"
+    ],
+    "notes": "All 5 images opened; signs are visually distinct (narrowing both/one side, bend, two-way, red-arrow give-way, blue-arrow priority). Third axis 'hình nhiễu' is not a real difference since q389 asks for the two-way sign as the answer.",
+    "imagesChecked": 5
+  },
+  {
+    "id": "signs_scenarios_pedestrian_mark_sign",
+    "verdict": "approve",
+    "notes": "All 5 images opened: pedestrian vs children warning, blue pedestrian-road sign, diamond marking, and two give-way-at-crosswalk scenes agree with answers.",
+    "imagesChecked": 5
+  },
+  {
+    "id": "sign-railway",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "Có rào chắn (hàng rào) / không có rào chắn (đầu tàu, chữ X)",
+      "Giao nhau với đường sắt / với đường tàu điện / biển nhường / biển đèn tín hiệu",
+      "Chữ X: một đường ray / từ hai đường ray",
+      "Biển báo khoảng cách đến chỗ giao (vạch đỏ chéo)"
+    ],
+    "notes": "All 5 images opened (fence, locomotive, tram, X crossbuck single/double, distance post); distinctions are real. Axes are English; 'warning distance' is supported by q378 biển 3 (W.243).",
+    "imagesChecked": 5
+  },
+  {
+    "id": "tech-signs-restraints",
+    "verdict": "approve",
+    "notes": "q230 image is the red seat-belt warning light, correct for answer C. Members contrast belts (hold) vs airbag (cushion) and the belt warning light; acceptable family.",
+    "imagesChecked": 1
+  },
+  {
+    "id": "signs_scenarios_skid_roll_shoulder",
+    "verdict": "approve_with_changes",
+    "title": "Biển báo đường trơn, lề nguy hiểm, gió ngang và nguy cơ lật xe ở chỗ ngoặt",
+    "notes": "All 4 images opened; slippery, bad shoulder, rollover curve, windsock and ferry/quay signs are visually distinct. q414 is about gió ngang (windsock) which the title does not mention.",
+    "imagesChecked": 4
+  },
+  {
+    "id": "signs_scenarios_obstacle_side",
+    "verdict": "approve",
+    "notes": "All 4 images opened; stripe direction/chevron signs support the left/right/both answers; q474 chevron-curve sign is a reasonable distractor.",
+    "imagesChecked": 4
+  },
+  {
+    "id": "automatic-transmission",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "Khởi hành: đạp hết hành trình phanh chân rồi mới vào số, kể cả khi khởi động bằng chìa khóa thông minh",
+      "Chỉnh ghế khi máy đã nổ: để cần số ở N, P hoặc số 0",
+      "Chỉ dùng chân phải cho cả ga và phanh, không dùng chân trái"
+    ],
+    "notes": "q290 image (Engine Start/Stop button and smart key) fits the answer. Members fit the topic; axes are English.",
+    "imagesChecked": 1
+  },
+  {
+    "id": "tech-signs-threewheel-motor",
+    "verdict": "approve",
+    "notes": "All 3 images opened: xe lam, mô tô ba bánh, xích lô đạp signs are distinct. q304 image shows generic motorcycle/car/truck bans, not three-wheeler signs, but its question is the same confusion (which ban covers a three-wheeler).",
+    "imagesChecked": 3
+  },
+  {
+    "id": "signs_scenarios_interchange",
+    "verdict": "approve",
+    "notes": "All 3 images opened: interchange diagram signs vs round direction signs (and a bump sign distractor) match answers.",
+    "imagesChecked": 3
+  },
+  {
+    "id": "signs_scenarios_turn_progress",
+    "verdict": "approve",
+    "notes": "All 3 images opened; each scene shows a vehicle already turning or signalling ahead, consistent with the nhường/chờ answers.",
+    "imagesChecked": 3
+  },
+  {
+    "id": "night-glare",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "Gặp xe ngược chiều: chuyển từ đèn chiếu xa sang chiếu gần",
+      "Khi bị chói: giảm tốc, giữ chắc lái, nhìn chếch sang lề phải, không nhìn thẳng vào đèn",
+      "Không bật pha đáp trả, không tăng tốc để vượt khi đang bị chói"
+    ],
+    "notes": "q595 image (oncoming high beams at night) fits. Coherent; axes are English.",
+    "imagesChecked": 1
+  },
+  {
+    "id": "tech-signs-arches",
+    "verdict": "approve",
+    "notes": "Both images opened: black-arch cửa chui, lit-arch đường hầm and hump cầu vồng are distinct; answers match.",
+    "imagesChecked": 2
+  },
+  {
+    "id": "signs_scenarios_bumps",
+    "verdict": "approve",
+    "notes": "Both images opened: two humps (lồi lõm) vs single hump (gồ giảm tốc), a real distinction.",
+    "imagesChecked": 2
+  },
+  {
+    "id": "signs_scenarios_pedestrian_over_under",
+    "verdict": "approve",
+    "notes": "Both images opened: up-stairs vs down-stairs figures, mirrored in q451 but still consistent with answers (lên cầu, xuống hầm).",
+    "imagesChecked": 2
+  },
+  {
+    "id": "signs_scenarios_parking_movement",
+    "verdict": "approve",
+    "notes": "Both images opened: vehicle backing into a bay vs backing out, answers consistent.",
+    "imagesChecked": 2
+  },
+  {
+    "id": "rules-trailer-licences",
+    "verdict": "approve_with_changes",
+    "title": "Hạng giấy phép lái xe ô tô: B, C1, C, D1, D2, D và các hạng kéo rơ moóc BE, CE, DE",
+    "comparisonAxes": [
+      "Khối lượng hoặc số chỗ: B (đến 3.500 kg, đến 8 chỗ) / C1 (3.500-7.500 kg) / C (trên 7.500 kg) / D1 (8-16 chỗ) / D2 (16-29 chỗ) / D (trên 29 chỗ)",
+      "Kéo rơ moóc đến 750 kg (hạng thường) / trên 750 kg (hạng có chữ E)",
+      "Đầu kéo sơ mi rơ moóc (CE) / xe khách nối toa (DE)",
+      "Hạng cao phủ hạng thấp cùng nhóm xe"
+    ],
+    "notes": "Title only names BE/CE/DE and 750 kg but members cover B, C1, C, D1, D2, D as well; axes miss the seat/weight bands and 'higher licence covers lower' (q129, q131, q132).",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-vehicle-taxonomy",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "Xe cơ giới (có động cơ, kể cả rơ moóc và sơ mi rơ moóc được kéo) / xe thô sơ (xe đạp, xe đạp điện, xích lô, xe lăn, xe vật nuôi kéo)",
+      "Xe gắn máy thuộc cơ giới / xe đạp máy, xe đạp điện thuộc thô sơ",
+      "Phương tiện giao thông cơ giới / thô sơ / xe máy chuyên dùng"
+    ],
+    "removeMembers": [
+      "q123",
+      "q124",
+      "q125"
+    ],
+    "notes": "q123-q125 are about age/A1 licence eligibility, only loosely related to classifying cơ giới / thô sơ / phương tiện đường bộ (q008-q010). Removing them leaves a coherent definitions family.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "tech-signs-turn-manoeuvre",
+    "verdict": "approve",
+    "notes": "All members cover safe steps for turning, U-turn, reversing and mirror use; coherent. Note q217 stem says 'qua nơi đông người' but options describe a left-turn procedure (stem/options mismatch in the source).",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-people-roles",
+    "verdict": "approve",
+    "notes": "Definitions family (người lái xe, người điều khiển phương tiện, người tham gia, người điều khiển giao thông) with real wording traps; answers consistent.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-motorcycle-lanes",
+    "verdict": "approve_with_changes",
+    "title": "Mô tô đi đúng làn: dàn hàng ngang, phần đường người đi bộ, vỉa hè và ngược chiều",
+    "notes": "q191 and q200 are about correct lane and conduct in congestion, which the current title (dàn hàng ngang, phần đường người đi bộ) does not cover.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-speed-urban",
+    "verdict": "approve",
+    "notes": "Speed answers 60/50/40 agree with explanations across q144-q148 and with the axes. Note all five also sit in cross-speed-sign.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-driver-eligibility",
+    "verdict": "approve_with_changes",
+    "title": "Điều kiện giao xe, tập lái, lái xe và giấy tờ mang theo",
+    "notes": "Title omits q138 (giấy tờ phải mang theo). Facts in q027, q136, q137, q138 are consistent with axes.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-helmet",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "Người lái / người được chở trên xe",
+      "Mũ đúng quy chuẩn và cài quai đúng quy cách / chỉ đội mũ hoặc cài quai tùy ý",
+      "Đội mũ mọi lúc / chỉ khi mưa nắng, đường xa hoặc có biển báo",
+      "Xử phạt cả người lái và người được chở (trừ cấp cứu, trẻ dưới 06 tuổi, áp giải)"
+    ],
+    "notes": "Third axis references 'q075', an internal question id, not a real difference; q076 and q191 add the 'only wear when..' trap that the axes do not state.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-maximum-is-not-target",
+    "verdict": "approve_with_changes",
+    "title": "Không vượt tốc độ tối đa, giảm tốc khi có cảnh báo và giữ khoảng cách khi không có biển",
+    "notes": "Title does not mention khoảng cách an toàn (q162, q166). Facts consistent. Note q041 and q163 are duplicated in other groups.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "tech-signs-drivetrain-functions",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "Động cơ: biến nhiệt năng thành cơ năng",
+      "Hệ thống truyền lực: truyền mô men từ động cơ đến bánh xe chủ động",
+      "Ly hợp: nối hoặc ngắt truyền động giữa động cơ và hộp số",
+      "Hộp số: thay đổi mô men và giúp xe chạy lùi"
+    ],
+    "notes": "Members and title are good; third axis 'Mô tả lẫn trong đáp án' is not a real difference between the questions.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-sign-marking-system",
+    "verdict": "approve",
+    "notes": "Coherent: biển groups vs vạch kẻ vs what to do on warning signs; answers consistent. q163 is a duplicate also in rules-maximum-is-not-target.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-motorcycle-control",
+    "verdict": "approve",
+    "notes": "All three list forbidden riding behaviours with distractor variants; coherent. q070 is also in rules-motorcycle-lanes.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-railway-stop",
+    "verdict": "approve",
+    "notes": "Coherent: stop right of own lane before the line, with or without signals. Overlaps with railway-crossing.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-professional-ethics",
+    "verdict": "approve_with_changes",
+    "title": "Đạo đức nghề nghiệp của lái xe kinh doanh vận tải: việc cần làm, phẩm chất và kết quả",
+    "notes": "Title 'Rèn luyện nghề nghiệp và kết quả' is vague; q184 is about passenger drivers' qualities.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "tech-signs-engine-principle",
+    "verdict": "approve_with_changes",
+    "title": "Động cơ ô tô: chu trình 4 kỳ và biến đổi nhiệt năng thành cơ năng",
+    "comparisonAxes": [
+      "Động cơ 4 kỳ (4 hành trình, một lần sinh công) / động cơ 2 kỳ (2 hành trình)",
+      "Nhiệt năng thành cơ năng / cơ năng thành nhiệt năng"
+    ],
+    "removeMembers": [
+      "q272"
+    ],
+    "notes": "q272 (why a diesel won't start) is not confusable with the cycle/energy definitions q275, q279; q279 also sits in drivetrain-functions. Keep q275 and q279 as a small theory pair.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-stop-park-definitions",
+    "verdict": "approve",
+    "notes": "Clean pair: dừng (tạm thời, không tắt máy) vs đỗ (không giới hạn thời gian).",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-low-beam",
+    "verdict": "approve",
+    "notes": "Coherent: low beam in lit built-up areas vs in tunnels; answers consistent.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-first-aid-contrast",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "Máu phun thành tia theo nhịp mạch: cầm máu gián tiếp (chặn động mạch) / trực tiếp",
+      "Không còn hô hấp: khai thông đường thở trước, rồi hô hấp nhân tạo",
+      "Nhận biết tình trạng nạn nhân trước khi chọn thao tác"
+    ],
+    "notes": "Group is valid; axis text 'Cầm máu theo bank' is garbled.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "tech-signs-merge-priority",
+    "verdict": "approve",
+    "notes": "Both questions are about yielding to traffic on the main road when merging (cao tốc vs đường nhánh); answers consistent.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "cross-seat",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "Tư thế ngồi: ghế, lưng, vị trí tay trên vô lăng",
+      "Cần số ở N, P hoặc số 0 khi chỉnh ghế lúc máy đã nổ"
+    ],
+    "notes": "Pair is valid (posture vs gear position when adjusting seat); axes are English. q238 also in automatic-transmission.",
+    "imagesChecked": 0
+  }
+]

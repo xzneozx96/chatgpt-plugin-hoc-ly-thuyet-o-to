@@ -21,7 +21,8 @@ export const familySchema = z.object({
     questionIds: z.array(z.string()),
     comparisonAxes: z.array(z.string()),
     requiresVisualReview: z.boolean(),
-    status: z.literal("draft_bank_analysis")
+    status: z.literal("approved"),
+    reviewedOn: z.string()
 });
 export const families = z.array(familySchema).parse(JSON.parse(readFileSync(process.env.VERCEL ? resolve("src/content/question-families.json") : fileURLToPath(new URL("../content/question-families.json", import.meta.url)), "utf8")));
 export const bankVersion = bank.version;

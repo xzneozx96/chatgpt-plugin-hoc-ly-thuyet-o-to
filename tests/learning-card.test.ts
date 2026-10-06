@@ -214,7 +214,7 @@ test("XP, the combo and a repair step come from the server, and a second miss of
   });
 });
 
-test("a compare-the-pair step submits both answers, shows both verdicts and the draft family's aspects, then continues once", async () => {
+test("a compare-the-pair step submits both answers, shows both verdicts and the approved family's aspects without a draft tag, then continues once", async () => {
   await withPreview(async ({ origin, page, app, tool, open, messages }) => {
     let view = (await tool("start_study", { requestId: randomUUID() })).structuredContent as { sessionId: string; question: { id: string } | null; pair: { questions: { id: string }[] } | null };
     const sessionId = view.sessionId;
@@ -236,7 +236,7 @@ test("a compare-the-pair step submits both answers, shows both verdicts and the 
     assert.equal(await check.isDisabled(), true);
     await app.locator(`input[name="pair-${a}"][value="${right(a)}"]`).check();
     await check.click();
-    await app.getByText("BẢN NHÁP · chưa duyệt").waitFor();
+    assert.equal(await app.locator(".diff .draft-tag").count(), 0, "approved families carry no draft tag");
     await app.locator(".vchip").getByText("Chính xác!").waitFor();
     await app.locator(".vchip").getByText("Chưa đúng").waitFor();
     assert.equal(await app.locator(".diff .axes li").count() > 0, true, "the family's aspects are named");

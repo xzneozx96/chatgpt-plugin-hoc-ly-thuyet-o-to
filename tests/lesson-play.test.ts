@@ -145,7 +145,7 @@ test("both pair questions are shown and answered before either verdict, and each
     assert.ok(pair);
     const family = families.find(f => f.id === pair.familyId);
     assert.ok(family);
-    assert.deepEqual([pair.group, pair.title, pair.axes, pair.status], [family.id, family.title, family.comparisonAxes, "draft"]);
+    assert.deepEqual([pair.group, pair.title, pair.axes, pair.status], [family.id, family.title, family.comparisonAxes, "approved"]);
     const [a, b] = pair.questions.map(q => q.id);
     assert.ok(a && b);
     assert.deepEqual(pair.feedback, [null, null]);

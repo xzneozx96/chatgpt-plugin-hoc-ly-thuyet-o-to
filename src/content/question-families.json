@@ -14,7 +14,8 @@
       "Chiều rộng an toàn"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-clearance-load",
@@ -25,12 +26,13 @@
       "q179"
     ],
     "comparisonAxes": [
-      "Khổ đường / khổ xe / kích thước hàng",
-      "Rộng và cao",
-      "Thông thường / siêu trường siêu trọng"
+      "khổ giới hạn của đường (chiều rộng và chiều cao, gồm cả hàng xếp)",
+      "xe mô tô, xe gắn máy, xe thô sơ chở hàng",
+      "hàng thông thường hay siêu trường, siêu trọng (báo hiệu kích thước, người hỗ trợ)"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-people-roles",
@@ -48,7 +50,8 @@
       "Điều khiển phương tiện / hướng dẫn giao thông"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-vehicle-taxonomy",
@@ -56,18 +59,16 @@
     "questionIds": [
       "q008",
       "q009",
-      "q010",
-      "q123",
-      "q124",
-      "q125"
+      "q010"
     ],
     "comparisonAxes": [
-      "Xe đạp điện / xe gắn máy / mô tô",
-      "Hai bánh / ba bánh",
-      "Phân loại phương tiện / điều kiện điều khiển"
+      "Xe cơ giới (có động cơ, kể cả rơ moóc và sơ mi rơ moóc được kéo) / xe thô sơ (xe đạp, xe đạp điện, xích lô, xe lăn, xe vật nuôi kéo)",
+      "Xe gắn máy thuộc cơ giới / xe đạp máy, xe đạp điện thuộc thô sơ",
+      "Phương tiện giao thông cơ giới / thô sơ / xe máy chuyên dùng"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-stop-park-definitions",
@@ -82,21 +83,8 @@
       "Phanh đỗ / đỗ trên dốc"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
-  },
-  {
-    "id": "rules-road-types",
-    "title": "Phân loại chức năng đường và đường chính ưu tiên",
-    "questionIds": [
-      "q018",
-      "q091"
-    ],
-    "comparisonAxes": [
-      "Đường chính / nhánh / gom / bên / nội bộ",
-      "Phân loại / nhường đường tại nút giao"
-    ],
-    "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-expressway-definition-access",
@@ -111,7 +99,8 @@
       "Tốc độ thiết kế tối thiểu / ngoại lệ quản lý bảo trì"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-child-restraint",
@@ -126,22 +115,23 @@
       "Hàng ghế người lái / xe chỉ một hàng ghế"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-road-hazards-prohibited",
-    "title": "Tác động nguy hiểm lên đường và người khác",
+    "title": "Hành vi bị nghiêm cấm: rải vật, ném vật, cản trở, thiết bị âm thanh ánh sáng",
     "questionIds": [
       "q019",
       "q030"
     ],
     "comparisonAxes": [
-      "Rải vật / ném vật / cản trở",
-      "Hành vi nguy hiểm / xe đạp trên quốc lộ",
-      "Thiết bị âm thanh ánh sáng gây mất an toàn"
+      "hành vi bị nghiêm cấm: rải vật sắc nhọn, đổ chất trơn, ném vật, cản trở giao thông, thiết bị âm thanh ánh sáng gây mất an toàn",
+      "hành vi không bị cấm dễ nhầm: xe đạp đi trên quốc lộ"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-vehicle-legality",
@@ -159,7 +149,8 @@
       "Giấy tờ xe / trách nhiệm chủ đăng ký"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-racing",
@@ -173,17 +164,17 @@
       "Điều kiện tổ chức / hậu quả xử lý"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-substances",
-    "title": "Cồn, ma túy và chủ thể chịu quy định",
+    "title": "Rượu bia, ma túy khi lái xe: cấm và xử phạt",
     "questionIds": [
       "q023",
       "q024",
       "q025",
-      "q026",
-      "q192"
+      "q026"
     ],
     "comparisonAxes": [
       "Cồn / ma túy",
@@ -191,11 +182,12 @@
       "Cấm hành vi / hình thức xử phạt"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-dangerous-driving",
-    "title": "Lạng lách và các đáp án hành vi bình thường",
+    "title": "Hành vi bị cấm: lạng lách, đánh võng, rú ga và các hành vi khác",
     "questionIds": [
       "q028",
       "q029",
@@ -207,11 +199,12 @@
       "Không chấp hành công vụ"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-driver-eligibility",
-    "title": "Giao xe, tập lái và đủ điều kiện lái",
+    "title": "Điều kiện giao xe, tập lái, lái xe và giấy tờ mang theo",
     "questionIds": [
       "q027",
       "q136",
@@ -224,7 +217,8 @@
       "Điều kiện lái / giấy tờ mang theo / đứng tên đăng ký"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-sign-marking-system",
@@ -240,11 +234,12 @@
       "Cảnh báo cần giảm tốc / hết lệnh cấm"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-officer-gestures",
-    "title": "Hai hiệu lệnh CSGT trong ảnh",
+    "title": "Hiệu lệnh CSGT: tay dang ngang và tay giơ thẳng đứng",
     "questionIds": [
       "q036",
       "q037"
@@ -255,11 +250,12 @@
       "Xe đã trong nút giao"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-signal-hierarchy",
-    "title": "Hiệu lệnh người điều khiển và biển tạm thời",
+    "title": "Thứ tự ưu tiên: người điều khiển, đèn, biển tạm thời và biển cố định",
     "questionIds": [
       "q013",
       "q038",
@@ -270,23 +266,8 @@
       "Biển tạm / biển cố định"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
-  },
-  {
-    "id": "rules-yellow-light",
-    "title": "Đèn vàng đứng, nhấp nháy và vạch dừng",
-    "questionIds": [
-      "q034",
-      "q040",
-      "q198"
-    ],
-    "comparisonAxes": [
-      "Vàng thường / vàng nhấp nháy",
-      "Trước vạch / trên hoặc qua vạch",
-      "Quan sát và nhường người đi bộ"
-    ],
-    "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-slow-lane",
@@ -302,24 +283,25 @@
       "Bên phải trong cùng / bên trái"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-lane-change",
     "title": "Chuyển làn và đi trong một làn",
     "questionIds": [
       "q002",
-      "q046",
       "q057",
       "q078"
     ],
     "comparisonAxes": [
-      "Báo trước / lúc hoặc sau chuyển",
-      "Một làn liền kề / nhiều làn",
-      "Đi lên trước theo làn / vượt xe"
+      "Báo tín hiệu trước / lúc bắt đầu / sau khi chuyển làn",
+      "Chỉ chuyển sang một làn liền kề, chỉ chuyển ở nơi cho phép",
+      "Định nghĩa làn đường / đi trọn trong một làn"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-overtake-definition",
@@ -335,7 +317,8 @@
       "Xe trước rẽ trái / rẽ phải / đang vượt"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-overtake-forbidden",
@@ -353,7 +336,8 @@
       "Vị trí nguy hiểm / hành động an toàn"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-overtaken-signals",
@@ -370,11 +354,12 @@
       "Giảm tốc và sát phải / tăng tốc hoặc sát trái"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-horn-overtake",
-    "title": "Xin vượt bằng còi hoặc đèn và hạn chế giờ",
+    "title": "Dùng còi và đèn: xin vượt, cảnh báo và khung giờ cấm còi",
     "questionIds": [
       "q048",
       "q049",
@@ -383,12 +368,13 @@
       "q193"
     ],
     "comparisonAxes": [
-      "Ngày / 22h đến 05h",
-      "Khu dân cư bệnh viện / biển cấm còi",
-      "Cảnh báo nguy hiểm / xin vượt / bấm liên tục"
+      "ban ngày hay từ 22 giờ đến 05 giờ",
+      "khu đông dân cư và bệnh viện hay có biển cấm còi",
+      "cảnh báo nguy hiểm, xin vượt hay bấm còi liên tục"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-low-beam",
@@ -403,7 +389,8 @@
       "Xe cơ giới / thô sơ trong hầm"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-driver-passenger-phone",
@@ -419,11 +406,12 @@
       "Mô tô / phương tiện nói chung"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-uturn",
-    "title": "Quay đầu: vị trí cấm và đáp án bẫy",
+    "title": "Quay đầu xe: nơi cấm và xử lý khi lỡ lối ra cao tốc",
     "questionIds": [
       "q054",
       "q055",
@@ -436,11 +424,12 @@
       "Cấm theo vị trí / bỏ lỡ lối ra"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-turning",
-    "title": "Chuẩn bị và thực hiện chuyển hướng",
+    "title": "Chuyển hướng và chuyển làn: quan sát, tín hiệu và nhường đường",
     "questionIds": [
       "q056",
       "q057",
@@ -453,7 +442,8 @@
       "Quan sát giảm tốc vào làn / nhường người và xe"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-reversing",
@@ -471,7 +461,8 @@
       "Che khuất / hầm / cao tốc / đường một chiều"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-parking-places",
@@ -488,7 +479,8 @@
       "Song song / bên trái một chiều / tầm nhìn khuất"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-motorcycle-towing",
@@ -507,7 +499,8 @@
       "Đường vắng hoặc xe hỏng không phải căn cứ"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-motorcycle-control",
@@ -523,11 +516,12 @@
       "Chở người hàng thông thường / cồng kềnh"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-motorcycle-lanes",
-    "title": "Dàn hàng ngang và phần đường người đi bộ",
+    "title": "Mô tô đi đúng làn: dàn hàng ngang, phần đường người đi bộ, vỉa hè và ngược chiều",
     "questionIds": [
       "q070",
       "q071",
@@ -541,7 +535,8 @@
       "Hành vi cấm / ứng xử có văn hóa"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-motorcycle-umbrella-audio",
@@ -557,7 +552,8 @@
       "Ngoại lệ trợ thính"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-helmet",
@@ -569,32 +565,35 @@
       "q191"
     ],
     "comparisonAxes": [
-      "Người lái / được chở",
-      "Mũ quy chuẩn và cài quai / chỉ đội mũ",
-      "Nghĩa vụ / chế tài / ngoại lệ nêu trong q075"
+      "Người lái / người được chở trên xe",
+      "Mũ đúng quy chuẩn và cài quai đúng quy cách / chỉ đội mũ hoặc cài quai tùy ý",
+      "Đội mũ mọi lúc / chỉ khi mưa nắng, đường xa hoặc có biển báo",
+      "Xử phạt cả người lái và người được chở (trừ cấp cứu, trẻ dưới 06 tuổi, áp giải)"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-motorcycle-two-passengers",
-    "title": "Ngoại lệ chở hai người",
+    "title": "Xe mô tô, xe gắn máy: chở hai người và trẻ em dưới 12 / dưới 06 tuổi",
     "questionIds": [
       "q064",
       "q069",
       "q075"
     ],
     "comparisonAxes": [
-      "Dưới 12 tuổi cho chở hai / dưới 06 tuổi ngoại lệ xử phạt mũ",
-      "Cấp cứu áp giải già yếu khuyết tật",
-      "Chở hai / xử phạt không đội mũ"
+      "các trường hợp được chở tối đa hai người",
+      "trẻ em dưới 12 tuổi (được chở thêm) / dưới 06 tuổi (ngoại lệ xử phạt mũ bảo hiểm)",
+      "hành vi bị cấm / trường hợp được phép"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-oncoming",
-    "title": "Tránh xe ngược chiều và ưu tiên đặc biệt",
+    "title": "Tránh xe ngược chiều: giữ bên phải và xe nào phải nhường",
     "questionIds": [
       "q087",
       "q088",
@@ -606,7 +605,8 @@
       "Quy tắc chung / tình huống cụ thể"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-junction-yield",
@@ -622,7 +622,8 @@
       "Mọi hướng / bên trái / bên phải"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-priority-status",
@@ -640,7 +641,8 @@
       "Nhường xe ưu tiên / hỗ trợ phân luồng học sinh"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-priority-rights",
@@ -656,7 +658,8 @@
       "Làn khẩn cấp / ùn tắc"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-railway-stop",
@@ -672,11 +675,12 @@
       "Bên phải / trái / giữa"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-railway-breakdown",
-    "title": "Sự cố đường sắt và trách nhiệm cảnh báo",
+    "title": "Sự cố đường sắt và tai nạn đường bộ: ai phải làm gì",
     "questionIds": [
       "q101",
       "q194",
@@ -688,7 +692,8 @@
       "Người lái / người có mặt"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-towing-connection",
@@ -696,16 +701,16 @@
     "questionIds": [
       "q104",
       "q105",
-      "q106",
-      "q180"
+      "q106"
     ],
     "comparisonAxes": [
-      "Xe hỏng được kéo / rơ moóc / cứu hộ",
-      "Hệ thống lái còn hiệu lực / hãm không hiệu lực",
-      "Thanh cứng / cáp / thiết kế kết nối / tải cứu hộ"
+      "Xe được kéo mất phanh (thanh nối cứng) / còn phanh",
+      "Xe được kéo phải có người lái và lái còn hiệu lực; một xe chỉ kéo một xe",
+      "Kéo rơ moóc, sơ mi rơ moóc: đúng thiết kế, kết nối chắc chắn"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-hazard-slowdown",
@@ -724,7 +729,8 @@
       "Tối đa cho phép / tốc độ cần thiết"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-pedestrian-yield",
@@ -732,7 +738,6 @@
     "questionIds": [
       "q034",
       "q083",
-      "q165",
       "q190",
       "q198"
     ],
@@ -742,7 +747,8 @@
       "Luật quy tắc / văn hóa giúp nhường"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-expressway-incident",
@@ -759,13 +765,13 @@
       "Cảnh báo phía sau tối thiểu 150 m"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-tunnel-expressway",
     "title": "Sự cố và hành vi cấm trong hầm so với cao tốc",
     "questionIds": [
-      "q054",
       "q058",
       "q103",
       "q114"
@@ -776,7 +782,8 @@
       "Khoảng cách bảo đảm an toàn / tối thiểu 150 m"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-expressway-entry",
@@ -792,7 +799,8 @@
       "Tín hiệu trước khi nhập"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-licence-minimum-age",
@@ -805,16 +813,17 @@
       "q123"
     ],
     "comparisonAxes": [
-      "16 dưới18 /18 /24 /27",
-      "Gắn máy / A1 B C1 / D2 / D",
-      "Được điều khiển / được cấp GPLX"
+      "16 đến dưới 18 tuổi / 18 / 24 / 27",
+      "Gắn máy / A1, B, C1 / D2 / D",
+      "Tuổi được cấp giấy phép lái xe / loại xe được điều khiển"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-passenger-age-scope",
-    "title": "D2, D và tuổi tối thiểu tối đa",
+    "title": "Hạng D2 và D: tuổi tối thiểu, tuổi tối đa và phạm vi xe được lái",
     "questionIds": [
       "q120",
       "q121",
@@ -823,16 +832,17 @@
       "q132"
     ],
     "comparisonAxes": [
-      "Trên16 đến29 / trên29 và giường nằm",
-      "24 /27 / tối đa nam57 nữ55",
-      "Tuổi / phạm vi GPLX"
+      "trên 16 đến 29 chỗ (D2) hay trên 29 chỗ và giường nằm (D)",
+      "tuổi tối thiểu 24 hay 27; tối đa nam 57, nữ 55",
+      "hỏi tuổi hay hỏi phạm vi giấy phép"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-motorcycle-licences",
-    "title": "A1, A, ba bánh và thời điểm cấp",
+    "title": "Giấy phép lái mô tô: A1, A, mô tô ba bánh và người 16 đến dưới 18 tuổi",
     "questionIds": [
       "q123",
       "q124",
@@ -840,12 +850,14 @@
       "q126"
     ],
     "comparisonAxes": [
-      "Đến125 cm3 hoặc11 kW / trên ngưỡng",
-      "Hai bánh / ba bánh",
-      "Sau01-01-2025 / tuổi16 dưới18"
+      "đến 125 cm3 hoặc 11 kW hay trên ngưỡng đó",
+      "mô tô hai bánh hay ba bánh",
+      "A1 cấp sau 01/01/2025",
+      "người từ 16 đến dưới 18 tuổi chỉ được lái xe gắn máy"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-truck-licences",
@@ -858,12 +870,13 @@
       "q129"
     ],
     "comparisonAxes": [
-      "Đến3500 / trên3500 đến7500 / trên7500",
-      "Khối lượng toàn bộ thiết kế / tuổi cấp",
-      "Bao hàm / đáp án sai phạm vi"
+      "Đến 3.500 kg / trên 3.500 đến 7.500 kg / trên 7.500 kg",
+      "Khối lượng toàn bộ theo thiết kế / tuổi tối thiểu được cấp",
+      "Bao hàm (hạng cao lái được xe hạng thấp) / đáp án sai phạm vi"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-passenger-licences",
@@ -875,16 +888,17 @@
       "q132"
     ],
     "comparisonAxes": [
-      "Đến8 / trên8 đến16 / trên16 đến29 / trên29",
-      "Không kể người lái / giường nằm",
-      "Phạm vi riêng / bao hàm / đầu kéo khác nhóm"
+      "Đến 8 chỗ / trên 8 đến 16 / trên 16 đến 29 / trên 29 chỗ",
+      "Không kể chỗ người lái / xe giường nằm",
+      "Phạm vi riêng của hạng / bao hàm hạng thấp / đầu kéo thuộc nhóm khác"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-trailer-licences",
-    "title": "BE, CE, DE và rơ moóc 750 kg",
+    "title": "Hạng giấy phép lái xe ô tô: B, C1, C, D1, D2, D và các hạng kéo rơ moóc BE, CE, DE",
     "questionIds": [
       "q127",
       "q128",
@@ -897,12 +911,14 @@
       "q135"
     ],
     "comparisonAxes": [
-      "Đến750 / trên750 kg",
-      "B / C / D và thêmE",
-      "Sơ mi rơ moóc / khách nối toa"
+      "Khối lượng hoặc số chỗ: B (đến 3.500 kg, đến 8 chỗ) / C1 (3.500-7.500 kg) / C (trên 7.500 kg) / D1 (8-16 chỗ) / D2 (16-29 chỗ) / D (trên 29 chỗ)",
+      "Kéo rơ moóc đến 750 kg (hạng thường) / trên 750 kg (hạng có chữ E)",
+      "Đầu kéo sơ mi rơ moóc (CE) / xe khách nối toa (DE)",
+      "Hạng cao phủ hạng thấp cùng nhóm xe"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-licence-points",
@@ -912,16 +928,16 @@
       "q137",
       "q139",
       "q140",
-      "q141",
-      "q181"
+      "q141"
     ],
     "comparisonAxes": [
-      "Chưa hết / hết12 điểm",
-      "12 tháng không trừ thêm / ít nhất6 tháng và kiểm tra",
-      "Phục hồi / thu hồi / không cộng thưởng đạo đức"
+      "Chưa hết điểm / đã hết 12 điểm",
+      "Phục hồi: 12 tháng không bị trừ thêm / ít nhất 6 tháng rồi kiểm tra kiến thức",
+      "Điều kiện được lái / cấm giao xe / thu hồi giấy phép lái xe"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-monitoring-devices",
@@ -937,7 +953,8 @@
       "Điều kiện chung / điều kiện bổ sung"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-speed-urban",
@@ -955,7 +972,8 @@
       "60 /50 /40 km/h"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-speed-rural-table",
@@ -971,42 +989,45 @@
       "q156"
     ],
     "comparisonAxes": [
-      "Đường đôi hoặc một chiều>=2 làn / hai chiều hoặc một chiều1 làn",
-      "Nhóm đến28chỗ tải<=3,5t / nhóm lớn / buýt mô tô đầu kéo / moóc xi téc trộn",
-      "90-80-70-60 /80-70-60-50"
+      "Loại đường: đường đôi hoặc một chiều từ 2 làn / hai chiều hoặc một chiều 1 làn",
+      "Nhóm xe: khách đến 28 chỗ và tải ≤ 3,5 t / khách trên 28 chỗ và tải trên 3,5 t / buýt, đầu kéo, mô tô, chuyên dùng / kéo rơ moóc, xi téc, trộn bê tông",
+      "Bảng tốc độ: 90-80-70-60 (đường đôi) và 80-70-60-50 (hai chiều)"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-speed-rural-small",
-    "title": "Xe khách đến28 chỗ và tải nhẹ: đổi loại đường",
+    "title": "Xe khách đến 28 chỗ và tải nhẹ: đổi loại đường, chênh 10 km/h",
     "questionIds": [
       "q149",
       "q153"
     ],
     "comparisonAxes": [
-      "Cùng nhóm xe",
-      "Đổi loại đường",
-      "Chênh10 km/h"
+      "Cùng nhóm xe (khách đến 28 chỗ, tải ≤ 3,5 t)",
+      "Đường đôi hoặc một chiều từ 2 làn (90 km/h) / hai chiều hoặc một chiều 1 làn (80 km/h)",
+      "Chênh 10 km/h"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-speed-rural-large",
-    "title": "Xe khách trên28 chỗ và tải lớn: đổi loại đường",
+    "title": "Xe khách trên 28 chỗ, xe tải trên 3,5 tấn: 80 hay 70 km/h theo loại đường",
     "questionIds": [
       "q150",
       "q154"
     ],
     "comparisonAxes": [
-      "Cùng nhóm xe",
-      "Đổi loại đường",
-      "Chênh10 km/h"
+      "đường đôi hoặc một chiều từ hai làn xe cơ giới (80 km/h) / đường hai chiều hoặc một chiều một làn (70 km/h)",
+      "cùng nhóm xe, khác loại đường",
+      "chênh 10 km/h"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-speed-rural-bus-moto",
@@ -1016,12 +1037,13 @@
       "q155"
     ],
     "comparisonAxes": [
-      "Cùng nhóm xe",
-      "Đổi loại đường",
-      "Chênh10 km/h"
+      "Cùng nhóm xe: xe buýt, đầu kéo, mô tô, xe chuyên dùng",
+      "Đổi loại đường: đường đôi hoặc một chiều từ hai làn / đường hai chiều hoặc một làn",
+      "Chênh 10 km/h giữa hai loại đường"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-speed-rural-tanker-trailer",
@@ -1031,12 +1053,13 @@
       "q156"
     ],
     "comparisonAxes": [
-      "Cùng nhóm xe",
-      "Đổi loại đường",
-      "Chênh10 km/h"
+      "cùng nhóm xe kéo rơ moóc, xi téc, trộn bê tông",
+      "đường đôi (60 km/h) hay đường hai chiều (50 km/h)",
+      "chênh 10 km/h theo loại đường"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-speed-special",
@@ -1051,7 +1074,8 @@
       "Giới hạn tốc độ / phạm vi hoạt động / cấm cao tốc"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-speed-seat-threshold",
@@ -1066,16 +1090,18 @@
       "q150"
     ],
     "comparisonAxes": [
-      "GPLX 8-16-29 / tốc độ28",
-      "Phạm vi bằng / nhóm tốc độ",
-      "Không kể chỗ người lái"
+      "Giấy phép lái xe: mốc 8 – 16 – 29 chỗ",
+      "Tốc độ tối đa: mốc 28 chỗ",
+      "Phạm vi bằng cao bao trùm bằng thấp / nhóm xe theo loại đường",
+      "Số chỗ không kể chỗ người lái"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-speed-mass-threshold",
-    "title": "Khối lượng thiết kế GPLX khác trọng tải tốc độ",
+    "title": "Mốc 3,5 tấn: khối lượng toàn bộ thiết kế (hạng GPLX) và trọng tải (nhóm tốc độ)",
     "questionIds": [
       "q127",
       "q128",
@@ -1086,12 +1112,13 @@
       "q154"
     ],
     "comparisonAxes": [
-      "Khối lượng toàn bộ thiết kế / trọng tải",
-      "C1 mốc7500 / tốc độ mốc3,5t",
-      "Điều kiện GPLX / nhóm tốc độ"
+      "hạng B đến 3.500 kg, hạng C1 trên 3.500 đến 7.500 kg, hạng C trên 7.500 kg",
+      "khối lượng toàn bộ theo thiết kế (giấy phép) hay trọng tải (tốc độ)",
+      "điều kiện giấy phép lái xe hay nhóm tốc độ"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-following-distance",
@@ -1105,16 +1132,17 @@
       "q166"
     ],
     "comparisonAxes": [
-      "Dưới60 / đúng60 / trên60-80 / trên80-100 / trên100-120",
-      "35 /55 /70 /100 m",
-      "Không biển / điều kiện đường tốt / thực tế mật độ"
+      "mốc tốc độ: dưới 60, đúng 60, trên 60-80, trên 80-100, trên 100-120 km/h",
+      "khoảng cách tối thiểu 35, 55, 70, 100 m",
+      "không có biển cự ly, điều kiện đường tốt hay dưới 60 km/h theo thực tế mật độ xe"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-maximum-is-not-target",
-    "title": "Tốc độ tối đa, giảm tốc và không có biển",
+    "title": "Không vượt tốc độ tối đa, giảm tốc khi có cảnh báo và giữ khoảng cách khi không có biển",
     "questionIds": [
       "q041",
       "q162",
@@ -1127,23 +1155,24 @@
       "Mức định sẵn / khoảng cách theo thực tế"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-school-transport",
     "title": "Ưu tiên hỗ trợ và điều kiện xe đưa đón học sinh",
     "questionIds": [
-      "q042",
       "q164",
       "q174"
     ],
     "comparisonAxes": [
-      "Phân luồng dừng đỗ / thiết bị và phương tiện",
-      "Xe kinh doanh đưa đón / chở trẻ trên ô tô",
-      "Chống bỏ quên / ghế đai phù hợp"
+      "Ưu tiên hỗ trợ được hưởng / điều kiện bắt buộc của xe",
+      "Phân luồng, bố trí nơi dừng đỗ / xe dẫn đường (không được hưởng)",
+      "Thiết bị ghi hình và chống bỏ quên, niên hạn / dây đai, ghế phù hợp lứa tuổi"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-passenger-service",
@@ -1152,16 +1181,17 @@
       "q168",
       "q170",
       "q173",
-      "q184",
-      "q192"
+      "q184"
     ],
     "comparisonAxes": [
-      "Đúng nơi / theo yêu cầu",
-      "An toàn xe và hướng dẫn / kiểm tra nhân thân",
-      "Cạnh tranh giảm giá / đe dọa cưỡng ép"
+      "Đón trả khách đúng nơi quy định / theo yêu cầu",
+      "An toàn xe và hướng dẫn hành khách / kiểm tra nhân thân",
+      "Hành vi bị cấm trong kinh doanh (đe dọa, cưỡng ép) / cạnh tranh, giảm giá hợp pháp",
+      "Phẩm chất nghề nghiệp của lái xe chở khách"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-special-goods",
@@ -1178,7 +1208,8 @@
       "Người áp tải hoặc hỗ trợ khi cần"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-commercial-hours",
@@ -1188,16 +1219,16 @@
       "q172"
     ],
     "comparisonAxes": [
-      "Liên tục / trong ngày",
-      "4 giờ /10 giờ",
-      "continuous driving versus daily work"
+      "Lái xe liên tục / làm việc trong một ngày",
+      "4 giờ / 10 giờ"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-professional-ethics",
-    "title": "Rèn luyện nghề nghiệp và kết quả",
+    "title": "Đạo đức nghề nghiệp của lái xe kinh doanh vận tải: việc cần làm, phẩm chất và kết quả",
     "questionIds": [
       "q181",
       "q183",
@@ -1209,7 +1240,8 @@
       "Không cộng điểm GPLX"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-traffic-culture",
@@ -1228,7 +1260,8 @@
       "Hành động đúng / tiện lợi cá nhân"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-culture-situations",
@@ -1244,7 +1277,8 @@
       "Gây hại người khác / lấn làn vỉa hè"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-crash-responsibility",
@@ -1256,15 +1290,13 @@
       "q199"
     ],
     "comparisonAxes": [
-      "Người liên quan / nhân chứng / người gặp tai nạn",
-      "Dừng cảnh báo cứu giúp báo tin / bảo vệ hiện trường tài sản",
-      "Rời có lý do phải trình báo / bỏ trốn trốn trách nhiệm",
-      "involved person versus witness",
-      "assistance",
-      "leaving scene"
+      "người liên quan đến tai nạn / người có mặt / người lái xe gặp tai nạn",
+      "dừng, cảnh báo, cứu giúp, báo tin, bảo vệ hiện trường",
+      "được rời hiện trường vì cấp cứu rồi phải trình báo / bỏ trốn bị nghiêm cấm"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "rules-first-aid-contrast",
@@ -1274,12 +1306,13 @@
       "q196"
     ],
     "comparisonAxes": [
-      "Máu phun theo mạch / không hô hấp",
-      "Cầm máu theo bank / khai thông đường thở và hô hấp",
-      "Nhận biết tình trạng trước hành động"
+      "Máu phun thành tia theo nhịp mạch: cầm máu gián tiếp (chặn động mạch) / trực tiếp",
+      "Không còn hô hấp: khai thông đường thở trước, rồi hô hấp nhân tạo",
+      "Nhận biết tình trạng nạn nhân trước khi chọn thao tác"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-fire-stages",
@@ -1296,7 +1329,8 @@
       "Biện pháp và thiết bị"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-descent-powertrain",
@@ -1314,7 +1348,8 @@
       "Phanh động cơ / tái sinh / phanh chân"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-slope-actions",
@@ -1331,7 +1366,8 @@
       "Trạng thái đang chạy / đã dừng"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-start-transmission",
@@ -1347,7 +1383,8 @@
       "Phanh chân / ly hợp"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-automatic-controls",
@@ -1366,24 +1403,25 @@
       "Khởi động / khởi hành / điều chỉnh / giảm tốc"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-parking-brake",
-    "title": "Phanh đỗ: nhả, báo trạng thái và chức năng",
+    "title": "Hệ thống phanh: công dụng, phanh đỗ và đèn báo",
     "questionIds": [
       "q208",
-      "q214",
       "q227",
       "q284"
     ],
     "comparisonAxes": [
-      "Thao tác cần phanh / đèn báo / chức năng",
-      "Nhả phanh / giữ xe",
-      "Đang chạy / đã dừng"
+      "công dụng của hệ thống phanh (giảm tốc, dừng, giữ xe trên dốc)",
+      "thao tác nhả phanh đỗ cơ khí",
+      "đèn báo phanh đỗ đang kéo"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-shift-direction",
@@ -1398,7 +1436,8 @@
       "Phối hợp ga và vù ga"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-turn-manoeuvre",
@@ -1417,7 +1456,8 @@
       "Báo tín hiệu / nhường đường / tốc độ"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-surface-grip",
@@ -1434,7 +1474,8 @@
       "Phanh gấp / lái ngoặt / số thấp"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-rough-road",
@@ -1450,7 +1491,8 @@
       "Trình tự bánh trước–sau / nhìn hướng / giữ thăng bằng"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-flood-powertrain",
@@ -1465,7 +1507,8 @@
       "Ga đều / tốc độ / khoảng cách"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-rail-operation",
@@ -1481,7 +1524,8 @@
       "Giữ số khi vượt / câu đúng–sai"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-rail-sign-to-action",
@@ -1497,12 +1541,14 @@
       "q379"
     ],
     "comparisonAxes": [
-      "Có / không rào chắn",
-      "Biển báo trước / tại vị trí giao",
-      "Điều kiện dừng và quan sát"
+      "có rào chắn hay không có rào chắn",
+      "giao vuông góc (chữ X) hay không vuông góc (1-3 vạch đỏ)",
+      "biển báo trước hay biển đặt ngay nơi giao",
+      "thao tác khi qua đường sắt: dừng trước vạch, quan sát hai phía, về số thấp không đổi số"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-glare",
@@ -1517,7 +1563,8 @@
       "Giảm tốc"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-rain-fog",
@@ -1533,7 +1580,8 @@
       "Khoảng cách / tốc độ / chỗ dừng an toàn"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-door-exit",
@@ -1543,14 +1591,13 @@
       "q256"
     ],
     "comparisonAxes": [
-      "Người lái / người ngồi trên xe",
-      "Quan sát trước–sau–bên mở",
-      "Mở hé rồi mở đủ",
-      "driver versus passenger",
-      "observation and safe opening"
+      "người lái xe hay người ngồi trên xe",
+      "quan sát phía trước, phía sau và bên mở cửa",
+      "mở hé rồi mới mở đủ để xuống"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-motorcycle-brake",
@@ -1567,7 +1614,8 @@
       "Câu hỏi hành vi đúng / nguy hiểm"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-motorcycle-throttle",
@@ -1582,22 +1630,8 @@
       "Tiến / lùi / điều tiết công suất"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
-  },
-  {
-    "id": "tech-signs-urban-boundary",
-    "title": "Đi trong khu dân cư và biển bắt đầu phạm vi",
-    "questionIds": [
-      "q247",
-      "q361"
-    ],
-    "comparisonAxes": [
-      "Thao tác trong khu đông dân cư",
-      "Bắt đầu / kết thúc phạm vi",
-      "Quan sát / nhường / làn / khoảng cách"
-    ],
-    "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-motorway-transition",
@@ -1613,11 +1647,12 @@
       "Nhường / chuyển làn / điều kiện dừng"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-motorway-sign-operation",
-    "title": "Biển cao tốc và chuyển trạng thái đường",
+    "title": "Cao tốc: biển báo, nhập – ra và làn dừng khẩn cấp",
     "questionIds": [
       "q248",
       "q249",
@@ -1632,7 +1667,8 @@
       "Làn dừng khẩn cấp / làn cứu nạn"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-merge-priority",
@@ -1647,13 +1683,13 @@
       "Giảm tốc tiếp cận / tăng tốc để nhập khi an toàn"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-truck-overtake",
-    "title": "Vượt xe kéo moóc và phạm vi biển cấm vượt",
+    "title": "Biển cấm vượt: cấm mọi xe, cấm ô tô tải, hết cấm vượt",
     "questionIds": [
-      "q251",
       "q308",
       "q309",
       "q310",
@@ -1661,12 +1697,13 @@
       "q312"
     ],
     "comparisonAxes": [
-      "Đối tượng bị cấm vượt / xe được vượt",
-      "Kỹ thuật vượt xe dài / hiệu lực biển",
-      "Điểm mù / về làn"
+      "đối tượng bị cấm: mọi xe cơ giới hay chỉ ô tô tải",
+      "biển cấm vượt hay biển hết cấm vượt",
+      "ô tô con được vượt hay bị cấm vượt"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-economy",
@@ -1682,7 +1719,8 @@
       "Kiến thức chữ / nhận dạng đèn"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-equipment-requirements",
@@ -1703,7 +1741,8 @@
       "Yêu cầu bắt buộc / cấu phần lắp thêm"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-lights-function",
@@ -1717,7 +1756,8 @@
       "Chiếu sáng / báo hãm / tín hiệu"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-maintenance-oil",
@@ -1734,23 +1774,23 @@
       "Dầu bôi trơn / nhiên liệu / dầu phanh"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-engine-principle",
-    "title": "Động cơ và chu trình công tác",
+    "title": "Động cơ ô tô: chu trình 4 kỳ và biến đổi nhiệt năng thành cơ năng",
     "questionIds": [
-      "q272",
       "q275",
       "q279"
     ],
     "comparisonAxes": [
-      "Diesel và nguyên nhân không nổ",
-      "Bốn hành trình / một lần sinh công",
-      "Nhiệt năng thành cơ năng"
+      "Động cơ 4 kỳ (4 hành trình, một lần sinh công) / động cơ 2 kỳ (2 hành trình)",
+      "Nhiệt năng thành cơ năng / cơ năng thành nhiệt năng"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-service-life",
@@ -1760,13 +1800,12 @@
       "q278"
     ],
     "comparisonAxes": [
-      "Loại xe",
-      "Số chỗ không kể người lái",
-      "Mốc năm sản xuất / số năm trong đáp án",
-      "truck versus passenger vehicle"
+      "loại xe: ô tô tải / ô tô chở người trên 8 chỗ",
+      "niên hạn 25 năm / 20 năm tính từ năm sản xuất"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-drivetrain-functions",
@@ -1778,12 +1817,14 @@
       "q282"
     ],
     "comparisonAxes": [
-      "Biến đổi năng lượng / truyền mô men / nối-ngắt / đổi mô men và lùi",
-      "Vị trí trong chuỗi truyền lực",
-      "Mô tả lẫn trong đáp án"
+      "Động cơ: biến nhiệt năng thành cơ năng",
+      "Hệ thống truyền lực: truyền mô men từ động cơ đến bánh xe chủ động",
+      "Ly hợp: nối hoặc ngắt truyền động giữa động cơ và hộp số",
+      "Hộp số: thay đổi mô men và giúp xe chạy lùi"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-control-systems",
@@ -1798,7 +1839,8 @@
       "Công dụng đúng / mô tả hệ thống khác"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-steering-fault",
@@ -1809,12 +1851,13 @@
       "q295"
     ],
     "comparisonAxes": [
-      "Yêu cầu kỹ thuật / nhiệm vụ / dấu hiệu sự cố",
-      "Lực điều khiển / hướng chuyển động",
-      "Đèn còn sáng sau khởi động"
+      "yêu cầu kỹ thuật của hệ thống lái",
+      "công dụng của hệ thống lái (khác phanh, ly hợp)",
+      "đèn báo hệ thống lái gặp sự cố"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-restraints",
@@ -1831,7 +1874,8 @@
       "Đèn chưa cài / chức năng trang bị"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-electrical-supply",
@@ -1841,17 +1885,17 @@
       "q292"
     ],
     "comparisonAxes": [
-      "Tích trữ / phát điện / nạp điện",
+      "Tích trữ điện (ắc quy) / phát điện và nạp điện (máy phát)",
       "Máy phát chưa hoạt động / đang hoạt động",
-      "Nguồn và phụ tải",
-      "battery versus alternator"
+      "Nguồn điện và phụ tải"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-dashboard-fluids",
-    "title": "Đèn phanh, dầu, nhiên liệu và nhiệt độ",
+    "title": "Đèn cảnh báo trên bảng đồng hồ: phanh, dầu, nhiên liệu, nhiệt độ, lốp và ABS",
     "questionIds": [
       "q227",
       "q228",
@@ -1861,16 +1905,17 @@
       "q289"
     ],
     "comparisonAxes": [
-      "Hình bình dầu / trụ xăng / nhiệt kế / dấu chấm than / ABS",
-      "Áp suất dầu / mức nhiên liệu / nhiệt độ / áp suất lốp",
-      "Phanh đỗ / lỗi ABS"
+      "Phanh đỗ (BRAKE) / lỗi ABS",
+      "Áp suất dầu / mức nhiên liệu / nhiệt độ nước làm mát / áp suất lốp",
+      "Hình bình dầu / trụ xăng / nhiệt kế / dấu chấm than trong lốp / chữ ABS"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-dashboard-body",
-    "title": "Đèn cửa, dây đai, động cơ và lái",
+    "title": "Đèn báo trên bảng đồng hồ: cửa, dây đai, động cơ và hệ thống lái",
     "questionIds": [
       "q229",
       "q230",
@@ -1878,12 +1923,12 @@
       "q295"
     ],
     "comparisonAxes": [
-      "Hình xe mở cửa / người đeo dây / động cơ / vô lăng",
-      "Trạng thái chưa hoàn tất / sự cố",
-      "Điều kiện máy đã khởi động"
+      "Hình xe có cửa mở / người thắt dây đai / khối động cơ / vô lăng kèm dấu chấm than",
+      "Màu và mức nghiêm trọng (đỏ: cửa, dây đai, lái; vàng: kiểm tra động cơ)"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-tools",
@@ -1899,7 +1944,8 @@
       "Thiết bị và mục đích riêng"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-hazard-stop",
@@ -1909,12 +1955,12 @@
       "q299"
     ],
     "comparisonAxes": [
-      "Nút tam giác / thao tác bật báo hiệu",
-      "Tình huống nguy hiểm / xin đi thẳng",
-      "Chỗ dừng an toàn"
+      "ý nghĩa nút đèn khẩn cấp (tam giác đỏ)",
+      "khi nào bật đèn dừng khẩn cấp: mưa to, sương mù, tìm chỗ dừng an toàn"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-class-ban",
@@ -1934,7 +1980,8 @@
       "Biển chung bao gồm nhóm con / ngoại lệ"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-overtaking-ban",
@@ -1947,14 +1994,13 @@
       "q312"
     ],
     "comparisonAxes": [
+      "Biển cấm vượt chung / cấm ô tô tải vượt / hết cấm vượt",
       "Ô tô con / ô tô tải",
-      "Cấm vượt / cấm tải vượt / hết cấm",
-      "Cho phép / không cho phép",
-      "vehicle type",
-      "allowed versus prohibited"
+      "Hỏi biển cho phép vượt / biển không cho phép vượt"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-turn-ban",
@@ -1975,7 +2021,8 @@
       "Chỉ cấm một động tác / cấm cả hai"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-turn-permission",
@@ -1994,11 +2041,12 @@
       "Được phép quay đầu nhưng không rẽ"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-specific-passenger-ban",
-    "title": "Ô tô chung, taxi và ô tô khách",
+    "title": "Biển cấm ô tô, taxi, ô tô khách và ô tô tải",
     "questionIds": [
       "q301",
       "q302",
@@ -2006,12 +2054,13 @@
       "q358"
     ],
     "comparisonAxes": [
-      "Tất cả ô tô / chỉ taxi / ô tô khách",
-      "Ô tô tải / xe buýt là lựa chọn nhiễu",
-      "Cấm bao trùm / phạm vi hẹp"
+      "cấm mọi ô tô / chỉ cấm taxi / cấm ô tô khách / cấm ô tô khách và ô tô tải / cấm xe kéo moóc",
+      "taxi và ô tô tải vẫn bị biển Cấm ô tô cấm",
+      "biển ô tô khách không đồng nghĩa với cấm xe buýt"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-entry-stop",
@@ -2028,7 +2077,8 @@
       "Xe ưu tiên và phạm vi ngoại lệ"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-parking-days",
@@ -2038,17 +2088,17 @@
       "q328"
     ],
     "comparisonAxes": [
-      "Mọi ngày / ngày lẻ / ngày chẵn",
-      "Số vạch",
-      "Hỏi tập hợp các biển cấm",
-      "even versus odd day"
+      "Cấm đỗ mọi ngày / ngày lẻ / ngày chẵn",
+      "Số vạch trắng trên biển (không có / 1 / 2)",
+      "Câu hỏi hỏi tập hợp các biển bị cấm theo ngày"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-truck-weight-hazard",
-    "title": "Cấm tải, tải trên mức và hàng nguy hiểm",
+    "title": "Biển cấm theo loại xe, hàng nguy hiểm và tải trọng",
     "questionIds": [
       "q302",
       "q303",
@@ -2062,7 +2112,8 @@
       "Biển cấm nhóm xe / hạn chế kỹ thuật"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-threewheel-motor",
@@ -2078,11 +2129,12 @@
       "Biển nào được vào / bị cấm"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-night-speed",
-    "title": "Tốc độ tối đa ban đêm và thông thường",
+    "title": "Biển tốc độ: tối đa ban đêm, tối đa thông thường và tối thiểu",
     "questionIds": [
       "q335",
       "q360",
@@ -2096,7 +2148,8 @@
       "Viền đỏ / nền xanh / thời gian ghi biển"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-dimensions-load",
@@ -2117,7 +2170,8 @@
       "Xe ưu tiên"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-tractor-trailer",
@@ -2135,7 +2189,8 @@
       "Xe chạy riêng / kéo theo"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-supplement-direction",
@@ -2153,7 +2208,8 @@
       "Đi vào / rẽ / dừng-đỗ"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-supplement-distance",
@@ -2170,7 +2226,8 @@
       "Cấm còi / cự ly tối thiểu"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-supplement-class",
@@ -2186,13 +2243,13 @@
       "Cấm nhóm có hình / trừ nhóm có hình"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-stop-park",
     "title": "Cấm đỗ và cấm cả dừng–đỗ",
     "questionIds": [
-      "q325",
       "q327",
       "q328",
       "q354",
@@ -2204,7 +2261,8 @@
       "Ngày và hướng áp dụng"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-speed-bounds",
@@ -2223,11 +2281,12 @@
       "Khung giờ / vị trí làn"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-end-markers",
-    "title": "Các dấu bắt đầu và kết thúc phạm vi đường",
+    "title": "Biển bắt đầu và kết thúc: khu dân cư, cao tốc, đường ưu tiên, đường đôi",
     "questionIds": [
       "q361",
       "q363",
@@ -2241,7 +2300,8 @@
       "Gạch chéo / hình dải phân cách kết thúc"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-ped-cycle",
@@ -2257,11 +2317,12 @@
       "Nhường / không vào / nhận dạng"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-junction-warning",
-    "title": "Giao cắt đường sắt, đường ưu tiên và đèn",
+    "title": "Biển giao nhau: đường sắt, đèn tín hiệu và biển nhường đường",
     "questionIds": [
       "q370",
       "q371",
@@ -2269,12 +2330,13 @@
       "q375"
     ],
     "comparisonAxes": [
-      "Hàng rào / đầu máy / đèn tín hiệu / tam giác ngược",
-      "Đường sắt / tàu điện",
-      "Câu bao quát / chọn đúng một loại"
+      "Hàng rào / đầu máy / đèn tín hiệu / tam giác ngược (nhường đường)",
+      "Giao với đường sắt / giao với đường tàu điện",
+      "Câu hỏi bao quát (cả ba biển) / chọn đúng một loại biển"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-rail-signs",
@@ -2287,12 +2349,13 @@
       "q375"
     ],
     "comparisonAxes": [
-      "Hàng rào / đầu tàu / chữ X / tàu điện",
-      "Có rào / không rào",
-      "Đường sắt / đường hai chiều là nhiễu"
+      "hình hàng rào, đầu tàu, chữ X, tàu điện hay đèn tín hiệu",
+      "có rào chắn hay không có rào chắn",
+      "giao với đường sắt hay giao với đường tàu điện, đường hai chiều"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-rail-geometry",
@@ -2305,13 +2368,14 @@
       "q379"
     ],
     "comparisonAxes": [
-      "Vuông góc / không vuông góc theo bank",
-      "Chữ X / biển có vạch chéo",
-      "Một / nhiều đường ray",
-      "Tại nơi giao / báo trước"
+      "Giao vuông góc (biển chữ X) / giao không vuông góc (biển có 1-3 vạch chéo)",
+      "Một đường ray / từ hai đường ray (chữ X đơn / chữ X kép)",
+      "Có rào chắn (hàng rào) / không rào chắn (đầu máy, chữ X)",
+      "Biển đặt tại nơi giao / biển báo trước"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-arches",
@@ -2326,7 +2390,8 @@
       "Câu hỏi đổi thứ tự biển"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-priority-junction",
@@ -2346,7 +2411,8 @@
       "Tên biển / quyền đi qua"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-narrow-priority",
@@ -2359,12 +2425,13 @@
       "q391"
     ],
     "comparisonAxes": [
-      "Cảnh báo thu hẹp / nhường / được ưu tiên",
-      "Phía bị hẹp / chiều mũi tên",
-      "Đường hai chiều là hình nhiễu"
+      "Cảnh báo đường bị thu hẹp (hai bên / một bên) / biển nhường / biển được ưu tiên",
+      "Phía bị hẹp và chiều mũi tên (đỏ phải nhường, trắng được ưu tiên)",
+      "Biển cảnh báo đường hai chiều khác biển nhường hoặc ưu tiên qua đường hẹp"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-road-directions",
@@ -2379,15 +2446,14 @@
       "q397"
     ],
     "comparisonAxes": [
-      "Mũi tên dọc / ngang",
-      "Có dải phân cách / không / hết dải",
-      "Đường mình / đường cắt ngang",
-      "divided versus two-way road",
-      "beginning versus end",
-      "intersection"
+      "mũi tên dọc (đường hai chiều) hay mũi tên ngang (giao nhau với đường hai chiều)",
+      "có dải phân cách (đường đôi) hay không",
+      "bắt đầu hay kết thúc đường đôi",
+      "đường mình đang đi hay đường cắt ngang"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-obstacle-divider",
@@ -2406,22 +2472,23 @@
       "Đường đôi / chướng ngại vật"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "tech-signs-rescue-lane",
-    "title": "Làn cứu nạn, đường tránh tạm và dừng khẩn cấp",
+    "title": "Làn dừng khẩn cấp, làn cứu nạn và biển chỉ dẫn đường tránh",
     "questionIds": [
       "q250",
       "q399"
     ],
     "comparisonAxes": [
-      "Làn thoát xe khẩn cấp / làn dừng khẩn cấp / đường tránh",
-      "Vị trí và khoảng cách / điều kiện dừng",
-      "Chức năng riêng"
+      "Làn dừng khẩn cấp trên cao tốc (chỉ khi sự cố) / làn cứu nạn, thoát xe khẩn cấp (xe mất phanh)",
+      "Biển chỉ vị trí và khoảng cách làn cứu nạn / biển chỉ đường tránh"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_bridge_types",
@@ -2435,7 +2502,8 @@
       "hình thu hẹp mặt đường / nhịp cầu nhấc lên"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_cliff_direction",
@@ -2450,11 +2518,12 @@
       "hướng xe nghiêng và vị trí mép vực"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_skid_roll_shoulder",
-    "title": "Đường trơn, lề nguy hiểm và lật xe ở đường cong",
+    "title": "Biển báo đường trơn, lề nguy hiểm, gió ngang và nguy cơ lật xe ở chỗ ngoặt",
     "questionIds": [
       "q406",
       "q407",
@@ -2466,21 +2535,23 @@
       "vệt bánh / mép lề / túi gió / hướng vòng cua"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_ferry_water",
-    "title": "Bến phà và các biển có nước hoặc xe trượt",
+    "title": "Biển bến phà, đường trơn và nguy hiểm lật xe",
     "questionIds": [
       "q406",
       "q418"
     ],
     "comparisonAxes": [
-      "xe trên phà / xe ngập nước / vệt bánh trượt",
-      "ý nghĩa biển / cách tiếp cận"
+      "Xe nằm trên phà (bến phà) / vệt bánh trượt (đường trơn) / xe nghiêng lật",
+      "Ý nghĩa biển / cách tiếp cận"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_ground_work",
@@ -2496,7 +2567,8 @@
       "nguồn nguy hiểm bên đường / mặt đường"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_accident_queue",
@@ -2510,7 +2582,8 @@
       "tai nạn / ùn tắc / đường hầm"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_pedestrian_sign_types",
@@ -2525,7 +2598,8 @@
       "cảnh báo cắt ngang / chỉ dẫn đường dành riêng"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_slope_direction",
@@ -2539,7 +2613,8 @@
       "độ dốc % / chiều đọc hình"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_bumps",
@@ -2553,7 +2628,8 @@
       "mặt đường bất thường / gồ được bố trí"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_lane_speed",
@@ -2567,7 +2643,8 @@
       "hỏi cả làn và tốc độ / chỉ hỏi tốc độ"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_dedicated_car_road",
@@ -2583,7 +2660,8 @@
       "xe tải, xe khách có được vào / không"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_end_dedicated_road",
@@ -2600,7 +2678,8 @@
       "gạch chéo / chữ END / thông tin tuyến và tốc độ"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_straight_oneway",
@@ -2618,7 +2697,8 @@
       "rẽ ở giao lộ / quay đầu ngược chiều"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_lane_vs_global_direction",
@@ -2638,11 +2718,12 @@
       "đèn đỏ hiện tại / hướng khi được đi"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_mandatory_direction",
-    "title": "Các nhánh của biển hướng đi phải theo",
+    "title": "Biển hướng đi phải theo: rẽ trái, rẽ phải, đi thẳng",
     "questionIds": [
       "q440",
       "q441",
@@ -2655,11 +2736,12 @@
       "cho phép quay đầu / chỉ chọn hướng mũi tên"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_end_restrictions",
-    "title": "Tên biển hết hạn chế và biển làm hết hiệu lực",
+    "title": "Biển hết hiệu lực: hết tốc độ tối đa, tối thiểu, cấm vượt và mọi lệnh cấm",
     "questionIds": [
       "q435",
       "q436",
@@ -2668,20 +2750,17 @@
       "q439"
     ],
     "comparisonAxes": [
-      "tốc độ tối đa / tốc độ tối thiểu / cấm vượt / mọi lệnh cấm",
-      "hỏi tên đúng một biển / hỏi các biển làm hết tác dụng",
-      "nền xanh / nền trắng và ký hiệu",
-      "maximum speed",
-      "minimum speed",
-      "overtaking",
-      "all prohibitions"
+      "Tốc độ tối đa / tốc độ tối thiểu / cấm vượt / mọi lệnh cấm",
+      "Hỏi tên đúng một biển / hỏi các biển làm hết hiệu lực một lệnh",
+      "Nền xanh (tối thiểu) / nền trắng gạch chéo (các lệnh cấm)"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_uturn_sign_location",
-    "title": "Nơi quay đầu, khu vực quay xe và vị trí cấm quay đầu",
+    "title": "Quay đầu xe: biển chỉ dẫn, biển cấm rẽ trái và vị trí cấm quay đầu",
     "questionIds": [
       "q443",
       "q512",
@@ -2695,7 +2774,8 @@
       "vạch người đi bộ / quỹ đạo tránh vạch"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_zone_end",
@@ -2710,7 +2790,8 @@
       "ZONE / gạch chéo / khung giờ"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_route_place_admin",
@@ -2724,7 +2805,8 @@
       "tên tuyến / nơi đến / ranh giới"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_bus_lane_approach",
@@ -2738,7 +2820,8 @@
       "đang đi tới / rẽ sang tuyến"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_dead_end_escape",
@@ -2753,7 +2836,8 @@
       "ô đỏ / ô ca-rô"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_pedestrian_over_under",
@@ -2767,7 +2851,8 @@
       "cầu vượt / hầm chui"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_parking_signs",
@@ -2781,7 +2866,8 @@
       "xe lăn / hình xe trên hè"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_station_overtake",
@@ -2796,7 +2882,8 @@
       "giảm tốc / dừng theo hiệu lệnh / không vượt"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_roundabout_entry",
@@ -2812,7 +2899,8 @@
       "đi đúng chiều / nhường / chọn lối ra"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_interchange",
@@ -2827,7 +2915,8 @@
       "chữ nhật / tròn / tam giác"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_distance_position",
@@ -2844,7 +2933,8 @@
       "khoảng cách đến nơi / hướng rẽ vào nơi"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_lane_type_applied",
@@ -2859,7 +2949,8 @@
       "đi sai làn / chuyển để theo hành trình gần giao lộ"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_obstacle_side",
@@ -2875,7 +2966,8 @@
       "một hướng / hai hướng"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_curve_marker",
@@ -2890,7 +2982,8 @@
       "đổi hướng theo cua / chọn phía đi qua vật cản"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_mark_color",
@@ -2909,7 +3002,8 @@
       "nhận diện / xe lấn qua vạch"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_mark_solid_broken",
@@ -2926,7 +3020,8 @@
       "đè vạch / cắt qua để vượt / ở gọn trong làn"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_pedestrian_mark_sign",
@@ -2944,7 +3039,8 @@
       "nhận diện / giảm tốc và nhường"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_public_transport_marking",
@@ -2960,11 +3056,12 @@
       "đúng xe / đè vạch"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_signal_lane_direction",
-    "title": "Đèn theo làn và theo hướng",
+    "title": "Đèn tín hiệu: xe nào được đi, xe nào phải dừng",
     "questionIds": [
       "q486",
       "q499",
@@ -2974,27 +3071,29 @@
       "q569"
     ],
     "comparisonAxes": [
-      "đèn cho làn / đèn cho hướng",
-      "xanh được đi / đỏ dừng",
-      "hỏi xe được đi / xe vi phạm / xe phải dừng"
+      "đèn mũi tên theo làn hay đèn tròn theo hướng",
+      "xanh được đi, đỏ phải dừng",
+      "câu hỏi hỏi xe được đi, xe vi phạm hay xe phải dừng"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_main_red_arrow_right",
-    "title": "Đèn chính đỏ, mũi tên xanh và đúng hướng được mở",
+    "title": "Đèn mũi tên xanh và đèn đỏ: hướng nào được đi",
     "questionIds": [
       "q502",
       "q538"
     ],
     "comparisonAxes": [
-      "đèn chính / đèn phụ",
-      "hướng rẽ phải / các hướng được mũi tên mở",
+      "đèn chính đỏ kèm đèn phụ mũi tên xanh / đèn mũi tên riêng cho từng hướng, làn",
+      "hướng được mũi tên xanh mở / hướng phải dừng",
       "đúng hướng / đúng làn"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_main_red_arrow_left",
@@ -3012,11 +3111,12 @@
       "xe và nhãn xe thay đổi"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_signal_lane_constraints",
-    "title": "Đèn xanh vẫn phải theo làn và biển hướng",
+    "title": "Đèn xanh vẫn phải theo làn, biển hướng và nhường xe đi thẳng",
     "questionIds": [
       "q503",
       "q547",
@@ -3026,11 +3126,13 @@
       "q591"
     ],
     "comparisonAxes": [
-      "được đi theo đèn / hướng theo biển và vạch",
-      "rẽ trái nhường thẳng / đi đúng làn"
+      "Được đi theo đèn / vẫn phải theo biển hướng và vạch mũi tên của làn",
+      "Rẽ trái phải nhường xe ngược chiều đi thẳng / đi đúng làn quy định",
+      "Đèn xanh / đèn đỏ kèm mũi tên khi đã dừng trước vạch"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_priority_road_simple",
@@ -3047,12 +3149,13 @@
       "q588"
     ],
     "comparisonAxes": [
-      "biển đường ưu tiên / nhường đường / STOP",
-      "phương tiện cơ giới / xe đạp",
-      "hỏi đi trước / nhường / đi cuối"
+      "Biển ở hướng của bạn: STOP / nhường đường / giao với đường ưu tiên / giao với đường không ưu tiên / đường ưu tiên",
+      "Hỏi xe nào đi trước, xe nào phải nhường, hay xe nào đi cuối",
+      "Xe đang ở đường chính hay đường nhánh"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_priority_road_order",
@@ -3071,7 +3174,8 @@
       "hướng giao cắt / không giao cắt / đi đồng thời"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_emergency_vs_sign",
@@ -3088,7 +3192,8 @@
       "đường ưu tiên / đường nhánh / biển cấm"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_emergency_order",
@@ -3105,7 +3210,8 @@
       "đang làm nhiệm vụ"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_unconflicting_emergency",
@@ -3123,7 +3229,8 @@
       "xe ưu tiên làm nhiệm vụ / xe thường"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_uncontrolled_right",
@@ -3143,7 +3250,8 @@
       "rẽ trái / đi thẳng"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_yield_vs_stop",
@@ -3160,11 +3268,12 @@
       "dừng hẳn / giảm tốc và nhường"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_parking_prohibition",
-    "title": "Cấm đỗ và cấm cả dừng–đỗ, phạm vi và vị trí",
+    "title": "Cấm đỗ và cấm dừng đỗ: số gạch, phạm vi biển và vị trí đỗ vi phạm",
     "questionIds": [
       "q505",
       "q508",
@@ -3173,13 +3282,15 @@
       "q558"
     ],
     "comparisonAxes": [
-      "một gạch / hai gạch",
-      "dừng / đỗ",
-      "trong phạm vi / ngoài phạm vi",
-      "bên trái / gần giao lộ"
+      "một gạch (cấm đỗ) hay hai gạch (cấm dừng và đỗ)",
+      "dừng hay đỗ",
+      "trong hay ngoài phạm vi hiệu lực của biển",
+      "biển phụ chỉ loại xe",
+      "vị trí đỗ sai: bên trái đường, gần giao lộ hoặc vạch người đi bộ"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_vehicle_ban_classes",
@@ -3198,7 +3309,8 @@
       "nhánh trước nút / đoạn sau nút"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_truck_ban_branch",
@@ -3209,16 +3321,17 @@
       "q524"
     ],
     "comparisonAxes": [
-      "biển cấm ngay đầu nhánh / biển phụ chỉ nhánh",
-      "cấm tải / chiều đường",
-      "một điều kiện / phối hợp điều kiện"
+      "biển cấm đặt ở đầu nhánh",
+      "biển cấm kèm biển phụ mũi tên chỉ nhánh bị cấm",
+      "biển bắt buộc theo hướng kèm biển phụ xe tải"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_turn_ban_oneway",
-    "title": "Cấm rẽ, quay đầu và cấm đi ngược chiều",
+    "title": "Giao lộ có biển: cấm rẽ, cấm quay đầu, đường một chiều, cấm đi ngược chiều và cấm theo loại xe",
     "questionIds": [
       "q512",
       "q521",
@@ -3229,12 +3342,14 @@
       "q550"
     ],
     "comparisonAxes": [
-      "cấm rẽ trái / phải / ngược chiều",
-      "rẽ / quay đầu",
-      "biển đúng loại xe / máy kéo"
+      "Cấm rẽ trái / cấm rẽ phải / cấm đi ngược chiều",
+      "Rẽ / quay đầu (cấm rẽ trái không cấm quay đầu)",
+      "Đường một chiều hoặc bắt buộc rẽ phải / cấm đi vào",
+      "Biển cấm đúng loại xe (ô tô tải, máy kéo) / xe khác vẫn đi được"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_tow_limits",
@@ -3250,7 +3365,8 @@
       "số xe được kéo"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_overtake_permissions",
@@ -3268,21 +3384,23 @@
       "vượt trái / trường hợp vượt phải"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_narrow_priority_sign",
-    "title": "Qua đường hẹp: hai biển ưu tiên đối nhau",
+    "title": "Qua đường hẹp: biển nhường đường và biển ưu tiên",
     "questionIds": [
       "q516",
       "q586"
     ],
     "comparisonAxes": [
-      "chiều phải nhường / chiều được ưu tiên",
-      "mũi tên đỏ / mũi tên còn lại"
+      "Chiều phải nhường / chiều được ưu tiên",
+      "Ý nghĩa mũi tên đỏ và mũi tên còn lại trên biển"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_narrow_causes",
@@ -3298,7 +3416,8 @@
       "căn cứ nhường / phía được đi"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_controller_gestures",
@@ -3313,7 +3432,8 @@
       "đã trong giao lộ / chưa vào"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_turn_progress",
@@ -3328,7 +3448,8 @@
       "quan sát và chờ / cố đi hoặc vượt"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_turn_yield_straight",
@@ -3341,28 +3462,30 @@
       "q591"
     ],
     "comparisonAxes": [
-      "rẽ trái / rẽ phải",
-      "ngược chiều / xe đi thẳng khác",
-      "cùng xanh / đồng cấp"
+      "Rẽ trái / rẽ phải",
+      "Nhường xe ngược chiều đi thẳng / nhường xe đạp, xe máy đi thẳng",
+      "Cùng đèn xanh / ngã tư không có báo hiệu (nhường xe bên phải, xe rẽ trái đi sau cùng)"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_turn_pedestrian",
-    "title": "Rẽ phải có cả xe và người đi bộ",
+    "title": "Nhường đường khi rẽ phải và khi qua vạch người đi bộ",
     "questionIds": [
       "q572",
       "q573",
       "q587"
     ],
     "comparisonAxes": [
-      "chỉ xe / thêm người đi bộ",
-      "đi thẳng qua vạch / rẽ phải",
-      "thứ tự nhường"
+      "Chỉ có xe đi thẳng / có thêm người đi bộ trên vạch",
+      "Rẽ phải / đi thẳng qua vạch người đi bộ",
+      "Thứ tự nhường (người đi bộ > xe đi thẳng > xe rẽ)"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_overtake_preconditions",
@@ -3376,7 +3499,8 @@
       "quan sát trước–sau / báo hiệu / đủ an toàn"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_overtake_forbidden_conditions",
@@ -3392,7 +3516,8 @@
       "đối tượng phía trước / điều kiện đường"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_parking_movement",
@@ -3407,7 +3532,8 @@
       "chuyển làn khi đủ điều kiện / giảm tốc và dừng"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_oncoming_visibility",
@@ -3423,7 +3549,8 @@
       "tránh đối đầu / không vượt khi chói"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_rail_barrier",
@@ -3437,11 +3564,12 @@
       "rào có mặt / đang dịch chuyển"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_turn_trajectory",
-    "title": "Quỹ đạo rẽ trái và quay đầu tránh phần đường cấm",
+    "title": "Quỹ đạo rẽ trái và quay đầu: không cắt góc, không đè vạch người đi bộ",
     "questionIds": [
       "q542",
       "q550",
@@ -3452,7 +3580,8 @@
       "cắt góc / qua tâm / đè vạch người đi bộ"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_merge_applied",
@@ -3467,23 +3596,25 @@
       "làn tăng tốc / làn sát phải / cắt vào làn trong"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "signs_scenarios_turning_large_vehicle",
-    "title": "Xe lớn đang rẽ: đi qua và chờ an toàn",
+    "title": "Xe lớn đang rẽ hoặc chuyển làn: khi nào đi tiếp, khi nào chờ",
     "questionIds": [
       "q530",
       "q581",
       "q600"
     ],
     "comparisonAxes": [
-      "xe tải chuyển hẳn phải / xin chuyển làn / container rẽ phải",
-      "vượt trái được lời giải chấp nhận / chờ",
-      "khoảng trống / điểm mù / quét bánh"
+      "Xe tải đã chuyển hẳn sang phải / xe tải xin chuyển làn / xe container đang rẽ phải",
+      "Được đi tiếp phần đường bên trái / phải giảm tốc chờ",
+      "Khoảng trống, điểm mù và vệt quét bánh của xe lớn"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "age-eligibility",
@@ -3502,7 +3633,8 @@
       "driving eligibility versus licence issuance"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "licence-permissions",
@@ -3530,7 +3662,8 @@
       "issue-date condition"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "speed-limits",
@@ -3552,14 +3685,15 @@
       "q157"
     ],
     "comparisonAxes": [
-      "vehicle type",
-      "populated versus non-populated area",
-      "road configuration",
-      "exception",
-      "speed lookup versus vehicle lookup"
+      "loại xe (ô tô con và tải nhẹ, xe lớn, buýt/đầu kéo/mô tô, xe kéo rơ moóc/xi téc)",
+      "trong hay ngoài khu vực đông dân cư",
+      "đường đôi hoặc từ hai làn một chiều hay đường hai chiều hoặc một làn",
+      "ngoại lệ: xe gắn máy, xe máy chuyên dùng, xe bốn bánh có gắn động cơ",
+      "hỏi tốc độ của loại xe hay hỏi loại xe có tốc độ đó"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "following-distance",
@@ -3572,12 +3706,13 @@
       "q162"
     ],
     "comparisonAxes": [
-      "speed band",
-      "road and visibility assumptions",
-      "fixed minimum versus judgement"
+      "Mốc tốc độ: 60 / trên 60–80 / trên 80–100 / trên 100–120 / dưới 60 km/h",
+      "Điều kiện giả định: đường khô, thẳng, tầm nhìn tốt, không có biển cự ly",
+      "Số mét tối thiểu cố định / tự đánh giá"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "licence-points",
@@ -3587,11 +3722,12 @@
       "q141"
     ],
     "comparisonAxes": [
-      "points remaining versus exhausted",
-      "restoration conditions"
+      "chưa bị trừ hết 12 điểm: 12 tháng không bị trừ thêm thì được phục hồi đủ 12 điểm",
+      "đã bị trừ hết điểm: sau ít nhất 06 tháng kiểm tra kiến thức pháp luật đạt thì được phục hồi"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "stopping-parking",
@@ -3611,7 +3747,8 @@
       "opposite parked vehicle"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "respond-to-overtaking",
@@ -3622,11 +3759,13 @@
       "q110"
     ],
     "comparisonAxes": [
-      "safe versus unsafe conditions",
-      "vehicle type"
+      "đủ điều kiện an toàn / chưa đủ điều kiện an toàn",
+      "tín hiệu rẽ phải (cho vượt) / tín hiệu rẽ trái (chưa cho vượt)",
+      "giảm tốc và sát bên phải / tăng tốc hoặc sát bên trái"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "overtaking-rules",
@@ -3640,14 +3779,15 @@
       "q109"
     ],
     "comparisonAxes": [
-      "definition",
-      "permission",
-      "visibility",
-      "overtaking side",
-      "signal"
+      "Khái niệm vượt xe",
+      "Nơi và tình huống cấm vượt",
+      "Tầm nhìn bị hạn chế",
+      "Vượt bên trái / trường hợp được vượt bên phải",
+      "Tín hiệu xin vượt"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "intersection-priority",
@@ -3663,7 +3803,8 @@
       "roundabout versus no roundabout"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "emergency-priority",
@@ -3676,12 +3817,13 @@
       "q098"
     ],
     "comparisonAxes": [
-      "on duty",
-      "priority signal present versus absent",
-      "response versus permission"
+      "đang làm nhiệm vụ hay không",
+      "có tín hiệu ưu tiên hay không (kể cả xe CSGT không phát tín hiệu)",
+      "nghĩa vụ nhường đường hay quyền được vượt xe ưu tiên"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "railway-crossing",
@@ -3697,17 +3839,18 @@
       "q596"
     ],
     "comparisonAxes": [
-      "barrier and signal",
-      "train approach",
-      "vehicle breakdown",
-      "procedure versus scenario"
+      "Có rào chắn, chuông, đèn, người gác (dừng bên phải trước vạch) / không có (tự dừng, quan sát hai phía)",
+      "Tàu đang tới / chắn đang dịch chuyển hoặc đã đóng",
+      "Xe hỏng hoặc gặp sự cố ngay trên đường ngang",
+      "Quy trình chung (về số thấp, không đổi số) / tình huống cụ thể"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "motorway-use",
-    "title": "Đường cao tốc",
+    "title": "Đi trên đường cao tốc: xe được vào, nhập, thoát, làn khẩn cấp và sự cố",
     "questionIds": [
       "q111",
       "q112",
@@ -3722,14 +3865,15 @@
       "q597"
     ],
     "comparisonAxes": [
-      "entry",
-      "exit",
-      "emergency lane",
-      "breakdown",
-      "vehicle restrictions"
+      "Xe và người được phép / không được vào đường cao tốc",
+      "Nhập cao tốc: dùng làn tăng tốc, nhường xe đang chạy trên đường",
+      "Thoát cao tốc: làn giảm tốc; lỡ lối ra thì đi tiếp, không lùi hay quay đầu",
+      "Làn dừng khẩn cấp: chỉ khi xe gặp sự cố, không dùng khi ùn tắc",
+      "Sự cố trên cao tốc: đèn khẩn cấp, biển cảnh báo phía sau"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "downhill-control",
@@ -3749,7 +3893,8 @@
       "stopping versus speed control"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "wet-road-flooding",
@@ -3763,12 +3908,13 @@
       "q263"
     ],
     "comparisonAxes": [
-      "slippery versus flooded",
-      "vehicle and transmission",
-      "before versus during crossing"
+      "đường trơn hay đường ngập nước",
+      "loại xe và hộp số (số thấp, số tự động, xe điện)",
+      "trước khi vào hay trong khi vượt đoạn ngập hoặc cua"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "limited-visibility",
@@ -3778,11 +3924,12 @@
       "q244"
     ],
     "comparisonAxes": [
-      "visibility",
-      "safe control"
+      "Hành vi đúng (giảm tốc, đèn chiếu gần/sương mù) / hành vi sai (tăng tốc, bật pha)",
+      "Câu hỏi chung cho người lái / riêng ô tô (gạt nước, tìm chỗ an toàn dừng xe)"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "night-glare",
@@ -3793,12 +3940,13 @@
       "q595"
     ],
     "comparisonAxes": [
-      "approaching vehicle",
-      "headlight glare",
-      "response"
+      "Gặp xe ngược chiều: chuyển từ đèn chiếu xa sang chiếu gần",
+      "Khi bị chói: giảm tốc, giữ chắc lái, nhìn chếch sang lề phải, không nhìn thẳng vào đèn",
+      "Không bật pha đáp trả, không tăng tốc để vượt khi đang bị chói"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "automatic-transmission",
@@ -3810,12 +3958,13 @@
       "q290"
     ],
     "comparisonAxes": [
-      "starting versus adjusting seat",
-      "foot use",
-      "brake and gear state"
+      "Khởi hành: đạp hết hành trình phanh chân rồi mới vào số, kể cả khi khởi động bằng chìa khóa thông minh",
+      "Chỉnh ghế khi máy đã nổ: để cần số ở N, P hoặc số 0",
+      "Chỉ dùng chân phải cho cả ga và phanh, không dùng chân trái"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "fire-response",
@@ -3826,12 +3975,13 @@
       "q204"
     ],
     "comparisonAxes": [
-      "prevention",
-      "first action",
-      "extinguishing feasibility"
+      "Phòng ngừa cháy",
+      "Việc làm trước tiên khi phát hiện cháy",
+      "Cách dập cháy tùy nhiên liệu đã hoặc chưa trào ra"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "first-aid",
@@ -3842,12 +3992,13 @@
       "q205"
     ],
     "comparisonAxes": [
-      "bleeding",
-      "breathing",
-      "burns"
+      "máu phun thành tia: chặn động mạch, không chỉ ép trực tiếp",
+      "không còn hô hấp: đặt nằm ngửa và khai thông đường thở trước khi hô hấp nhân tạo",
+      "bỏng: tách nguồn gây bỏng, làm mát bằng nước sạch không quá lạnh, gọi 115"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "vehicle-components",
@@ -3869,7 +4020,8 @@
       "brakes"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "occupant-safety",
@@ -3884,7 +4036,8 @@
       "belt versus airbag"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "sign-turning",
@@ -3908,7 +4061,8 @@
       "vehicle scope"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "sign-railway",
@@ -3921,12 +4075,14 @@
       "q378"
     ],
     "comparisonAxes": [
-      "barrier",
-      "intersection geometry",
-      "warning distance"
+      "Có rào chắn (hàng rào) / không có rào chắn (đầu tàu, chữ X)",
+      "Giao nhau với đường sắt / với đường tàu điện / biển nhường / biển đèn tín hiệu",
+      "Chữ X: một đường ray / từ hai đường ray",
+      "Biển báo khoảng cách đến chỗ giao (vạch đỏ chéo)"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "sign-narrow-road",
@@ -3943,7 +4099,8 @@
       "narrow road versus bridge"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "dashboard-indicators",
@@ -3967,7 +4124,8 @@
       "persistent versus normal indication"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "intersection-signals",
@@ -3976,8 +4134,7 @@
       "q499",
       "q500",
       "q502",
-      "q553",
-      "q559"
+      "q553"
     ],
     "comparisonAxes": [
       "signal governing vehicle",
@@ -3985,26 +4142,13 @@
       "stop versus proceed"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
-  },
-  {
-    "id": "cross-ferry",
-    "title": "Biển bến phà và quy tắc xuống phà",
-    "questionIds": [
-      "q077",
-      "q418"
-    ],
-    "comparisonAxes": [
-      "recognition versus required boarding order"
-    ],
-    "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "cross-congestion",
     "title": "Ùn tắc: nhận diện cảnh báo và ứng xử",
     "questionIds": [
-      "q193",
       "q200",
       "q201",
       "q410"
@@ -4014,7 +4158,8 @@
       "courteous versus prohibited response"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "cross-seat",
@@ -4024,11 +4169,12 @@
       "q238"
     ],
     "comparisonAxes": [
-      "body posture",
-      "transmission state while adjusting seat"
+      "Tư thế ngồi: ghế, lưng, vị trí tay trên vô lăng",
+      "Cần số ở N, P hoặc số 0 khi chỉnh ghế lúc máy đã nổ"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "cross-phone",
@@ -4044,41 +4190,44 @@
       "while driving versus safely stopped"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "cross-animals",
-    "title": "Súc vật: vận tải, biển cấm và cảnh báo trên đường",
+    "title": "Biển cấm súc vật kéo và biển cảnh báo gia súc",
     "questionIds": [
       "q175",
       "q334",
       "q424"
     ],
     "comparisonAxes": [
-      "transport duties",
-      "prohibition scope",
-      "hazard warning and driver response"
+      "Biển cấm (cấm súc vật vận tải hàng hóa, hành khách) / biển cảnh báo (gia súc thả rông)",
+      "Hành vi cần làm: không được đi vào / đi chậm, quan sát, sẵn sàng dừng"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "cross-overhead",
-    "title": "Chiều cao xe và chướng ngại phía trên",
+    "title": "Biển hạn chế chiều cao, tải trọng và biển cảnh báo đường dây điện phía trên",
     "questionIds": [
       "q336",
       "q425"
     ],
     "comparisonAxes": [
-      "posted height restriction versus overhead electrical warning",
-      "vehicle dimensions and hazard type"
+      "Biển hạn chế chiều cao, tải trọng trục, tải trọng toàn bộ",
+      "Biển cảnh báo đường dây điện phía trên và biển cảnh báo sét",
+      "Xe ưu tiên có được miễn giới hạn kỹ thuật hay không"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "cross-distance",
-    "title": "Khoảng cách: tốc độ, điều kiện và vạch hỗ trợ",
+    "title": "Khoảng cách an toàn theo tốc độ và vạch xác định khoảng cách",
     "questionIds": [
       "q158",
       "q159",
@@ -4089,12 +4238,13 @@
       "q483"
     ],
     "comparisonAxes": [
-      "speed interval",
-      "road conditions",
-      "distance marking versus lane marking"
+      "Mốc tốc độ (dưới 60 / đúng 60 / trên 60-80 / trên 80-100 / trên 100-120 km/h)",
+      "Có hay không biển cự ly tối thiểu / biển hạn chế tốc độ (không biển thì theo quy định chung)",
+      "Vạch mũi nhọn xác định khoảng cách khác vạch phân làn"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "cross-dump-terrain",
@@ -4106,22 +4256,18 @@
       "q261"
     ],
     "comparisonAxes": [
-      "terrain",
-      "vehicle class",
-      "raised body and unloading state"
+      "Loại địa hình: rãnh lớn / ổ gà / đường xấu hẹp",
+      "Loại xe: ô tô số cơ khí / xe tự đổ / mô tô hai bánh",
+      "Thùng ben đã hạ hay đang nâng khi chạy và khi đổ hàng"
     ],
     "requiresVisualReview": false,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "cross-sign-turns",
-    "title": "Quy tắc rẽ, biển rẽ và áp dụng sa hình",
+    "title": "Biển cấm rẽ, cấm quay đầu và hướng đi bắt buộc",
     "questionIds": [
-      "q054",
-      "q055",
-      "q056",
-      "q083",
-      "q084",
       "q313",
       "q314",
       "q315",
@@ -4137,18 +4283,19 @@
       "q550"
     ],
     "comparisonAxes": [
-      "turn versus U-turn",
-      "sign scope",
-      "permitted trajectory"
+      "Cấm rẽ trái khác cấm quay đầu",
+      "Phạm vi biển: mọi xe hay chỉ ô tô; có kèm rẽ phải hay không",
+      "Biển hiệu lệnh: chỉ được đi theo hướng mũi tên",
+      "Quỹ đạo quay đầu (đè hay không đè vạch người đi bộ)"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "cross-sign-priority",
     "title": "Nhường đường: quy tắc, biển và sa hình",
     "questionIds": [
-      "q087",
       "q088",
       "q089",
       "q091",
@@ -4164,19 +4311,21 @@
       "q491",
       "q492",
       "q504",
-      "q511",
       "q516",
       "q574",
       "q585",
       "q586"
     ],
     "comparisonAxes": [
-      "priority source",
-      "roundabout versus uncontrolled junction",
-      "narrow road"
+      "đường ưu tiên / đường nhánh / cùng cấp (nhường xe bên phải)",
+      "có vòng xuyến (nhường xe bên trái) / không có vòng xuyến (nhường xe bên phải)",
+      "biển nhận diện: giao với đường ưu tiên, giao với đường không ưu tiên, giao cùng cấp, hết đường ưu tiên",
+      "biển STOP (dừng hẳn) / biển Nhường đường (giảm tốc, nhường)",
+      "đường hẹp, xuống dốc nhường lên dốc, chướng ngại vật"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "cross-sign-stop",
@@ -4188,7 +4337,6 @@
       "q060",
       "q061",
       "q062",
-      "q325",
       "q327",
       "q328",
       "q354",
@@ -4200,16 +4348,18 @@
       "q558"
     ],
     "comparisonAxes": [
-      "stopping versus parking",
-      "scope and sign placement",
-      "vehicle position"
+      "Dừng (tạm thời) / đỗ (không giới hạn thời gian)",
+      "Biển Cấm dừng và đỗ (chữ X) / Cấm đỗ (một gạch) / Cấm đỗ theo ngày lẻ, chẵn",
+      "Phạm vi hiệu lực của biển (biển phụ mũi tên, loại xe, vị trí sau biển)",
+      "Vị trí và khoảng cách khi dừng đỗ (0,25 m sát lề, 20 m với xe đỗ ngược chiều, cách giao lộ, bên trái đường)"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "cross-speed-sign",
-    "title": "Tốc độ: quy tắc mặc định, biển và làn",
+    "title": "Tốc độ tối đa và tối thiểu: theo loại đường, loại xe, biển báo và làn",
     "questionIds": [
       "q041",
       "q144",
@@ -4236,19 +4386,20 @@
       "q427"
     ],
     "comparisonAxes": [
-      "default condition versus posted restriction",
-      "maximum versus minimum",
-      "vehicle and lane scope"
+      "Quy tắc chung (không vượt tốc độ tối đa) / tốc độ ghi trên biển hoặc theo làn",
+      "Tốc độ tối đa (biển tròn viền đỏ) / tối thiểu (biển tròn nền xanh) / tối đa ban đêm (biển ĐÊM kèm khung giờ)",
+      "Trong / ngoài khu đông dân cư; đường đôi hoặc một chiều từ 2 làn / đường hai chiều hoặc một chiều 1 làn",
+      "Nhóm xe: xe gắn máy, xe máy chuyên dùng (40) / xe chở hàng bốn bánh (50) / xe chở người bốn bánh / ô tô, mô tô theo từng bậc",
+      "Biển theo làn: chỉ tốc độ từng làn / tốc độ gắn với loại xe từng làn"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "cross-signal",
-    "title": "Hiệu lệnh: quy tắc, nhận diện và áp dụng",
+    "title": "Hiệu lệnh giao thông: người điều khiển, đèn tín hiệu và mũi tên",
     "questionIds": [
-      "q013",
-      "q034",
       "q036",
       "q037",
       "q038",
@@ -4271,12 +4422,14 @@
       "q569"
     ],
     "comparisonAxes": [
-      "controller gesture",
-      "main light versus direction arrow",
-      "lane and conflict conditions"
+      "Hiệu lệnh tay của CSGT (dang ngang hai tay / giơ một tay thẳng đứng)",
+      "Thứ tự ưu tiên khi hiệu lệnh mâu thuẫn (người điều khiển > đèn > biển tạm thời > biển cố định)",
+      "Đèn chính và đèn mũi tên theo làn/hướng (đèn chính đỏ nhưng mũi tên xanh rẽ trái)",
+      "Đèn vàng: dừng trước vạch hay được đi tiếp"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "cross-overtake",
@@ -4289,7 +4442,6 @@
       "q053",
       "q081",
       "q082",
-      "q090",
       "q098",
       "q108",
       "q109",
@@ -4312,13 +4464,14 @@
       "q599"
     ],
     "comparisonAxes": [
-      "permission versus prohibition",
-      "right-side exception",
-      "vehicle class and signs",
-      "visibility and conflicting direction"
+      "Được vượt / cấm vượt (cầu hẹp, nơi giao nhau, giao đường sắt, xe ưu tiên, xe trước đang vượt, đoàn xe đạp)",
+      "Vượt trái là quy tắc / vượt phải là ngoại lệ (xe trước rẽ trái hoặc đang rẽ trái, xe chuyên dùng đang làm việc)",
+      "Biển cấm vượt mọi xe / cấm xe tải vượt / hết cấm vượt, và vạch liền-đứt",
+      "Tín hiệu xin vượt và cách nhường xe vượt (xi nhan phải = nhường, xi nhan trái = chưa an toàn)"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "cross-emergency",
@@ -4344,30 +4497,23 @@
       "q540"
     ],
     "comparisonAxes": [
-      "authorised task and signals",
-      "right-of-way versus access exception",
-      "conflicting versus nonconflicting paths"
+      "xe đang làm nhiệm vụ và có tín hiệu ưu tiên hay không",
+      "thứ tự giữa các xe ưu tiên: chữa cháy, quân sự, công an, cứu thương",
+      "quyền ưu tiên (tốc độ, đèn tín hiệu, làn khẩn cấp cao tốc) và ngoại lệ của xe không phải xe ưu tiên",
+      "hướng đi cắt nhau hay không cắt nhau tại nút giao"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   },
   {
     "id": "cross-road-markings",
-    "title": "Vạch đường: khái niệm, làn, hướng, cự ly và áp dụng",
+    "title": "Vạch kẻ đường: màu, nét liền hay đứt, mũi tên, vạch cự ly và làn đi",
     "questionIds": [
-      "q002",
-      "q004",
       "q005",
-      "q043",
       "q044",
-      "q057",
       "q078",
       "q079",
-      "q163",
-      "q470",
-      "q471",
-      "q472",
-      "q474",
       "q476",
       "q477",
       "q478",
@@ -4386,12 +4532,13 @@
       "q571"
     ],
     "comparisonAxes": [
-      "colour",
-      "solid versus broken",
-      "direction versus distance",
-      "lane and crossing scope"
+      "màu vạch: vàng chia hai chiều ngược nhau, trắng chia làn cùng chiều",
+      "nét liền (cấm đè vạch) hay nét đứt (được đè vạch)",
+      "loại vạch theo hình dạng: mũi tên chỉ hướng, mũi nhọn xác định cự ly, hình thoi báo vạch đi bộ, vạch gãy khúc dừng xe buýt",
+      "làn đi theo loại xe và theo vạch phân làn"
     ],
     "requiresVisualReview": true,
-    "status": "draft_bank_analysis"
+    "status": "approved",
+    "reviewedOn": "2026-10-07"
   }
 ]

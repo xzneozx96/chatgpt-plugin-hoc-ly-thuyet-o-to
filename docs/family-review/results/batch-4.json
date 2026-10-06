@@ -1,0 +1,327 @@
+[
+ {
+  "id": "cross-signal",
+  "verdict": "approve_with_changes",
+  "title": "Hiệu lệnh giao thông: người điều khiển, đèn tín hiệu và mũi tên",
+  "comparisonAxes": [
+   "Hiệu lệnh tay của CSGT (dang ngang hai tay / giơ một tay thẳng đứng)",
+   "Thứ tự ưu tiên khi hiệu lệnh mâu thuẫn (người điều khiển > đèn > biển tạm thời > biển cố định)",
+   "Đèn chính và đèn mũi tên theo làn/hướng (đèn chính đỏ nhưng mũi tên xanh rẽ trái)",
+   "Đèn vàng: dừng trước vạch hay được đi tiếp"
+  ],
+  "removeMembers": [
+   "q013",
+   "q034"
+  ],
+  "notes": "q013 (định nghĩa) và q034 (nhường người đi bộ qua vạch) không phải hiệu lệnh/đèn; 17 ảnh xem đủ, các tình huống đèn và tay CSGT khớp đáp án. Lưu ý trùng q013/q038/q039 với rules-signal-hierarchy và q553-q565 với signs_scenarios_main_red_arrow_left.",
+  "imagesChecked": 17
+ },
+ {
+  "id": "sign-turning",
+  "verdict": "approve",
+  "notes": "Ảnh các biển cấm rẽ trái/phải/quay đầu và biển chỉ dẫn quay đầu khác biệt thật, khớp đáp án; trục \"phạm vi loại xe\" (hình ô tô) được q316-q320 hỗ trợ.",
+  "imagesChecked": 11
+ },
+ {
+  "id": "tech-signs-class-ban",
+  "verdict": "approve",
+  "notes": "Ảnh các biển cấm ô tô/mô tô/ô tô tải/máy kéo gần giống nhau và đáp án nhất quán; phạm vi nhóm con đúng.",
+  "imagesChecked": 7
+ },
+ {
+  "id": "cross-distance",
+  "verdict": "approve_with_changes",
+  "title": "Khoảng cách an toàn theo tốc độ và vạch xác định khoảng cách",
+  "comparisonAxes": [
+   "Mốc tốc độ (dưới 60 / đúng 60 / trên 60-80 / trên 80-100 / trên 100-120 km/h)",
+   "Có hay không biển cự ly tối thiểu / biển hạn chế tốc độ (không biển thì theo quy định chung)",
+   "Vạch mũi nhọn xác định khoảng cách khác vạch phân làn"
+  ],
+  "notes": "Trục \"road conditions\" không phân biệt thành viên vì mọi câu đều cùng điều kiện khô ráo, tầm nhìn tốt; thay bằng trục biển báo có/không. Ảnh q483 là vạch mũi nhọn kèm mốc 5 m/50 m, khớp đáp án.",
+  "imagesChecked": 1
+ },
+ {
+  "id": "tech-signs-speed-bounds",
+  "verdict": "approve",
+  "notes": "Ảnh xác nhận phân biệt viền đỏ (tối đa) / nền xanh (tối thiểu) / biển ĐÊM có khung giờ / biển phân làn tốc độ; khớp đáp án.",
+  "imagesChecked": 6
+ },
+ {
+  "id": "signs_scenarios_uncontrolled_right",
+  "verdict": "approve",
+  "notes": "Cảnh ngã tư và góc nhìn người lái đều xoay quanh nhường xe bên phải. Lưu ý q497 trong ảnh có biển nhường đường/ưu tiên nên không hẳn ngã tư không biển, nhưng xe con vẫn nhường xe tải bên phải nên đáp án và nhóm vẫn dùng được.",
+  "imagesChecked": 6
+ },
+ {
+  "id": "tech-signs-supplement-direction",
+  "verdict": "approve",
+  "notes": "Biển cấm ô tô+mô tô kèm mũi tên hai chiều và biển cấm dừng đỗ kèm mũi tên phải; ảnh khớp các câu hỏi về hướng và loại xe.",
+  "imagesChecked": 5
+ },
+ {
+  "id": "signs_scenarios_straight_oneway",
+  "verdict": "approve",
+  "notes": "Ảnh xác nhận biển tròn xanh hướng phải theo khác biển vuông xanh đường một chiều, và hai tình huống q526/q559 khớp đáp án.",
+  "imagesChecked": 5
+ },
+ {
+  "id": "signs_scenarios_main_red_arrow_left",
+  "verdict": "approve",
+  "notes": "Ảnh cho thấy các cụm đèn có mũi tên rẽ trái xanh khi đèn chính đỏ, đáp án nhất quán (chỉ xe rẽ trái được đi). Trùng 5 câu với cross-signal.",
+  "imagesChecked": 5
+ },
+ {
+  "id": "sign-narrow-road",
+  "verdict": "approve",
+  "notes": "Ảnh xác nhận phân biệt biển đường bị thu hẹp, biển nhường xe ngược chiều (viền đỏ), biển ưu tiên (nền xanh) và các biển cầu hẹp/cầu tạm/cầu quay.",
+  "imagesChecked": 5
+ },
+ {
+  "id": "tech-signs-dashboard-body",
+  "verdict": "approve_with_changes",
+  "title": "Đèn báo trên bảng đồng hồ: cửa, dây đai, động cơ và hệ thống lái",
+  "comparisonAxes": [
+   "Hình xe có cửa mở / người thắt dây đai / khối động cơ / vô lăng kèm dấu chấm than",
+   "Màu và mức nghiêm trọng (đỏ: cửa, dây đai, lái; vàng: kiểm tra động cơ)"
+  ],
+  "notes": "Tiêu đề \"lái\" mơ hồ; trục \"điều kiện máy đã khởi động\" không phân biệt vì mọi câu đều giống nhau. Bốn ảnh biểu tượng khác nhau rõ và khớp đáp án.",
+  "imagesChecked": 4
+ },
+ {
+  "id": "signs_scenarios_ground_work",
+  "verdict": "approve",
+  "notes": "Ảnh thi công, sụt lở đất đá (hai biển đối xứng), đá sỏi văng lên và nền đường yếu khác biệt rõ, khớp đáp án.",
+  "imagesChecked": 4
+ },
+ {
+  "id": "signs_scenarios_emergency_order",
+  "verdict": "approve",
+  "notes": "Ảnh xe cứu thương, chữa cháy, công an, quân sự khớp các câu xếp thứ tự (cháy > quân sự > công an > cứu thương) nhất quán.",
+  "imagesChecked": 4
+ },
+ {
+  "id": "cross-congestion",
+  "verdict": "approve_with_changes",
+  "removeMembers": [
+   "q193"
+  ],
+  "notes": "q193 nói chung về cách dùng còi, không riêng tình huống ùn tắc (đã có trong rules-culture-situations). Ảnh q410 xác nhận biển hàng xe nối đuôi khác biển hầm và biển tai nạn.",
+  "imagesChecked": 1
+ },
+ {
+  "id": "tech-signs-supplement-class",
+  "verdict": "approve",
+  "notes": "Ba biển cấm vòng đỏ trống với biển phụ ô tô con/mô tô/ô tô tải; ảnh khớp cả ba câu.",
+  "imagesChecked": 3
+ },
+ {
+  "id": "signs_scenarios_lane_type_applied",
+  "verdict": "approve",
+  "notes": "Ảnh biển làn theo loại xe và giá long môn khớp câu hỏi nhận diện, đi sai làn và đổi làn gần giao lộ.",
+  "imagesChecked": 3
+ },
+ {
+  "id": "signs_scenarios_turn_pedestrian",
+  "verdict": "approve_with_changes",
+  "title": "Nhường đường khi rẽ phải và khi qua vạch người đi bộ",
+  "comparisonAxes": [
+   "Chỉ có xe đi thẳng / có thêm người đi bộ trên vạch",
+   "Rẽ phải / đi thẳng qua vạch người đi bộ",
+   "Thứ tự nhường (người đi bộ > xe đi thẳng > xe rẽ)"
+  ],
+  "notes": "q587 là đi thẳng qua vạch người đi bộ chứ không rẽ phải nên tiêu đề cũ \"Rẽ phải\" không bao trọn; ảnh góc nhìn người lái khớp đáp án.",
+  "imagesChecked": 3
+ },
+ {
+  "id": "cross-animals",
+  "verdict": "approve_with_changes",
+  "title": "Biển cấm súc vật kéo và biển cảnh báo gia súc",
+  "comparisonAxes": [
+   "Biển cấm (cấm súc vật vận tải hàng hóa, hành khách) / biển cảnh báo (gia súc thả rông)",
+   "Hành vi cần làm: không được đi vào / đi chậm, quan sát, sẵn sàng dừng"
+  ],
+  "notes": "q175 là yêu cầu vận chuyển động vật sống (giấy tờ, kết cấu xe), khác hẳn hai biển; đã có ở rules-special-goods. Hai ảnh biển (xe ngựa gạch chéo, tam giác bò) khác nhau rõ.",
+  "imagesChecked": 2
+ },
+ {
+  "id": "tech-signs-rescue-lane",
+  "verdict": "approve_with_changes",
+  "title": "Làn dừng khẩn cấp, làn cứu nạn và biển chỉ dẫn đường tránh",
+  "comparisonAxes": [
+   "Làn dừng khẩn cấp trên cao tốc (chỉ khi sự cố) / làn cứu nạn, thoát xe khẩn cấp (xe mất phanh)",
+   "Biển chỉ vị trí và khoảng cách làn cứu nạn / biển chỉ đường tránh"
+  ],
+  "notes": "Tiêu đề cũ \"đường tránh tạm\" chưa khớp; ảnh q399 gồm biển vàng chỉ đường tránh 3,5 km và biển xanh làn cứu nạn 2 km, khớp đáp án B.",
+  "imagesChecked": 1
+ },
+ {
+  "id": "signs_scenarios_lane_speed",
+  "verdict": "approve",
+  "notes": "Ảnh hai biển: tốc độ theo làn (80/60/50) và tốc độ + loại xe theo làn; đáp án q426 và q427 khớp.",
+  "imagesChecked": 2
+ },
+ {
+  "id": "signs_scenarios_parking_signs",
+  "verdict": "approve",
+  "notes": "Ảnh biển nơi đỗ xe người khuyết tật (vuông xanh xe lăn) và biển đỗ xe một phần trên hè; cùng nhóm biển đỗ xe, đáp án khớp.",
+  "imagesChecked": 2
+ },
+ {
+  "id": "signs_scenarios_rail_barrier",
+  "verdict": "approve",
+  "notes": "Ảnh đường ngang có rào chắn: mô tô quá sát đường ray, và rào đang dịch chuyển; khớp đáp án dừng cách rào an toàn.",
+  "imagesChecked": 2
+ },
+ {
+  "id": "rules-speed-rural-table",
+  "verdict": "approve_with_changes",
+  "comparisonAxes": [
+   "Loại đường: đường đôi hoặc một chiều từ 2 làn / hai chiều hoặc một chiều 1 làn",
+   "Nhóm xe: khách đến 28 chỗ và tải ≤ 3,5 t / khách trên 28 chỗ và tải trên 3,5 t / buýt, đầu kéo, mô tô, chuyên dùng / kéo rơ moóc, xi téc, trộn bê tông",
+   "Bảng tốc độ: 90-80-70-60 (đường đôi) và 80-70-60-50 (hai chiều)"
+  ],
+  "notes": "Nội dung đúng với đáp án và giải thích; chỉ sửa lỗi chính tả trong trục (thiếu khoảng trắng \"đến28chỗ\", \"<=3,5t\").",
+  "imagesChecked": 0
+ },
+ {
+  "id": "rules-motorcycle-towing",
+  "verdict": "approve",
+  "notes": "Các câu đều xoay quanh cấm kéo/đẩy/bám xe từ mô tô, phân biệt người lái và người được chở. q065, q070 là danh sách hành vi cấm rộng hơn nhưng có ý kéo đẩy nên vẫn dùng được.",
+  "imagesChecked": 0
+ },
+ {
+  "id": "age-eligibility",
+  "verdict": "approve",
+  "notes": "Thang tuổi 16/18/24/27 và tuổi tối đa khách trên 29 chỗ nhất quán với đáp án; các trục đúng.",
+  "imagesChecked": 0
+ },
+ {
+  "id": "rules-vehicle-legality",
+  "verdict": "approve",
+  "notes": "Chủ đề điều kiện pháp lý của xe (kiểm định, niên hạn, cải tạo, biển số, giấy tờ, trách nhiệm chủ xe) nhất quán, dù hơi rộng.",
+  "imagesChecked": 0
+ },
+ {
+  "id": "rules-priority-status",
+  "verdict": "approve",
+  "notes": "Xe ưu tiên chỉ có hiệu lực khi làm nhiệm vụ và có tín hiệu (q094, q097 và q098); q164 xe đưa đón học sinh là cặp phân biệt hợp lý.",
+  "imagesChecked": 0
+ },
+ {
+  "id": "rules-passenger-service",
+  "verdict": "approve_with_changes",
+  "comparisonAxes": [
+   "Đón trả khách đúng nơi quy định / theo yêu cầu",
+   "An toàn xe và hướng dẫn hành khách / kiểm tra nhân thân",
+   "Hành vi bị cấm trong kinh doanh (đe dọa, cưỡng ép) / cạnh tranh, giảm giá hợp pháp",
+   "Phẩm chất nghề nghiệp của lái xe chở khách"
+  ],
+  "removeMembers": [
+   "q192"
+  ],
+  "notes": "q192 là ứng xử văn hóa chung của người lái xe (đi đúng làn, không uống rượu bia), không riêng vận tải hành khách; q184 cần thêm trục phẩm chất nghề nghiệp.",
+  "imagesChecked": 0
+ },
+ {
+  "id": "rules-lane-change",
+  "verdict": "approve_with_changes",
+  "comparisonAxes": [
+   "Báo tín hiệu trước / lúc bắt đầu / sau khi chuyển làn",
+   "Chỉ chuyển sang một làn liền kề, chỉ chuyển ở nơi cho phép",
+   "Định nghĩa làn đường / đi trọn trong một làn"
+  ],
+  "removeMembers": [
+   "q046"
+  ],
+  "notes": "q046 là định nghĩa \"vượt xe\" (một làn mỗi chiều), không liên quan chuyển làn; trục \"vượt xe\" không còn được hỗ trợ.",
+  "imagesChecked": 0
+ },
+ {
+  "id": "rules-towing-connection",
+  "verdict": "approve_with_changes",
+  "comparisonAxes": [
+   "Xe được kéo mất phanh (thanh nối cứng) / còn phanh",
+   "Xe được kéo phải có người lái và lái còn hiệu lực; một xe chỉ kéo một xe",
+   "Kéo rơ moóc, sơ mi rơ moóc: đúng thiết kế, kết nối chắc chắn"
+  ],
+  "removeMembers": [
+   "q180"
+  ],
+  "notes": "q180 nói về yêu cầu nhận diện/giám sát của xe cứu hộ, không phải cách nối kéo xe; bỏ trục \"tải cứu hộ\".",
+  "imagesChecked": 0
+ },
+ {
+  "id": "rules-special-goods",
+  "verdict": "approve",
+  "notes": "Bốn câu cùng chủ đề vận chuyển hàng đặc biệt, mỗi loại hàng có yêu cầu khác nhau (giấy phép, người áp tải, báo hiệu kích thước), phù hợp đáp án.",
+  "imagesChecked": 0
+ },
+ {
+  "id": "intersection-priority",
+  "verdict": "approve",
+  "notes": "Quy tắc có/không vòng xuyến (nhường trái / nhường phải) và đường nhánh nhường đường chính khớp đáp án; q091 cũng nằm trong rules-road-types.",
+  "imagesChecked": 0
+ },
+ {
+  "id": "rules-signal-hierarchy",
+  "verdict": "approve_with_changes",
+  "title": "Thứ tự ưu tiên: người điều khiển, đèn, biển tạm thời và biển cố định",
+  "notes": "Tiêu đề cũ không nêu đèn và thứ tự ưu tiên; nội dung q038/q039 khớp. q013 chỉ là định nghĩa nhưng gần nghĩa nên giữ.",
+  "imagesChecked": 0
+ },
+ {
+  "id": "rules-motorcycle-umbrella-audio",
+  "verdict": "approve",
+  "notes": "q071, q073, q076 đều có điểm phân biệt về dùng ô và thiết bị âm thanh (trừ trợ thính), người lái so với người ngồi sau.",
+  "imagesChecked": 0
+ },
+ {
+  "id": "rules-railway-breakdown",
+  "verdict": "approve_with_changes",
+  "title": "Sự cố đường sắt và tai nạn đường bộ: ai phải làm gì",
+  "notes": "q194/q195 là trách nhiệm khi tai nạn đường bộ, không phải đường sắt; tiêu đề cũ \"đường sắt và cảnh báo\" chưa bao trùm. Các trục đã nêu đúng.",
+  "imagesChecked": 0
+ },
+ {
+  "id": "rules-culture-situations",
+  "verdict": "approve",
+  "notes": "Ba tình huống ứng xử văn minh (vũng nước, còi, ùn tắc) khớp đáp án; q193/q200 trùng với cross-congestion.",
+  "imagesChecked": 0
+ },
+ {
+  "id": "tech-signs-control-systems",
+  "verdict": "approve",
+  "notes": "Ba câu công dụng hệ thống truyền lực, lái, phanh với phương án nhiễu hoán đổi lẫn nhau; đúng.",
+  "imagesChecked": 0
+ },
+ {
+  "id": "rules-road-types",
+  "verdict": "reject",
+  "notes": "Hai câu không dễ nhầm với nhau: q018 là danh sách phân loại đường, q091 là quy tắc nhường ở nút giao (đã nằm trong intersection-priority); không đủ thành nhóm.",
+  "imagesChecked": 0
+ },
+ {
+  "id": "rules-speed-rural-small",
+  "verdict": "approve_with_changes",
+  "title": "Xe khách đến 28 chỗ và tải nhẹ: đổi loại đường, chênh 10 km/h",
+  "comparisonAxes": [
+   "Cùng nhóm xe (khách đến 28 chỗ, tải ≤ 3,5 t)",
+   "Đường đôi hoặc một chiều từ 2 làn (90 km/h) / hai chiều hoặc một chiều 1 làn (80 km/h)",
+   "Chênh 10 km/h"
+  ],
+  "notes": "Sửa lỗi chính tả \"đến28\", \"Chênh10\". Hai câu là cặp tối thiểu hợp lý nhưng trùng hoàn toàn q149 và q153 trong rules-speed-rural-table.",
+  "imagesChecked": 0
+ },
+ {
+  "id": "tech-signs-shift-direction",
+  "verdict": "approve",
+  "notes": "Cặp tăng số / giảm số: cùng không nhìn xuống cần số, khác chiều tăng giảm và vù ga; khớp đáp án.",
+  "imagesChecked": 0
+ },
+ {
+  "id": "tech-signs-lights-function",
+  "verdict": "approve",
+  "notes": "Danh sách đèn bắt buộc và tác dụng đèn phanh đều về hệ thống đèn; liên hệ khá lỏng nhưng chấp nhận được.",
+  "imagesChecked": 0
+ }
+]

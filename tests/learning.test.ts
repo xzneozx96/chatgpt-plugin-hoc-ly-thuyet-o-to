@@ -41,7 +41,7 @@ test("coverage forecast begins empty and keeps custom eight incompatible", () =>
     }, clock);
     assert.equal(courseView(s, clock).requiredStudyDays, 75);
     assert.equal(courseView(s, clock).targetCompatible, false);
-    assert.equal(listUnits(s, "", clock).customCategory.familyCount, 249);
+    assert.equal(listUnits(s, "", clock).customCategory.familyCount, 245);
 });
 test("midnight and early practice do not advance or move review", () => {
     let s = answer(createLearner(clock), "q001", clock);

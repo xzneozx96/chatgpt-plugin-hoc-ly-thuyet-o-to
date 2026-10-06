@@ -48,7 +48,7 @@ export function createLearningTools(runtime: LearningRuntime | null, persistence
     async run() { return decorate(runtime ? await runtime.course() : courseView(createLearner(Date.now()), Date.now())); }
   }, {
     name: "list_units", title: "Find a course category or confusing group",
-    description: "Browse the seven bank categories and the eighth custom category, Câu hỏi dễ nhầm lẫn. Search all 249 draft groups by title or original question ID. Request a bounded page. Draft family relationships are discovery metadata, not approved teaching.",
+    description: "Browse the seven bank categories and the eighth custom category, Câu hỏi dễ nhầm lẫn. Search the approved confusing-question groups by title or original question ID. Request a bounded page. Each group names the conditions that tell its questions apart; teach from the bank explanations of its questions.",
     inputSchema: { query: z.string().max(200).optional(), kind: z.enum(["category", "family"]).optional(), offset: z.number().int().min(0).optional(), limit: z.number().int().min(1).max(30).optional() }, readOnly: true, card: false,
     async run(raw) {
       const input = z.object(this.inputSchema).parse(raw);
@@ -177,7 +177,7 @@ function pairLines(study: ReturnType<typeof studyView>, pair: NonNullable<Return
   ];
   const answered = new Set(study.queue.filter(item => item.group === pair.group && item.status === "answered").map(item => item.questionId));
   return [
-    "Compare-the-pair step: two original questions from one draft confusing-question family. The learner answers both before either result is shown. Submit each answer with submit_study_answer; do not judge an answer or call next_study_question until both are submitted.",
+    "Compare-the-pair step: two original questions from one confusing-question family. The learner answers both before either result is shown. Submit each answer with submit_study_answer; do not judge an answer or call next_study_question until both are submitted.",
     ...pair.questions.map(question => answered.has(question.id)
       ? `${question.id}: đã trả lời; kết quả hiện cùng câu còn lại.`
       : `Original bank question. Show it to the learner exactly as written, with every option and the image link:\n${questionBlock(question, origin)}`)

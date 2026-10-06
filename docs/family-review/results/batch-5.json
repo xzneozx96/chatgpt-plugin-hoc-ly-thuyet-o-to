@@ -1,0 +1,312 @@
+[
+  {
+    "id": "cross-sign-priority",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "đường ưu tiên / đường nhánh / cùng cấp (nhường xe bên phải)",
+      "có vòng xuyến (nhường xe bên trái) / không có vòng xuyến (nhường xe bên phải)",
+      "biển nhận diện: giao với đường ưu tiên, giao với đường không ưu tiên, giao cùng cấp, hết đường ưu tiên",
+      "biển STOP (dừng hẳn) / biển Nhường đường (giảm tốc, nhường)",
+      "đường hẹp, xuống dốc nhường lên dốc, chướng ngại vật"
+    ],
+    "removeMembers": [
+      "q087",
+      "q511"
+    ],
+    "notes": "Broad but coherent on who yields (priority road, STOP/yield and junction signs, roundabout, narrow road, slope). q511 is a Cấm ô tô sign question and q087 is about keeping right when passing oncoming traffic, neither about yielding.",
+    "imagesChecked": 15
+  },
+  {
+    "id": "dashboard-indicators",
+    "verdict": "approve",
+    "notes": "Eleven distinct warning/indicator symbols, all opened and each clearly different (brake, oil, door, seatbelt, fuel, coolant, engine, tyre, ABS, steering, ECO); answers match the pictures.",
+    "imagesChecked": 11
+  },
+  {
+    "id": "tech-signs-dimensions-load",
+    "verdict": "approve",
+    "notes": "Height 3,5 m, axle 7 t, total 10 t, length 14 m, width 3,2 m signs verified in images; answers and explanations consistent, including the cargo-overhang trap in q357.",
+    "imagesChecked": 7
+  },
+  {
+    "id": "tech-signs-automatic-controls",
+    "verdict": "approve",
+    "notes": "All six are automatic-transmission handling questions (start, slippery road, seat adjustment, feet, long descent, smart-key start) and the answers agree with the axes; q290 image shows the Engine Start/Stop button and smart key.",
+    "imagesChecked": 1
+  },
+  {
+    "id": "tech-signs-obstacle-divider",
+    "verdict": "approve",
+    "notes": "Narrowing (W.203 both sides / one side), đường đôi, kết thúc đường đôi and chú ý chướng ngại vật signs are visually close in the images and answers match; coherent family.",
+    "imagesChecked": 6
+  },
+  {
+    "id": "signs_scenarios_vehicle_ban_classes",
+    "verdict": "approve",
+    "notes": "Scenario pictures show Cấm ô tô / Cấm mô tô / Cấm máy kéo (plus turn-ban/mandatory-turn signs) and each answer follows from which vehicle class the sign bans; coherent.",
+    "imagesChecked": 6
+  },
+  {
+    "id": "tech-signs-stop-park",
+    "verdict": "approve_with_changes",
+    "removeMembers": [
+      "q325"
+    ],
+    "notes": "q325 asks for Cấm đi ngược chiều, an unrelated sign (it only shares a picture with the cấm đỗ sign). Remaining four are odd/even-day no-parking and no-stop-and-park signs, verified in images.",
+    "imagesChecked": 5
+  },
+  {
+    "id": "signs_scenarios_mandatory_direction",
+    "verdict": "approve_with_changes",
+    "title": "Biển hướng đi phải theo: rẽ trái, rẽ phải, đi thẳng",
+    "notes": "Images show the R.3xx mandatory-direction signs (left only, left/right, straight+left, straight+right) and answers match; q559 (straight-only sign vs turn signals) fits. Title wording \"nhánh\" is unnatural.",
+    "imagesChecked": 5
+  },
+  {
+    "id": "signs_scenarios_emergency_vs_sign",
+    "verdict": "approve",
+    "notes": "Scenario images show priority vehicles (CA car, ambulance, fire engine) vs signs; all answers consistent with the \"emergency vehicle goes first / is not bound by prohibition signs\" axis.",
+    "imagesChecked": 5
+  },
+  {
+    "id": "intersection-signals",
+    "verdict": "approve_with_changes",
+    "removeMembers": [
+      "q559"
+    ],
+    "notes": "q559 is about turn signals (xi-nhan) versus a straight-only sign, not traffic lights; it already fits signs_scenarios_mandatory_direction. The other four are traffic-light scenarios, verified in images.",
+    "imagesChecked": 5
+  },
+  {
+    "id": "tech-signs-specific-passenger-ban",
+    "verdict": "approve_with_changes",
+    "title": "Biển cấm ô tô, taxi, ô tô khách và ô tô tải",
+    "comparisonAxes": [
+      "cấm mọi ô tô / chỉ cấm taxi / cấm ô tô khách / cấm ô tô khách và ô tô tải / cấm xe kéo moóc",
+      "taxi và ô tô tải vẫn bị biển Cấm ô tô cấm",
+      "biển ô tô khách không đồng nghĩa với cấm xe buýt"
+    ],
+    "notes": "Images show Cấm ô tô, Cấm ô tô khách+tải, Cấm xe kéo moóc, Cấm taxi and Cấm ô tô khách; coherent, but the title phrase \"Ô tô chung\" is unnatural.",
+    "imagesChecked": 4
+  },
+  {
+    "id": "signs_scenarios_dedicated_car_road",
+    "verdict": "approve",
+    "notes": "Images show the blue rectangular signs: front-view car (all cars, trucks/coaches allowed), side-view car (cars only), car+motorcycle (R.403b) and their end-signs; answers match.",
+    "imagesChecked": 4
+  },
+  {
+    "id": "signs_scenarios_yield_vs_stop",
+    "verdict": "approve",
+    "notes": "STOP vs Nhường đường scenarios verified in images; answers consistent (STOP = full stop and give way, yield = slow and give way, may pass if clear).",
+    "imagesChecked": 4
+  },
+  {
+    "id": "tech-signs-start-transmission",
+    "verdict": "approve",
+    "notes": "Automatic start with brake pedal, manual-clutch start sequence and smart-key start are coherent along the stated axes; q290 image (Engine Start/Stop button, smart key) fits.",
+    "imagesChecked": 1
+  },
+  {
+    "id": "tech-signs-ped-cycle",
+    "verdict": "approve",
+    "notes": "Image sets show warning (pedestrian crossing / cyclists), prohibition (no pedestrians / no bicycles) and mandatory (pedestrian-only / bicycle+cart road) signs; the visual distinction is real and answers match.",
+    "imagesChecked": 3
+  },
+  {
+    "id": "signs_scenarios_curve_marker",
+    "verdict": "approve",
+    "notes": "Chevron \"hướng rẽ\" signs vs the tall striped obstacle-guidance sign are visually similar; q475 image (single right chevron) matches its answer (hướng rẽ). Coherent.",
+    "imagesChecked": 3
+  },
+  {
+    "id": "signs_scenarios_oncoming_visibility",
+    "verdict": "approve",
+    "notes": "Scenario images (overtaking oncoming car, blind curve, dazzling high beam) all lead to slowing and keeping right with dipped beams; answers match the axes.",
+    "imagesChecked": 3
+  },
+  {
+    "id": "rules-officer-gestures",
+    "verdict": "approve_with_changes",
+    "title": "Hiệu lệnh CSGT: tay dang ngang và tay giơ thẳng đứng",
+    "notes": "Images show the officer with arms spread horizontally (q036) and one arm raised vertically (q037); answers D and C match. Title \"Hai hiệu lệnh CSGT trong ảnh\" is vague.",
+    "imagesChecked": 2
+  },
+  {
+    "id": "signs_scenarios_bridge_types",
+    "verdict": "approve",
+    "notes": "Same image in both: Cầu tạm, Cầu hẹp and Cầu quay/cầu cất signs are distinct and answers B and C match.",
+    "imagesChecked": 2
+  },
+  {
+    "id": "signs_scenarios_zone_end",
+    "verdict": "approve",
+    "notes": "ZONE signs (start of limit 50, end of no-parking with 6:00-18:00, end of parking) verified; answers match. Fine as is.",
+    "imagesChecked": 2
+  },
+  {
+    "id": "signs_scenarios_main_red_arrow_right",
+    "verdict": "approve_with_changes",
+    "title": "Đèn mũi tên xanh và đèn đỏ: hướng nào được đi",
+    "comparisonAxes": [
+      "đèn chính đỏ kèm đèn phụ mũi tên xanh / đèn mũi tên riêng cho từng hướng, làn",
+      "hướng được mũi tên xanh mở / hướng phải dừng",
+      "đúng hướng / đúng làn"
+    ],
+    "notes": "q502 (red main light + green right arrow) and q538 (per-lane arrow lights, some red, some green) both ask which directions the arrows open; q538 image has no separate main red light, so the old title is too specific.",
+    "imagesChecked": 2
+  },
+  {
+    "id": "cross-ferry",
+    "verdict": "reject",
+    "notes": "One question is recognising the ferry warning sign (W.217) and the other is the order of leaving the ferry; they are not confusable with each other and have no shared axis, and no member differs from the other by condition.",
+    "imagesChecked": 1
+  },
+  {
+    "id": "tech-signs-equipment-requirements",
+    "verdict": "approve",
+    "notes": "All members ask which technical requirement applies to a vehicle component (lights, glass, tyres, steering, exhaust, belts, muffler); near-identical long options are the confusable part. Fine.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-hazard-slowdown",
+    "verdict": "approve",
+    "notes": "Situations that require observing/slowing/stopping (narrow roads, curves, signs, bus stops, weather) with answers consistent; fine.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "stopping-parking",
+    "verdict": "approve",
+    "notes": "Definitions of dừng/đỗ, banned positions, 0,25 m kerb limit and 20 m gap are consistent with the axes; no contradiction.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-substances",
+    "verdict": "approve_with_changes",
+    "title": "Rượu bia, ma túy khi lái xe: cấm và xử phạt",
+    "removeMembers": [
+      "q192"
+    ],
+    "notes": "q192 is a general road-culture question (only one clause about alcohol); the other four are about alcohol and drugs. Title \"chủ thể chịu quy định\" is awkward.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-pedestrian-yield",
+    "verdict": "approve_with_changes",
+    "removeMembers": [
+      "q165"
+    ],
+    "notes": "q165 answer is the general \"all three\" slow-down list (already in rules-hazard-slowdown), only loosely about pedestrians. Others (q034, q083, q190, q198) fit.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "tech-signs-descent-powertrain",
+    "verdict": "approve",
+    "notes": "Long-descent handling by motorcycle, manual car, automatic car and electric car: low gear/engine braking vs N or off; regenerative braking for EV. Consistent.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-overtaken-signals",
+    "verdict": "approve",
+    "notes": "Giving way to a vehicle that asks to overtake: right signal when safe, left signal when not; q045 adds who triggers the duty. Consistent, though q081/q082/q110 duplicate respond-to-overtaking.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-expressway-incident",
+    "verdict": "approve",
+    "notes": "No stopping/reversing, breakdown with 150 m warning, missed exit, no emergency lane in congestion; all consistent with the axes.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-crash-responsibility",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "người liên quan đến tai nạn / người có mặt / người lái xe gặp tai nạn",
+      "dừng, cảnh báo, cứu giúp, báo tin, bảo vệ hiện trường",
+      "được rời hiện trường vì cấp cứu rồi phải trình báo / bỏ trốn bị nghiêm cấm"
+    ],
+    "notes": "Members fit (person involved, bystander, fleeing, driver who comes upon a crash). Axes list is duplicated in two languages and redundant.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "cross-phone",
+    "verdict": "approve",
+    "notes": "Driver hand-held phone ban vs passenger allowed (q066 trap) and stop-before-using answer; consistent.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-yellow-light",
+    "verdict": "reject",
+    "notes": "Only q040 is about the yellow light; q034 and q198 are pedestrian-crossing yield questions that belong to rules-pedestrian-yield, leaving one member.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-motorcycle-two-passengers",
+    "verdict": "approve_with_changes",
+    "title": "Xe mô tô, xe gắn máy: chở hai người và trẻ em dưới 12 / dưới 06 tuổi",
+    "comparisonAxes": [
+      "các trường hợp được chở tối đa hai người",
+      "trẻ em dưới 12 tuổi (được chở thêm) / dưới 06 tuổi (ngoại lệ xử phạt mũ bảo hiểm)",
+      "hành vi bị cấm / trường hợp được phép"
+    ],
+    "notes": "q075 is helmet penalties (exemptions: under 06, emergency, escort), not who may be carried, so the title is too narrow; the 12 vs 06 age contrast is a real confusable.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-expressway-entry",
+    "verdict": "approve",
+    "notes": "Signal before changing lane, one lane at a time, and merging onto an expressway (acceleration lane, give way); coherent.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "tech-signs-rough-road",
+    "verdict": "approve",
+    "notes": "Large ditch (manual car), potholes (car), rough narrow road (motorcycle); coherent and answers match the axes.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "respond-to-overtaking",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "đủ điều kiện an toàn / chưa đủ điều kiện an toàn",
+      "tín hiệu rẽ phải (cho vượt) / tín hiệu rẽ trái (chưa cho vượt)",
+      "giảm tốc và sát bên phải / tăng tốc hoặc sát bên trái"
+    ],
+    "notes": "Axis \"vehicle type\" does not change the answer (q110 is the motorcycle version of q081). Replace with the axes that do.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-expressway-definition-access",
+    "verdict": "approve",
+    "notes": "Definition of expressway and which road users are banned; consistent.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-speed-rural-large",
+    "verdict": "approve_with_changes",
+    "title": "Xe khách trên 28 chỗ, xe tải trên 3,5 tấn: 80 hay 70 km/h theo loại đường",
+    "comparisonAxes": [
+      "đường đôi hoặc một chiều từ hai làn xe cơ giới (80 km/h) / đường hai chiều hoặc một chiều một làn (70 km/h)",
+      "cùng nhóm xe, khác loại đường",
+      "chênh 10 km/h"
+    ],
+    "notes": "Typos \"trên28\" and \"Chênh10\". q150 (dual carriageway/>=2 lanes: 80 km/h) and q154 (two-way/1 lane: 70 km/h) both have answer B and match the data.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "tech-signs-flood-powertrain",
+    "verdict": "approve",
+    "notes": "Flooded road for a conventional car vs an electric car; consistent, shared steady-throttle advice.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "tech-signs-service-life",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "loại xe: ô tô tải / ô tô chở người trên 8 chỗ",
+      "niên hạn 25 năm / 20 năm tính từ năm sản xuất"
+    ],
+    "notes": "q277 (truck 25 years) vs q278 (passenger car over 8 seats 20 years) is a valid pair; the axis \"Mốc năm sản xuất / số năm trong đáp án\" is not a real axis.",
+    "imagesChecked": 0
+  }
+]

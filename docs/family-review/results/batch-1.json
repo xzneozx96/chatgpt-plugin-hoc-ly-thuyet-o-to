@@ -1,0 +1,420 @@
+[
+  {
+    "id": "cross-road-markings",
+    "verdict": "approve_with_changes",
+    "title": "Vạch kẻ đường: màu, nét liền hay đứt, mũi tên, vạch cự ly và làn đi",
+    "comparisonAxes": [
+      "màu vạch: vàng chia hai chiều ngược nhau, trắng chia làn cùng chiều",
+      "nét liền (cấm đè vạch) hay nét đứt (được đè vạch)",
+      "loại vạch theo hình dạng: mũi tên chỉ hướng, mũi nhọn xác định cự ly, hình thoi báo vạch đi bộ, vạch gãy khúc dừng xe buýt",
+      "làn đi theo loại xe và theo vạch phân làn"
+    ],
+    "removeMembers": [
+      "q002",
+      "q004",
+      "q043",
+      "q057",
+      "q163",
+      "q470",
+      "q471",
+      "q472",
+      "q474"
+    ],
+    "notes": "Group mixes road markings with unrelated items: definitions (q002, q004), slow-vehicle and signalling rules (q043, q057), a warning-sign speed rule (q163) and the yellow-black obstacle chevron signs (q470-472, q474, which are a separate sign family). The line colour, solid/broken, arrow, diamond and bus-stop marking questions are coherent and the images (viewed) support them.",
+    "imagesChecked": 20
+  },
+  {
+    "id": "cross-emergency",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "xe đang làm nhiệm vụ và có tín hiệu ưu tiên hay không",
+      "thứ tự giữa các xe ưu tiên: chữa cháy, quân sự, công an, cứu thương",
+      "quyền ưu tiên (tốc độ, đèn tín hiệu, làn khẩn cấp cao tốc) và ngoại lệ của xe không phải xe ưu tiên",
+      "hướng đi cắt nhau hay không cắt nhau tại nút giao"
+    ],
+    "notes": "All members concern priority vehicles and are confusable; images (10 junction scenes) match the answers. Axes miss the order among priority vehicles (chữa cháy, quân sự, công an, cứu thương) that decides q494, q498, q501, q540, and the school-shuttle trap in q164.",
+    "imagesChecked": 10
+  },
+  {
+    "id": "tech-signs-rail-sign-to-action",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "có rào chắn hay không có rào chắn",
+      "giao vuông góc (chữ X) hay không vuông góc (1-3 vạch đỏ)",
+      "biển báo trước hay biển đặt ngay nơi giao",
+      "thao tác khi qua đường sắt: dừng trước vạch, quan sát hai phía, về số thấp không đổi số"
+    ],
+    "notes": "Signs (viewed) are genuinely similar and the procedure questions (q219, q235, q236) fit the topic. Axes miss the right-angle versus non-right-angle distinction (X sign versus red-stripe W.243 in q377-379). q371 and q374 also appear in tech-signs-rail-signs.",
+    "imagesChecked": 5
+  },
+  {
+    "id": "tech-signs-road-directions",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "mũi tên dọc (đường hai chiều) hay mũi tên ngang (giao nhau với đường hai chiều)",
+      "có dải phân cách (đường đôi) hay không",
+      "bắt đầu hay kết thúc đường đôi",
+      "đường mình đang đi hay đường cắt ngang"
+    ],
+    "notes": "Images (7) confirm the confusable triangle signs and match all answers. Axes list is duplicated and half English; replace with a clean Vietnamese list.",
+    "imagesChecked": 7
+  },
+  {
+    "id": "tech-signs-truck-overtake",
+    "verdict": "approve_with_changes",
+    "title": "Biển cấm vượt: cấm mọi xe, cấm ô tô tải, hết cấm vượt",
+    "comparisonAxes": [
+      "đối tượng bị cấm: mọi xe cơ giới hay chỉ ô tô tải",
+      "biển cấm vượt hay biển hết cấm vượt",
+      "ô tô con được vượt hay bị cấm vượt"
+    ],
+    "removeMembers": [
+      "q251"
+    ],
+    "notes": "q251 is an overtaking technique question with no sign and is not confusable with the other five. The five sign questions (images viewed) are a real family: general overtaking ban, truck-only ban, end of ban. Title and axes should name the signs.",
+    "imagesChecked": 5
+  },
+  {
+    "id": "signs_scenarios_signal_lane_direction",
+    "verdict": "approve_with_changes",
+    "title": "Đèn tín hiệu: xe nào được đi, xe nào phải dừng",
+    "comparisonAxes": [
+      "đèn mũi tên theo làn hay đèn tròn theo hướng",
+      "xanh được đi, đỏ phải dừng",
+      "câu hỏi hỏi xe được đi, xe vi phạm hay xe phải dừng"
+    ],
+    "notes": "Images (6) match. Only q486, q500 and q563 use lane/arrow signal heads; q499, q517 and q569 are plain round lights, so the title is too narrow.",
+    "imagesChecked": 6
+  },
+  {
+    "id": "tech-signs-truck-weight-hazard",
+    "verdict": "approve_with_changes",
+    "title": "Biển cấm theo loại xe, hàng nguy hiểm và tải trọng",
+    "notes": "Images (5) match: 2.5 t truck ban, hazardous-goods ban, 7 t axle and 10 t total-weight signs are real look-alikes. Title is clumsy and does not cover the sign-by-vehicle-type questions q302-q303.",
+    "imagesChecked": 5
+  },
+  {
+    "id": "tech-signs-rail-signs",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "hình hàng rào, đầu tàu, chữ X, tàu điện hay đèn tín hiệu",
+      "có rào chắn hay không có rào chắn",
+      "giao với đường sắt hay giao với đường tàu điện, đường hai chiều"
+    ],
+    "notes": "Images (5) confirm the sign family. The third axis is vague ('nhiễu') and the first axis omits the traffic-light sign. Note q370 treats the yield-shaped triangle as a hazard-junction sign while q371's explanation calls it nhường đường; check that explanation. q371 and q374 are also in tech-signs-rail-sign-to-action.",
+    "imagesChecked": 5
+  },
+  {
+    "id": "signs_scenarios_uturn_sign_location",
+    "verdict": "approve_with_changes",
+    "title": "Quay đầu xe: biển chỉ dẫn, biển cấm rẽ trái và vị trí cấm quay đầu",
+    "notes": "Images (5) match. The group really teaches quay đầu versus rẽ trái (cấm rẽ trái does not ban quay đầu) plus place restrictions, but the title does not mention the left-turn ban.",
+    "imagesChecked": 5
+  },
+  {
+    "id": "signs_scenarios_parking_prohibition",
+    "verdict": "approve_with_changes",
+    "title": "Cấm đỗ và cấm dừng đỗ: số gạch, phạm vi biển và vị trí đỗ vi phạm",
+    "comparisonAxes": [
+      "một gạch (cấm đỗ) hay hai gạch (cấm dừng và đỗ)",
+      "dừng hay đỗ",
+      "trong hay ngoài phạm vi hiệu lực của biển",
+      "biển phụ chỉ loại xe",
+      "vị trí đỗ sai: bên trái đường, gần giao lộ hoặc vạch người đi bộ"
+    ],
+    "notes": "Images (5) match the signs, but axes and title are too narrow. Check explanations: q505 attributes the answer to range although the picture shows a supplementary truck plate (truck-only); q509's image shows a pedestrian crossing and no sign while its explanation talks about a junction and sign range.",
+    "imagesChecked": 5
+  },
+  {
+    "id": "tech-signs-parking-brake",
+    "verdict": "approve_with_changes",
+    "title": "Hệ thống phanh: công dụng, phanh đỗ và đèn báo",
+    "comparisonAxes": [
+      "công dụng của hệ thống phanh (giảm tốc, dừng, giữ xe trên dốc)",
+      "thao tác nhả phanh đỗ cơ khí",
+      "đèn báo phanh đỗ đang kéo"
+    ],
+    "removeMembers": [
+      "q214"
+    ],
+    "notes": "q214 (stopping downhill) is only loosely about the parking brake. The rest are phanh đỗ release, brake warning light (image viewed, BRAKE lamp) and function of the brake system, a usable set; rename accordingly.",
+    "imagesChecked": 1
+  },
+  {
+    "id": "tech-signs-supplement-distance",
+    "verdict": "approve",
+    "notes": "Images (4) confirm the real distinction: supplementary plate with arrows gives length of the zone, plate without arrow gives distance to where the rule starts; works for both horn and 8 m signs.",
+    "imagesChecked": 4
+  },
+  {
+    "id": "signs_scenarios_roundabout_entry",
+    "verdict": "approve",
+    "notes": "Images (4) match. Roundabout sign, yielding to cars already inside, exit order and a no-car branch sign are coherent enough; q511 is the loosest but still a roundabout exit choice.",
+    "imagesChecked": 4
+  },
+  {
+    "id": "signs_scenarios_narrow_causes",
+    "verdict": "approve",
+    "notes": "Images (4) match: sign priority (q516, q586), slope (q541) and obstacle on own side (q576) each change who yields.",
+    "imagesChecked": 4
+  },
+  {
+    "id": "tech-signs-steering-fault",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "yêu cầu kỹ thuật của hệ thống lái",
+      "công dụng của hệ thống lái (khác phanh, ly hợp)",
+      "đèn báo hệ thống lái gặp sự cố"
+    ],
+    "notes": "Topic coherent (steering system) with a red steering warning lamp image (viewed). Second axis is not supported by the questions; replace.",
+    "imagesChecked": 1
+  },
+  {
+    "id": "signs_scenarios_pedestrian_sign_types",
+    "verdict": "approve",
+    "notes": "Images (3) match: pedestrian crossing, children, cyclist and the blue pedestrian-street info sign are real look-alikes with distinct answers.",
+    "imagesChecked": 3
+  },
+  {
+    "id": "signs_scenarios_truck_ban_branch",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "biển cấm đặt ở đầu nhánh",
+      "biển cấm kèm biển phụ mũi tên chỉ nhánh bị cấm",
+      "biển bắt buộc theo hướng kèm biển phụ xe tải"
+    ],
+    "notes": "Images (3) match the questions. q521 shows a blue mandatory right-turn sign with a truck plate for direction 1, but its explanation attributes the result to one-way streets; fix that explanation. Axes should name the sign types.",
+    "imagesChecked": 3
+  },
+  {
+    "id": "signs_scenarios_merge_applied",
+    "verdict": "approve",
+    "notes": "Images (3) match: merge sign at the spot versus with 250 m, and a merging manoeuvre.",
+    "imagesChecked": 3
+  },
+  {
+    "id": "tech-signs-hazard-stop",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "ý nghĩa nút đèn khẩn cấp (tam giác đỏ)",
+      "khi nào bật đèn dừng khẩn cấp: mưa to, sương mù, tìm chỗ dừng an toàn"
+    ],
+    "notes": "Two members; related by use of hazard lights. Image q299 (red triangle button) matches. Axes mention nothing the questions support, so tighten.",
+    "imagesChecked": 1
+  },
+  {
+    "id": "signs_scenarios_accident_queue",
+    "verdict": "approve",
+    "notes": "Images (2) confirm look-alike warning triangles (queue, accident, tunnel, overturn) with answers consistent.",
+    "imagesChecked": 2
+  },
+  {
+    "id": "signs_scenarios_bus_lane_approach",
+    "verdict": "approve",
+    "notes": "Images (2) confirm vertical arrow (lane ahead) versus horizontal arrow (turn into road with bus lane).",
+    "imagesChecked": 2
+  },
+  {
+    "id": "signs_scenarios_controller_gestures",
+    "verdict": "approve",
+    "notes": "Images (2) show raised hand (all stop, except vehicles already inside) versus arms outstretched (front and back stop, sides go); answers match.",
+    "imagesChecked": 2
+  },
+  {
+    "id": "speed-limits",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "loại xe (ô tô con và tải nhẹ, xe lớn, buýt/đầu kéo/mô tô, xe kéo rơ moóc/xi téc)",
+      "trong hay ngoài khu vực đông dân cư",
+      "đường đôi hoặc từ hai làn một chiều hay đường hai chiều hoặc một làn",
+      "ngoại lệ: xe gắn máy, xe máy chuyên dùng, xe bốn bánh có gắn động cơ",
+      "hỏi tốc độ của loại xe hay hỏi loại xe có tốc độ đó"
+    ],
+    "notes": "Content coherent and consistent with explanations; axes are English and miss the 50/40/30 exceptions (q144, q157).",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-speed-mass-threshold",
+    "verdict": "approve_with_changes",
+    "title": "Mốc 3,5 tấn: khối lượng toàn bộ thiết kế (hạng GPLX) và trọng tải (nhóm tốc độ)",
+    "comparisonAxes": [
+      "hạng B đến 3.500 kg, hạng C1 trên 3.500 đến 7.500 kg, hạng C trên 7.500 kg",
+      "khối lượng toàn bộ theo thiết kế (giấy phép) hay trọng tải (tốc độ)",
+      "điều kiện giấy phép lái xe hay nhóm tốc độ"
+    ],
+    "notes": "Both licence class (khối lượng toàn bộ theo thiết kế) and speed group (trọng tải) use a 3.5 tonne threshold, so the grouping is meaningful. Title is unnatural and axes are garbled. Speed members q149, q150, q153, q154 are also in speed-limits.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-following-distance",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "mốc tốc độ: dưới 60, đúng 60, trên 60-80, trên 80-100, trên 100-120 km/h",
+      "khoảng cách tối thiểu 35, 55, 70, 100 m",
+      "không có biển cự ly, điều kiện đường tốt hay dưới 60 km/h theo thực tế mật độ xe"
+    ],
+    "notes": "Content consistent (35-55-70-100 m, below 60 free, q166 no signs). Axes are garbled.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "wet-road-flooding",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "đường trơn hay đường ngập nước",
+      "loại xe và hộp số (số thấp, số tự động, xe điện)",
+      "trước khi vào hay trong khi vượt đoạn ngập hoặc cua"
+    ],
+    "notes": "Coherent (slippery, rain, flooded). Axes are English. q215, q226, q237, q245 also appear in tech-signs-surface-grip.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-horn-overtake",
+    "verdict": "approve_with_changes",
+    "title": "Dùng còi và đèn: xin vượt, cảnh báo và khung giờ cấm còi",
+    "comparisonAxes": [
+      "ban ngày hay từ 22 giờ đến 05 giờ",
+      "khu đông dân cư và bệnh viện hay có biển cấm còi",
+      "cảnh báo nguy hiểm, xin vượt hay bấm còi liên tục"
+    ],
+    "notes": "Coherent around horn and light use; title wording 'hạn chế giờ' is awkward.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-passenger-age-scope",
+    "verdict": "approve_with_changes",
+    "title": "Hạng D2 và D: tuổi tối thiểu, tuổi tối đa và phạm vi xe được lái",
+    "comparisonAxes": [
+      "trên 16 đến 29 chỗ (D2) hay trên 29 chỗ và giường nằm (D)",
+      "tuổi tối thiểu 24 hay 27; tối đa nam 57, nữ 55",
+      "hỏi tuổi hay hỏi phạm vi giấy phép"
+    ],
+    "notes": "Coherent (D2, D ages and scope). Axes garbled and title cryptic.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "emergency-priority",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "đang làm nhiệm vụ hay không",
+      "có tín hiệu ưu tiên hay không (kể cả xe CSGT không phát tín hiệu)",
+      "nghĩa vụ nhường đường hay quyền được vượt xe ưu tiên"
+    ],
+    "notes": "Coherent; all five members are also in cross-emergency (this is a smaller drill). Axes are English.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-turning",
+    "verdict": "approve_with_changes",
+    "title": "Chuyển hướng và chuyển làn: quan sát, tín hiệu và nhường đường",
+    "notes": "Coherent; q057 is about changing lanes (also in cross-road-markings) but contrasts well with turn signalling timing.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-motorcycle-licences",
+    "verdict": "approve_with_changes",
+    "title": "Giấy phép lái mô tô: A1, A, mô tô ba bánh và người 16 đến dưới 18 tuổi",
+    "comparisonAxes": [
+      "đến 125 cm3 hoặc 11 kW hay trên ngưỡng đó",
+      "mô tô hai bánh hay ba bánh",
+      "A1 cấp sau 01/01/2025",
+      "người từ 16 đến dưới 18 tuổi chỉ được lái xe gắn máy"
+    ],
+    "notes": "Coherent; q123 (age 16-under 18) is a nearby trap. Axes garbled; title incomplete.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "tech-signs-surface-grip",
+    "verdict": "approve",
+    "notes": "All four members (q215, q226, q237, q245) are also in wet-road-flooding; this is the slippery-surface-only drill. Content consistent; keep, but note the overlap.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-clearance-load",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "khổ giới hạn của đường (chiều rộng và chiều cao, gồm cả hàng xếp)",
+      "xe mô tô, xe gắn máy, xe thô sơ chở hàng",
+      "hàng thông thường hay siêu trường, siêu trọng (báo hiệu kích thước, người hỗ trợ)"
+    ],
+    "notes": "Related but loose; keep with clearer axes. No contradiction found.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-overtake-definition",
+    "verdict": "approve",
+    "notes": "q046, q108, q109 are consistent and confusable (definition of vượt xe, when forbidden, when passing on the right is allowed).",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-junction-yield",
+    "verdict": "approve",
+    "notes": "q091-q093 are a clean confusable set (priority road, roundabout yields left, no roundabout yields right) with answers matching the title.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-speed-special",
+    "verdict": "approve",
+    "notes": "Coherent (xe gắn máy, xe máy chuyên dùng, xe bốn bánh gắn động cơ). q144 and q157 are also in speed-limits.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "tech-signs-rain-fog",
+    "verdict": "approve",
+    "notes": "q240, q244, q245 agree with each other and with the title; q245 is also in wet-road groups.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "first-aid",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "máu phun thành tia: chặn động mạch, không chỉ ép trực tiếp",
+      "không còn hô hấp: đặt nằm ngửa và khai thông đường thở trước khi hô hấp nhân tạo",
+      "bỏng: tách nguồn gây bỏng, làm mát bằng nước sạch không quá lạnh, gọi 115"
+    ],
+    "notes": "Three different first-aid scenarios, not look-alike; usable only as a 'pick the right first step by sign' set. Axes are English labels of topics, not differences.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-road-hazards-prohibited",
+    "verdict": "approve_with_changes",
+    "title": "Hành vi bị nghiêm cấm: rải vật, ném vật, cản trở, thiết bị âm thanh ánh sáng",
+    "comparisonAxes": [
+      "hành vi bị nghiêm cấm: rải vật sắc nhọn, đổ chất trơn, ném vật, cản trở giao thông, thiết bị âm thanh ánh sáng gây mất an toàn",
+      "hành vi không bị cấm dễ nhầm: xe đạp đi trên quốc lộ"
+    ],
+    "notes": "Related (both ask which behaviour is forbidden); the title is not accurate for q030 (audio/light equipment) and the 'xe đạp trên quốc lộ' axis is the trap in q019, not a hazard.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "rules-speed-rural-tanker-trailer",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "cùng nhóm xe kéo rơ moóc, xi téc, trộn bê tông",
+      "đường đôi (60 km/h) hay đường hai chiều (50 km/h)",
+      "chênh 10 km/h theo loại đường"
+    ],
+    "notes": "q152 and q156 are a precise pair (60 on divided road versus 50 on two-way road for the same vehicle group); both also in speed-limits. Axes are partly English.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "tech-signs-door-exit",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "người lái xe hay người ngồi trên xe",
+      "quan sát phía trước, phía sau và bên mở cửa",
+      "mở hé rồi mới mở đủ để xuống"
+    ],
+    "notes": "Coherent (q234 driver, q256 passenger). Axes duplicated in English.",
+    "imagesChecked": 0
+  },
+  {
+    "id": "licence-points",
+    "verdict": "approve_with_changes",
+    "comparisonAxes": [
+      "chưa bị trừ hết 12 điểm: 12 tháng không bị trừ thêm thì được phục hồi đủ 12 điểm",
+      "đã bị trừ hết điểm: sau ít nhất 06 tháng kiểm tra kiến thức pháp luật đạt thì được phục hồi"
+    ],
+    "notes": "Coherent and clearly distinct. Axes are English.",
+    "imagesChecked": 0
+  }
+]

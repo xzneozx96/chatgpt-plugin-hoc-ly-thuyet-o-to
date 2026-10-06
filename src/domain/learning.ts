@@ -454,7 +454,7 @@ export function courseView(state: LearnerState, now: number, nothingToStudy = fa
         forecastFinishAt,
         targetCompatible: forecastFinishAt !== null && forecastFinishAt <= state.profile.targetDate,
         profile: state.profile,
-        familyStatus: "draft_bank_analysis",
+        familyStatus: "approved",
         units: unitList.units.filter(u => u.kind === "category"),
         customCategory: unitList.customCategory,
         mockLibraryAvailable: false,
@@ -509,7 +509,7 @@ export function listUnits(state: LearnerState, query = "", now = Date.now()) {
         customCategory: {
             id: CONFUSING_CATEGORY_ID,
             title: "C\u00E2u h\u1ECFi d\u1EC5 nh\u1EA7m l\u1EABn",
-            status: "draft_bank_analysis",
+            status: "approved",
             familyCount: families.length,
             total: new Set(families.flatMap(f => f.questionIds)).size,
             covered: [...new Set(families.flatMap(f => f.questionIds))].filter(id => p.get(id)?.coveredAt !== null).length,
@@ -629,7 +629,7 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
             familyId: active.group,
             title: family?.title ?? active.group,
             axes: family?.comparisonAxes ?? [],
-            status: familyStatus(family?.status ?? "draft_bank_analysis"),
+            status: familyStatus(family?.status ?? "approved"),
             questions: pairItems.map(i => safeQuestion(i.questionId)),
             feedback: pairItems.map(i => {
                 const e = answerOf(i);
