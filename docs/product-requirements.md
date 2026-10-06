@@ -205,7 +205,7 @@ This section supersedes direction B (navy and blue). The owner chose the origina
 - Tiles and buttons are pressable. Each has a 2 px border plus a solid bottom edge that collapses 3 px on press.
 - Correct inverts the option and pops a check. Wrong strikes the chosen option with diagonal stripes and an ✕, shakes it, and inverts the correct option with "Đáp án đúng". Feedback never relies on colour.
 - Every state indicator has at least 3:1 contrast. Idle tiles may use the light `--line` border because their text identifies them.
-- Typography: Be Vietnam Pro for text and JetBrains Mono for numbers, both bundled with the widget. Question 18 px / 700, options 15 px / 600, headlines 21–24 px / 800.
+- Typography: Nunito for text and JetBrains Mono for numbers, both bundled with the widget. Question 18 px / 600, options 15 px / 500, headlines, buttons and chips 700, body 400. Numbers stay mono 700.
 - Shapes: card 22 px radius, tiles and buttons 16 px, chips are pills. Minimum tap target is 44 px, and primary buttons are 52–54 px high.
 - Motion: pop, rise, shake, bounce, sparks, XP float, count-up and stamp, per `DESIGN.md`. All motion respects `prefers-reduced-motion`.
 - No emoji, mascots or decorative illustrations in the chrome.

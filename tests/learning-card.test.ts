@@ -781,3 +781,30 @@ test("with nothing newly mastered, the finish screen counts first-time correct a
     assert.equal(await app.locator("#content").getByText("ôn lại để thuộc").count(), 0, "the first-step line is only for lessons with nothing mastered");
   });
 });
+
+test("the card sets its words in Nunito one weight step lighter, loads the Vietnamese faces at every weight, and keeps numbers in JetBrains Mono 700", async () => {
+  await withPreview(async ({ origin, page, app, tool, open }) => {
+    const started = await tool("start_study", { questionIds: ["q001"], requestId: randomUUID() });
+    await page.goto(`${origin}/preview`);
+    await app.locator("[data-action]").first().waitFor();
+    await open(started);
+    await app.getByRole("button", { name: "Bắt đầu" }).click();
+    await app.locator(".stem").waitFor();
+    const roles = { body: "body", stem: ".stem", option: ".opt .txt", button: '[data-action="answer"]', chip: ".chip.step", number: ".chip.num.mono", pos: ".pos" };
+    const styles = await app.locator("main").evaluate((main, selectors) => Object.fromEntries(Object.entries(selectors).map(([role, selector]) => {
+      const style = getComputedStyle(document.querySelector(selector) ?? main);
+      return [role, `${style.fontFamily.split(",")[0]?.replace(/["']/g, "")} ${style.fontWeight}`];
+    })), roles);
+    assert.deepEqual(styles, { body: "Nunito 400", stem: "Nunito 600", option: "Nunito 500", button: "Nunito 700", chip: "Nunito 700", number: "JetBrains Mono 700", pos: "JetBrains Mono 700" });
+    const heavy = await app.locator("main").evaluate((main) => [...main.querySelectorAll("*")].filter((el) => Number(getComputedStyle(el).fontWeight) > 700).map((el) => el.className || el.tagName));
+    assert.deepEqual(heavy, [], "nothing is heavier than 700");
+    const faces = await app.locator("main").evaluate(async () => {
+      for (const weight of [400, 500, 600, 700]) await document.fonts.load(`${weight} 16px Nunito`, "Đường Ệ ỗ ư ơ ă");
+      return [...document.fonts].filter((f) => f.family.replace(/["']/g, "") === "Nunito" && f.status === "loaded").map((f) => `${f.weight} ${f.unicodeRange.includes("U+1EA0") ? "vietnamese" : "latin"}`).sort();
+    });
+    assert.deepEqual(faces, ["400 latin", "400 vietnamese", "500 latin", "500 vietnamese", "600 latin", "600 vietnamese", "700 latin", "700 vietnamese"]);
+    const font = await fetch(`${origin}/ui/assets/nunito-vietnamese-600-normal.woff2`);
+    assert.deepEqual([font.status, font.headers.get("content-type")], [200, "font/woff2"]);
+    assert.equal((await fetch(`${origin}/ui/assets/BeVietnamPro-Regular.ttf`)).status, 404, "the old text font is no longer shipped");
+  });
+});

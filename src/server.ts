@@ -241,8 +241,11 @@ export function createHttpHandler(options: {
     if (path.startsWith("/ui/assets/") && req.method === "GET") {
       const file = path.slice("/ui/assets/".length);
       if (!/^[A-Za-z0-9_-]+\.(ttf|woff2|txt)$/.test(file)) return void res.writeHead(404).end("Not Found");
-      try { return void res.writeHead(200, { "Content-Type": file.endsWith(".woff2") ? "font/woff2" : file.endsWith(".ttf") ? "font/ttf" : "text/plain", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=86400" }).end(readFileSync(resolve(assetsPath, file))); }
+      // Read before writing headers, so a missing file (an old card asking for a removed font) still gets its 404.
+      let body: Buffer;
+      try { body = readFileSync(resolve(assetsPath, file)); }
       catch { return void res.writeHead(404).end("Not Found"); }
+      return void res.writeHead(200, { "Content-Type": file.endsWith(".woff2") ? "font/woff2" : file.endsWith(".ttf") ? "font/ttf" : "text/plain", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=86400" }).end(body);
     }
     if (path === "/ui/learning.html" && req.method === "GET") {
       return void res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }).end(readFileSync(learningHtmlPath, "utf8").replaceAll("{{BASE_URL}}", publicBaseUrl));

@@ -16,29 +16,29 @@ colors:
   dark-soft2: "#1f1f1f"
 typography:
   text:
-    fontFamily: "'Be Vietnam Pro', system-ui, sans-serif"
-    weights: [400, 600, 700, 800]
+    fontFamily: "'Nunito', system-ui, sans-serif"
+    weights: [400, 500, 600, 700]
   mono:
     fontFamily: "'JetBrains Mono', ui-monospace, monospace"
     weights: [700]
   question:
     fontSize: "18px"
-    fontWeight: 700
+    fontWeight: 600
     lineHeight: 1.4
   option:
     fontSize: "15px"
-    fontWeight: 600
+    fontWeight: 500
     lineHeight: 1.35
   headline:
     fontSize: "21-24px"
-    fontWeight: 800
+    fontWeight: 700
   hero-number:
     fontFamily: mono
     fontSize: "26-64px"
     fontWeight: 700
   chip:
     fontSize: "11px"
-    fontWeight: 800
+    fontWeight: 700
     textTransform: uppercase
 rounded:
   card: "22px"
@@ -108,7 +108,7 @@ The owner chose this style on 6 October 2026, over the flat "Monochrome Play" dr
 - Strict black and white in both themes. The theme follows the ChatGPT host, and there is no in-card toggle.
 - Pressable tiles and buttons: a 2 px border plus a solid bottom edge that collapses on press.
 - One primary action per screen.
-- Be Vietnam Pro for words. JetBrains Mono for numbers, timers, answer letters and question numbers.
+- Nunito for words. JetBrains Mono for numbers, timers, answer letters and question numbers.
 - Every verdict is shown through shape, icon, motion and words, never colour.
 
 ## Colors
@@ -135,19 +135,20 @@ Idle tiles use the light `--line` border on purpose. The tile's own text and let
 
 ## Typography
 
-- **Text:** Be Vietnam Pro, weights 400, 600, 700 and 800. Full Vietnamese diacritics.
+- **Text:** Nunito, weights 400, 500, 600 and 700, with full Vietnamese diacritics. The owner chose it on 7 October 2026 to replace Be Vietnam Pro, one weight step lighter: what was 800 is now 700, 700 is 600, and 600 is 500. Body text stays 400.
 - **Numbers:** JetBrains Mono 700 for counts, XP, timers, answer letters and "Câu 145".
-- Both fonts are bundled in `src/ui/assets`. Each mixes latin and vietnamese subsets, so every `@font-face` must declare its `unicode-range`. The widget's resource policy forbids external font hosts.
+- Both fonts are bundled in `src/ui/assets`: `nunito-{latin,vietnamese}-{400,500,600,700}-normal.woff2` with `OFL-Nunito.txt`, and `jetbrains-mono-{latin,vietnamese}-700-normal.woff2` with `OFL-JetBrainsMono.txt`. Each weight is split into a latin and a vietnamese file, so every `@font-face` must declare its `unicode-range`. The widget's resource policy forbids external font hosts.
+- The stylesheet sets text weights through three tokens on `:root`: `--fw-head` (700: headlines, verdicts, titles, buttons, chips, eyebrows), `--fw-strong` (600: question stems, row titles, labels, `<b>`) and `--fw-medium` (500: options and other emphasis-only text). Mono rules keep a literal 700, the only JetBrains Mono weight bundled.
 
 | Role | Size / weight | Use |
 | --- | --- | --- |
-| Question | 18 px / 700, line height 1.4 | Question stem |
-| Option | 15 px / 600 | Answer text |
-| Headline | 21–24 px / 800 | Screen titles, verdict ("Chính xác!" 19 px / 800 in the feedback panel) |
+| Question | 18 px / 600, line height 1.4 | Question stem |
+| Option | 15 px / 500 | Answer text |
+| Headline | 21–24 px / 700 | Screen titles, verdict ("Chính xác!" 19 px / 700 in the feedback panel) |
 | Hero number | 26–64 px mono / 700 | Ring centre, finish counts, test score |
-| Body | 14–15 px / 400–600 | Explanations, coach copy |
-| Chip | 11 px / 800, uppercase | Step chips (ÔN LẠI, MỚI, THỬ LẠI, THỬ THÁCH) |
-| Small | 12–13 px / 600–700 | Metadata, secondary text buttons |
+| Body | 14–15 px / 400–500 | Explanations, coach copy |
+| Chip | 11 px / 700, uppercase | Step chips (ÔN LẠI, MỚI, THỬ LẠI, THỬ THÁCH) |
+| Small | 12–13 px / 500–600 | Metadata, secondary text buttons |
 
 ## Layout
 
@@ -218,7 +219,7 @@ Every verdict goes to an `aria-live` region. Options are native radio inputs ins
 
 ### Chips
 
-- Step chip: filled `--fg` pill, 11 px / 800 uppercase (ÔN LẠI, MỚI, THỬ LẠI, THỬ THÁCH).
+- Step chip: filled `--fg` pill, 11 px / 700 uppercase (ÔN LẠI, MỚI, THỬ LẠI, THỬ THÁCH).
 - Question number chip: outlined with a 1.5 px `--line` border, mono ("Câu 145").
 - "Đang phân vân": dashed `--fg` border, pops in.
 
