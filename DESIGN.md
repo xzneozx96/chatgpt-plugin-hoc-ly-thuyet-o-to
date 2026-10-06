@@ -1,252 +1,248 @@
 ---
-name: "Lý Thuyết Lái Xe · Đường học"
-description: "Accepted direction B for the isolated Vietnamese learning prototype."
+name: "Lý Thuyết Lái Xe · Monochrome Play"
+description: "Black-and-white, game-like learning card for ChatGPT. Supersedes direction B (Đường học) per PRD v1.0."
 colors:
-  ink: "#182b49"
-  muted: "#57657a"
-  accent: "#294fad"
-  tint: "#e9eef9"
-  paper: "#fff"
-  line: "#dee4ee"
-  warm: "#edf2fc"
-  canvas: "#f2f3f6"
-  accent-hover: "#1f3e8c"
-  focus: "#577be0"
-  hover-line: "#a8b7d4"
-  option-hover: "#f7f9fc"
-  teaching-ink: "#234789"
-  teaching-line: "#cdd8ed"
-  success-bg: "#e8f1e9"
-  success-ink: "#265632"
-  wrong-bg: "#fff0e8"
-  wrong-ink: "#854222"
-  uncertain-bg: "#fff4d9"
-  uncertain-ink: "#785813"
+  background: "#FFFFFF"
+  surface: "#FFFFFF"
+  ink: "#000000"
+  on-ink: "#FFFFFF"
+  muted: "#5C5C5C"
+  line: "#E5E5E5"
+  option-line: "#8A8A8A"
+  subtle: "#F4F4F4"
+  dark-background: "#000000"
+  dark-surface: "#000000"
+  dark-ink: "#FFFFFF"
+  dark-on-ink: "#000000"
+  dark-muted: "#A3A3A3"
+  dark-line: "#2E2E2E"
+  dark-option-line: "#6B6B6B"
+  dark-subtle: "#1A1A1A"
 typography:
-  display:
-    fontFamily: "Be, sans-serif"
-    fontSize: "29px"
+  hero-number:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+    fontSize: "40px"
     fontWeight: 700
-    lineHeight: 1.4
-    letterSpacing: "-.025em"
+    lineHeight: 1.1
+    letterSpacing: "-.02em"
   headline:
-    fontFamily: "Be, sans-serif"
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
     fontSize: "22px"
     fontWeight: 700
-    lineHeight: 1.5
-    letterSpacing: "-.02em"
-  title:
-    fontFamily: "Be, sans-serif"
+    lineHeight: 1.35
+  question:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
     fontSize: "17px"
-    fontWeight: 700
-    lineHeight: 1.65
+    fontWeight: 600
+    lineHeight: 1.55
+  option:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+    fontSize: "16px"
+    fontWeight: 500
+    lineHeight: 1.5
   body:
-    fontFamily: "Be, sans-serif"
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
     fontSize: "15px"
     fontWeight: 400
-    lineHeight: 1.65
-  label:
-    fontFamily: "Be, sans-serif"
-    fontSize: "13px"
-    fontWeight: 400
-    lineHeight: 1.65
-  small:
-    fontFamily: "Be, sans-serif"
-    fontSize: "12px"
-    fontWeight: 400
     lineHeight: 1.6
+  label:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+    fontSize: "13px"
+    fontWeight: 500
+    lineHeight: 1.5
 rounded:
-  flat: "0"
-  progress: "4px"
-  tag: "5px"
-  timer: "6px"
-  control: "7px"
-  option: "8px"
+  progress: "999px"
+  option: "12px"
   panel: "12px"
-  widget: "16px"
+  card: "16px"
+  button: "999px"
 spacing:
+  step-4: "4px"
   step-8: "8px"
   step-12: "12px"
   step-16: "16px"
-  step-20: "20px"
-  step-22: "22px"
   step-24: "24px"
-  step-26: "26px"
-  step-36: "36px"
+  step-32: "32px"
+motion:
+  verdict: "400ms"
+  xp-float: "600ms"
+  ring-segment: "300ms"
+  press: "100ms"
+  easing: "cubic-bezier(.2,.8,.2,1)"
 components:
   button-primary:
-    backgroundColor: "{colors.accent}"
-    textColor: "{colors.paper}"
-    rounded: "{rounded.control}"
-    padding: "10px 16px"
-  button-primary-hover:
-    backgroundColor: "{colors.accent-hover}"
-    textColor: "{colors.paper}"
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.on-ink}"
+    rounded: "{rounded.button}"
+    padding: "14px 24px"
+    width: "100%"
   button-secondary:
-    backgroundColor: "{colors.paper}"
+    backgroundColor: "transparent"
     textColor: "{colors.ink}"
-    rounded: "{rounded.control}"
+    rounded: "{rounded.button}"
     padding: "10px 16px"
-  field:
-    textColor: "{colors.ink}"
-    rounded: "{rounded.control}"
-    padding: "12px 14px"
-    width: "100%"
-  nav-active:
-    backgroundColor: "{colors.tint}"
-    textColor: "{colors.accent}"
-  tag:
-    backgroundColor: "{colors.tint}"
-    textColor: "{colors.accent}"
-    rounded: "{rounded.tag}"
-    padding: "5px 9px"
-  learning-card:
-    backgroundColor: "{colors.paper}"
-    rounded: "{rounded.widget}"
-  teaching-panel:
-    backgroundColor: "{colors.warm}"
-    rounded: "{rounded.panel}"
-    padding: "26px"
   answer-option:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
     rounded: "{rounded.option}"
-    padding: "18px 20px"
-  course-row:
-    rounded: "{rounded.flat}"
-    padding: "20px 8px"
-    width: "100%"
+    padding: "16px 18px"
+  answer-option-correct:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.on-ink}"
+  progress-bar:
+    backgroundColor: "{colors.subtle}"
+    rounded: "{rounded.progress}"
+    height: "8px"
+  lesson-card:
+    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.card}"
 ---
 
-# Design System: Lý Thuyết Lái Xe · Đường học
+# Design System: Lý Thuyết Lái Xe · Monochrome Play
 
 ## Overview
 
-**Creative North Star: "Đường học"**
+**Creative North Star: "Black, white, alive."**
 
-Đường học makes learning feel ordered, readable and calm. Navy text, blue actions, white surfaces and Be Vietnam Pro establish a clear Vietnamese course interface. Alignment and quiet tonal areas carry the visual identity; original question illustrations provide the meaningful imagery.
+The card looks as quiet as ChatGPT and feels as lively as Duolingo. Colour is removed entirely. Energy comes from motion, big bold numbers, inversion (black ↔ white) and short celebration moments. Original question images are the only imagery that carries meaning.
 
-This document captures the owner-selected direction B implemented in `design/chatgpt-learning/`. Its rules govern this isolated prototype and future screens extending that accepted direction. They do not certify production identity, persistence, ChatGPT integration, source approval or host compatibility. The conversation framing and sample-history disclosure belong to the local review shell.
+This document is the target design for PRD v1.0 (`docs/product-requirements.md`, section 9). It supersedes direction B (Đường học). The prototype in `design/chatgpt-learning/` and the widget in `src/ui/learning.html` still implement direction B until they are rebuilt. Host compatibility, especially the dark surface colour, needs to be checked in real ChatGPT.
 
-**Key Characteristics:**
+**Key characteristics:**
 
-- Readable Vietnamese type with a compact hierarchy.
-- Aligned course rows and restrained top navigation.
-- Quiet blue areas for explanation and next actions.
-- Visible control states with minimal motion.
+- Pure black and white in both themes. Greys only for secondary text, lines and tracks.
+- One living lesson card with a progress bar, one question, large options and one primary button.
+- Verdicts are felt through motion, an icon and words.
+- Big numbers for XP, goal ring and progress.
 
 ## Colors
 
-The palette is cool, restrained and built around navy reading text and confident blue actions. The frontmatter preserves source colour values; CSS custom properties remain the implementation source. Additional semantic state colours are extracted from repeated feedback and control rules.
+There are two themes with the same roles. The theme follows the ChatGPT host theme automatically. There is no in-card toggle.
 
-### Primary
+| Role | Light | Dark | Use |
+| --- | --- | --- | --- |
+| background | `#FFFFFF` | `#000000` | Card ground |
+| surface | `#FFFFFF` | `#000000` | Options, panels. In dark mode, match the host surface if ChatGPT's is not pure black. |
+| ink | `#000000` | `#FFFFFF` | Text, icons, primary button fill, correct-option fill, ring fill |
+| on-ink | `#FFFFFF` | `#000000` | Text on ink fills |
+| muted | `#5C5C5C` | `#A3A3A3` | Metadata, captions, secondary actions |
+| line | `#E5E5E5` | `#2E2E2E` | Dividers and decorative separators only |
+| option-line | `#8A8A8A` | `#6B6B6B` | Borders of answer options, tiles and inputs (≥ 3:1 against the surface, WCAG 1.4.11) |
+| subtle | `#F4F4F4` | `#1A1A1A` | Hover, pressed, empty progress track |
 
-- **Action Blue** (`accent`): main actions, links, progress fills and selected controls.
-- **Deep Action Blue** (`accent-hover`): primary hover state.
-- **Quiet Blue** (`tint`): active navigation, tags and selected answers.
-- **Teaching Blue** (`warm`): daily continuation, explanation and comparison panels. The source calls this token “warm”; its actual colour is a pale cool blue.
-- **Teaching Ink / Teaching Divider**: panel headings and internal comparisons.
-- **Focus Blue / Hover Border**: keyboard focus and control hover definition.
-
-### Secondary
-
-- **Success Green**: feedback fill and text for a correct response; it does not declare delayed mastery.
-- **Correction Orange**: feedback fill and text for an incorrect response.
-- **Uncertainty Amber**: feedback fill and text for guessed or assisted correctness.
-
-### Neutral
-
-- **Reading Navy** (`ink`): body text, headings and key numbers.
-- **Slate** (`muted`): metadata, captions and secondary instructions.
-- **White Ground** (`paper`): learning widget and standard buttons.
-- **Cool Canvas** (`canvas`): local review shell background.
-- **Quiet Divider** (`line`): borders, row separators and progress tracks.
-- **Answer Hover** (`option-hover`): answer-row pointer state.
-
-**The Action Blue Rule.** Use the solid accent for the main action; use tint for selection and quiet supporting emphasis. Feedback states retain their own semantic colours.
+**The No-Colour Rule.** No hue appears anywhere in the UI chrome. Feedback, selection and status use fill, outline weight, icons, motion and words. Question images keep their original colours.
 
 ## Typography
 
-**Display Font:** Be Vietnam Pro, implemented with the local CSS family name `Be`, falling back to sans-serif.
+**Font:** the system UI stack, to match ChatGPT. It must render all Vietnamese diacritics. Be Vietnam Pro is retired.
 
-**Body Font:** the same family. Local files provide regular, semibold and bold weights; font display is swap. No separate decorative or monospace family is established.
+| Role | Size | Weight | Use |
+| --- | --- | --- | --- |
+| Hero number | 40 px (32 px under 400 px width) | 700 | XP earned, score, goal count on finish and home screens |
+| Headline | 22 px | 700 | Verdict ("Chính xác!", "Chưa đúng"), lesson intro title |
+| Question | 17 px | 600 | Question text |
+| Option | 16 px | 500 | Answer options |
+| Body | 15 px | 400 | Explanation, coach copy |
+| Label | 13 px | 500 | Progress labels, metadata, chips |
 
-**Character:** legible Vietnamese text with modest heading contrast. Semibold emphasises actions, labels and key numbers; headings use bold. Numeric counts and the timer use tabular figures.
-
-### Hierarchy
-
-- **Display:** page titles; desktop role in frontmatter, reduced to (25px) below the mobile breakpoint.
-- **Headline:** question and section headings; reduced to (20px) on narrow screens. Course-list headings use (20px) and the daily panel uses (21px) on desktop.
-- **Title:** teaching-area headings.
-- **Body:** reading and controls; paragraphs generally stop at (72ch), coach text at (75ch).
-- **Label:** secondary controls and metadata; the prototype also uses (14px) course labels and answer summaries.
-- **Small:** captions and progress notes. Bold and strong text generally use (600), independent of the surrounding role.
-
-**The Reading Rule.** Preserve Vietnamese text and generous line height. Keep instructional paragraphs within the observed reading widths rather than stretching across a wide widget.
+Numbers use tabular figures. Explanation lines stop at 68ch.
 
 ## Layout
 
-The review workspace has a maximum width of (1120px) with horizontal padding of (20px). The learning widget contains a compact brand and top-navigation band, then content padding of (36px). The course entry uses a flexible course column and a daily-action column of (280px), separated by (38px). These values describe the accepted entry surface, not a mandatory composition for every learning step.
-
-The single observed width breakpoint is `max-width:700px`. It changes the workspace padding to (10px), content padding to (24px 22px), and brand padding to (22px). The course and daily area stack, with today's action first. Comparison panels become one column; answer options and row spacing tighten. The question navigator changes from ten columns to six. Action groups wrap. The shared spacing frontmatter lists recurring values rather than every incidental margin.
-
-Focused learning steps keep one visible main action; supporting controls sit behind a native disclosure. Course, review and test entry points remain available in the top navigation. Paragraphs, question illustrations and metadata retain their own reading constraints inside the container.
+- The card fills the available host width. Its content column is at most 640 px wide, with 20 px padding (16 px under 400 px).
+- Card structure, top to bottom: a close/pause icon and progress bar row, the step label ("Ôn lại", "Mới", "Thử lại"), question and image, options, then a sticky bottom action area.
+- The bottom action area holds one full-width primary button. After a verdict it expands upward into the feedback sheet: icon, verdict, a one-line reason, "Xem thêm", the primary "Tiếp tục" button, and one quiet row of secondary actions.
+- Options stack vertically at every width. Image questions show the image above the options at full column width.
+- Home card: goal ring at the left or top, the three progress numbers, weekly XP and league rank, and one "Học tiếp" button. Course map: a two-column grid of category tiles (one column under 400 px).
 
 ## Elevation & Depth
 
-The prototype uses no box shadows. White surfaces, thin dividers, selected tints and blue teaching areas create depth through contrast and grouping. The widget has a thin border and a narrow accent edge at the top of its brand band. Focus outlines communicate interaction rather than elevation.
-
-**The Flat Surface Rule.** Use borders, alignment and tonal fills to separate content. Do not add shadows to the accepted prototype vocabulary.
+Flat. No shadows. Depth comes from inversion (a black fill on white), 1 px lines and the feedback sheet sliding up over the action area.
 
 ## Shapes
 
-Controls have gently curved corners; fields and buttons share the control radius. Answer rows use the option radius. Teaching and feedback areas use the panel radius, while the outer widget uses the larger widget radius. Tags are compact rectangles, not pills. Course rows remain square and use horizontal separators. Progress tracks are narrow rounded strips; their geometry is functional, not decorative.
+- Options and panels have a 12 px radius, and the card has a 16 px radius.
+- Buttons and progress bars are fully rounded.
+- Minimum tap target is 48 px.
+- Icons have a 2 px stroke, are 24 px in the card and 40 px in verdicts. Correct is a filled circle with a check, and wrong is an outlined circle with a ✕.
+
+## Motion
+
+Motion carries the feeling that colour used to. Every animation has a reduced-motion alternative: a 150 ms opacity fade.
+
+| Moment | Animation | Duration |
+| --- | --- | --- |
+| Option press | Scale to .98 | 100 ms |
+| Correct verdict | Option inverts to ink; check icon draws in; card does a 4 px vertical bounce | 400 ms |
+| Wrong verdict | Selected option shakes ±6 px horizontally three times; correct option gets a 2 px ink outline | 400 ms |
+| XP float | "+10 XP" rises 24 px and fades out | 600 ms |
+| Combo | From 3 correct in a row, the counter scales from .8 to 1 | 250 ms |
+| Progress bar | Width eases to the new step | 300 ms |
+| Goal ring | Each new segment fills clockwise | 300 ms per segment |
+| Finish screen | XP, correct count and Mastered count count up one after another | 800 ms total |
+| Mastered | "Đã thuộc!" label pops in (scale .9 → 1) on the step | 250 ms |
+
+Easing is `cubic-bezier(.2,.8,.2,1)`. Nothing loops, flashes or plays sound.
 
 ## Components
 
 ### Buttons
 
-Solid blue main buttons use semibold text and the frontmatter padding. Standard secondary buttons are white with a thin divider border. Hover deepens primary blue or tints secondary controls and strengthens their border. Controls and disclosure summaries have a minimum height of (44px); disabled buttons use opacity (.5) and a not-allowed cursor. Keyboard focus uses an outline of (3px) with an offset of (3px). The only explicit animation is a background transition of (.15s ease), disabled for reduced motion. No scale or lift effects are established.
+- **Primary:** an ink pill with on-ink text, full width in the action area, 600 weight. It is disabled until an option is selected ("Kiểm tra"). Exactly one per screen.
+- **Secondary:** transparent text buttons in muted ink, used in the quiet row ("Hỏi ChatGPT", "Tôi còn phân vân", "Xem video").
+- Focus is a visible 2 px ink ring with a 2 px offset.
 
-### Inputs / Fields
+### Answer options
 
-Search and custom-number fields use thin divider borders, control corners and the extracted field padding. Input text is navy; placeholders are slate; caret and native selection controls use action blue. Focus shares the visible blue outline. The composer field is a local-shell variant inside its bordered panel. No reusable error-field or disabled-field appearance has been established.
+- Default: a 1 px option-line border, surface fill, and a letter badge (A–D) in a 24 px outlined circle.
+- Selected: a 2 px ink border, with the letter badge filled in ink.
+- Correct (after verdict): ink fill, on-ink text, and a check icon at the end.
+- Wrong selected (after verdict): a dashed 2 px ink border and an ✕ icon at the end.
+- Correct but not chosen (after a wrong verdict): a 2 px ink border with the label "Đáp án đúng".
+- Options lock after the verdict.
 
-### Navigation
+### Feedback sheet
 
-Three compact text controls lead to course, review and test activities. The active item receives quiet blue fill and blue text. Other items remain transparent. Keep these distinct from a solid main action. Mobile navigation stays within the brand band. Prototype screen-state logic is implementation evidence, not a specification of every future subroute.
+An icon, the headline verdict, a reason of at most two lines (approved text), "Xem thêm" to expand, the primary "Tiếp tục" button, and the quiet secondary row. A screen reader announces the verdict through a live region.
 
-### Chips
+### Progress bar and step labels
 
-Quiet blue tags have blue text, small type and compact padding. They label a recommendation or unresolved status. No interactive chip selection pattern is established.
+An 8 px rounded track in the subtle colour with an ink fill. The step label sits above the question as a small outlined chip: "Ôn lại", "Mới", "Thử lại" or "Thử thách".
 
-### Cards / Containers
+### Goal ring
 
-The white learning widget has a thin divider border and clipped corners. Teaching, comparison and continuation panels use the pale teaching fill, panel corners and (26px) padding, reduced to (21px) for teaching/comparison panels on mobile. The daily-action panel uses (22px) mobile padding. Keep panels purposeful; use rows for course units.
+A 96 px ring (64 px on the home card in compact layouts). Segments fill in ink. The centre shows "7/12" and a small check once due reviews are done. A closed ring triggers a one-time scale-and-check celebration.
 
-### Course Rows and Progress
+### Progress numbers
 
-Course rows are full-width buttons with aligned chapter, label, first-pass progress, count and inline chevron. The progress track is (4px) high and at most (240px) wide. Tabular counts label their meaning; they never collapse “Đã thử” and “Đã nhớ” into one score. Pointer hover uses the standard button tint and keyboard focus remains visible.
+The three labels Đã gặp, Đã thuộc and Cần ôn hôm nay always appear together, in this order, as hero numbers with labels. Overlapping detail counts are never shown as if they add up.
 
-### Answer Options and Feedback
+### League row
 
-Native radio inputs sit within bordered answer rows. Hover adds a faint neutral fill; checked rows use tint and the accent border. Radios are (18px) square. Feedback uses coloured fill plus an explicit textual verdict, so meaning does not depend on colour. Explanations and provenance appear in a separate teaching area. Wrong, uncertain and correct appearances do not replace progress semantics.
+Rank, display name and weekly XP. The learner's own row is inverted (ink fill). There are no avatars, colours or accuracy figures.
+
+### Mock test
+
+A timer chip, a question navigator grid (6 columns on mobile, 10 on desktop), and Previous/Next buttons. No verdict motion or XP during the test. The result screen counts the score up, then shows "Đạt" or "Chưa đạt" with the reason in words.
 
 ## Do's and Don'ts
 
 ### Do:
 
-- **Do** use the same navy, blue and neutral roles across study, review and test screens.
-- **Do** preserve aligned counts and distinguish first-pass coverage from delayed learning.
-- **Do** keep the main action visible and give support actions a clear disclosure.
-- **Do** preserve original question images and their readable proportions.
-- **Do** retain keyboard focus visibility, target size and reduced-motion behavior.
-- **Do** label sample progress and unavailable sources honestly.
+- **Do** keep exactly one primary action per screen.
+- **Do** let the card show every verdict instantly. ChatGPT never repeats it.
+- **Do** use the three progress labels consistently in the card and in ChatGPT.
+- **Do** celebrate finished lessons, closed rings and newly Mastered questions.
+- **Do** preserve original question images and their proportions, with zoom.
+- **Do** meet WCAG 2.2 AA contrast, 48 px targets and visible focus in both themes.
 
 ### Don't:
 
-- **Don't** replace the course structure with a wall of decorative cards.
-- **Don't** imitate maps, desks, tickets or physical paper materials.
-- **Don't** use mascots, botanical imagery, strobing or decorative barcode grids.
-- **Don't** imply mastered learning through a single correct answer or hide unresolved confusion.
-- **Don't** treat the local conversation shell as verified ChatGPT host UI.
+- **Don't** use any hue: no green for correct, no red for wrong, no blue for actions.
+- **Don't** add lives, streak-loss warnings or shaming copy.
+- **Don't** use emoji, mascots or decorative illustrations in the chrome.
+- **Don't** add shadows, gradients or looping animation.
+- **Don't** imply a question is learned from a single correct answer.
+- **Don't** open a new card per question.
 
-Source scope: `PRODUCT.md`, `docs/ui-ux-direction-b-contract.md`, `docs/ui-ux-redesign-directions.md`, and the current `design/chatgpt-learning/style.css`, `index.html` and `app.js`. Historical comparison directions do not override the accepted B implementation. One-off shell colours and incidental declarations are not promoted to reusable tokens.
+Source scope: `docs/product-requirements.md` v1.0 sections 2–10 and `PRODUCT.md`. Direction-B documents (`docs/ui-ux-direction-b-*.md`) are historical.
