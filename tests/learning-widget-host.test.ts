@@ -397,7 +397,7 @@ test("the finish screen posts the lesson summary once, and reopening the finishe
     await app.getByRole("button", { name: "Tiếp tục" }).click();
     await app.getByRole("heading", { name: "Hoàn thành bài học!" }).waitFor();
     const sessionId = started.structuredContent.sessionId as string;
-    await page.locator("#host-message").getByText(`Xong bài: 1/1 đúng. [session ${sessionId} · tổng kết]`).waitFor();
+    await page.locator("#host-message").getByText(`Xong bài: 1/1 đúng, +10 XP. [session ${sessionId} · tổng kết]`).waitFor();
     assert.equal((await messages()).filter((m) => m.method === "ui/message").length, 1);
 
     await page.reload();
