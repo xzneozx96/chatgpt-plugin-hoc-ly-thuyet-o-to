@@ -438,3 +438,51 @@ test("a request for the supplied test library shows Chưa có bộ đề gốc a
     await app.getByRole("button", { name: "Bắt đầu tính giờ" }).waitFor();
   });
 });
+
+test("a card left open while another chat continues the lesson shows the server's step when it regains focus", async () => {
+  await withPreview(async ({ origin, page, app, tool, open }) => {
+    const started = await tool("start_study", { questionIds: ["q001", "q002"], requestId: randomUUID() });
+    const sessionId = started.structuredContent.sessionId as string;
+    await page.goto(`${origin}/preview`);
+    await app.locator("[data-action]").first().waitFor();
+    await open(started);
+    await app.getByRole("button", { name: "Bắt đầu" }).click();
+    await app.locator('input[name="answer"][value="A"]').check();
+    // Another chat answers q001 and moves on.
+    await tool("submit_study_answer", { sessionId, questionId: "q001", answer: right("q001"), requestId: randomUUID() });
+    await tool("next_study_question", { sessionId, requestId: randomUUID() });
+    await page.locator("#widget").evaluate((frame: HTMLIFrameElement) => frame.contentWindow?.dispatchEvent(new Event("focus")));
+    await app.getByRole("heading", { name: "Làn đường là gì?" }).waitFor();
+    await app.getByText("Bài học đã tiếp tục ở nơi khác — thẻ đã cập nhật.").waitFor();
+    assert.equal(await app.locator('input[name="answer"]:checked').count(), 0, "no stale choice stays editable");
+  });
+});
+
+test("a failed progress load offers Thử lại and shows no numbers, and a host without server tools sends the learner to the chat", async () => {
+  let refused = false;
+  await withPreview(async ({ origin, page, app, tool }) => {
+    await tool("start_study", { requestId: randomUUID() });
+    await page.goto(`${origin}/preview`);
+    await app.getByText("Chưa tải được tiến độ").waitFor();
+    assert.equal(await app.locator(".nums").count(), 0, "no zeros stand in for unknown progress");
+    await app.getByRole("button", { name: "Thử lại" }).click();
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+
+    await page.route(`${origin}/preview`, async (route) => {
+      const html = await (await route.fetch()).text();
+      await route.fulfill({ contentType: "text/html", body: html.replace("hostCapabilities:{serverTools:{},", "hostCapabilities:{") });
+    });
+    await page.goto(`${origin}/preview`);
+    await app.getByText("Thẻ không phản hồi — tiếp tục trong khung chat").waitFor();
+    assert.equal(await app.locator("#content button").count(), 0, "nothing in the card pretends to work");
+  }, async (page, origin) => {
+    await page.route(`${origin}/preview/tool`, async (route) => {
+      const body = JSON.parse(route.request().postData() ?? "{}") as { name?: string };
+      if (body.name === "get_course" && !refused) {
+        refused = true;
+        return route.fulfill({ status: 502, body: "" });
+      }
+      return route.continue();
+    });
+  });
+});
