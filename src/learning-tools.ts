@@ -17,7 +17,7 @@ export interface LearningTool {
 const cardCommands = new Set(["start_study", "resume_study", "next_study", "skip_study", "start_mock", "view_mock"]);
 
 const commands: Record<string, { name: string; title: string; description: string }> = {
-  start_study: { name: "start_study", title: "Start a study session", description: "Start all due reviews then new questions within the daily goal. Explicit category or family requests may override review ordering while retaining due work. Supply selected original question IDs to assemble a focused source-supported lesson; duplicates and learned new items are filtered by the server." },
+  start_study: { name: "start_study", title: "Start a study session", description: "Use whenever the learner wants to study, learn, review or continue. Reopens the open daily session or starts one: all due reviews, then new questions within the daily goal. Explicit category or family requests may override review ordering while retaining due work. Supply selected original question IDs to assemble a focused source-supported lesson; duplicates and learned new items are filtered by the server." },
   answer_study: { name: "submit_study_answer", title: "Submit a learning answer", description: "Score the learner's actual choice against the bank, save it once, and return feedback. Bind session and question IDs to the current card. Missing confidence stays unknown. Never submit a guess for the learner." },
   next_study: { name: "next_study_question", title: "Continue the study session", description: "Continue after the current question's feedback. The saved queue determines the next question." },
   skip_study: { name: "skip_study_question", title: "Skip a study question", description: "Skip without scoring or covering the question. A skipped due review remains unresolved." },
@@ -37,7 +37,7 @@ export function createLearningTools(runtime: LearningRuntime | null, persistence
   const decorate = (view: object) => ({ ...view, historyAvailable: runtime !== null, persistence, serverNow: Date.now() });
   const tools: LearningTool[] = [{
     name: "get_course", title: "Open the driving-theory course",
-    description: "Open the course overview, category progress, daily goal, due reviews and saved activities. Distinguish first-pass coverage from qualifying delayed learning. If historyAvailable=false, disclose unavailable history rather than personalise.",
+    description: "Show the course overview only when the learner asks about the course, their progress or goals; to study, call start_study instead. Returns category progress, daily goal, due reviews and saved activities. Distinguish first-pass coverage from qualifying delayed learning. If historyAvailable=false, disclose unavailable history rather than personalise.",
     inputSchema: {}, readOnly: true, card: true,
     async run() { return decorate(runtime ? await runtime.course() : courseView(createLearner(Date.now()), Date.now())); }
   }, {
