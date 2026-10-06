@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { once } from "node:events";
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { Server } from "node:http";
@@ -72,7 +73,7 @@ test("MCP get, submit, next and UI resource work over HTTP", async () => {
   const learningUri = (courseTool?._meta as { ui?: { resourceUri?: string } })?.ui?.resourceUri;
   assert.equal(learningUri, "ui://ly-thuyet-lai-xe/learning-v2.html");
   const cardTools = tools.tools.filter((tool) => (tool._meta as { ui?: { resourceUri?: string } })?.ui?.resourceUri === learningUri).map((tool) => tool.name).sort();
-  assert.deepEqual(cardTools, ["get_course", "get_mock_test", "resume_study", "start_mock_test", "start_study"], "only entry points open a new card");
+  assert.deepEqual(cardTools, ["get_course", "get_mock_test", "next_study_question", "resume_study", "skip_study_question", "start_mock_test", "start_study"], "only entry points open a new card");
   const learningResource = await client.readResource({ uri: learningUri });
   const learningHtml = learningResource.contents[0] as { mimeType: string; text: string };
   assert.equal(learningHtml.mimeType, "text/html;profile=mcp-app");
@@ -119,4 +120,19 @@ test("MCP get, submit, next and UI resource work over HTTP", async () => {
   assert.equal(resource.contents[0]?.mimeType, "text/html;profile=mcp-app");
   assert.ok(resource.contents[0] && "text" in resource.contents[0]);
   assert.match(resource.contents[0].text, /Kiểm tra đáp án/);
+});
+
+test("study tools tell ChatGPT to show the original bank question verbatim, with its image", async () => {
+  const text = (result: Awaited<ReturnType<typeof client.callTool>>) => (result.content as { type: string; text: string }[])[0]?.text ?? "";
+  const started = await client.callTool({ name: "start_study", arguments: { unitId: "bien_bao", requestId: randomUUID() } });
+  const session = started.structuredContent as { sessionId: string; question: { id: string; question: string; imagePath: string | null; options: { id: string; text: string }[] } };
+  const shown = text(started);
+  assert.match(shown, /Show it to the learner exactly as written/);
+  assert.ok(shown.includes(`${session.question.id}: ${session.question.question}`), "question text is copied verbatim");
+  for (const option of session.question.options) assert.ok(shown.includes(`${option.id}. ${option.text}`), `option ${option.id} is copied verbatim`);
+  assert.ok(session.question.imagePath, "a signs question has an image");
+  assert.match(shown, new RegExp(`Hình: http://127\\.0\\.0\\.1:\\d+/images/${session.question.id}\\.webp`));
+  const answered = await client.callTool({ name: "submit_study_answer", arguments: { sessionId: session.sessionId, questionId: session.question.id, answer: "A", requestId: randomUUID() } });
+  assert.match(text(answered), /Do not write a question yourself/);
+  assert.doesNotMatch(text(answered), /"queue"/);
 });

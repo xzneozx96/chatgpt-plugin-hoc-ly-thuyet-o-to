@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { createLearner, courseView, listUnits, LearningCommandSchema } from "./domain/learning.js";
+import { createLearner, courseView, listUnits, LearningCommandSchema, type studyView } from "./domain/learning.js";
 import { LearningRuntime } from "./domain/learning-runtime.js";
 import { questionTeaching } from "./domain/teaching.js";
 
@@ -14,7 +14,7 @@ export interface LearningTool {
   run(input: unknown): Promise<object>;
 }
 
-const cardCommands = new Set(["start_study", "resume_study", "start_mock", "view_mock"]);
+const cardCommands = new Set(["start_study", "resume_study", "next_study", "skip_study", "start_mock", "view_mock"]);
 
 const commands: Record<string, { name: string; title: string; description: string }> = {
   start_study: { name: "start_study", title: "Start a study session", description: "Start all due reviews then new questions within the daily goal. Explicit category or family requests may override review ordering while retaining due work. Supply selected original question IDs to assemble a focused source-supported lesson; duplicates and learned new items are filtered by the server." },
@@ -23,7 +23,7 @@ const commands: Record<string, { name: string; title: string; description: strin
   skip_study: { name: "skip_study_question", title: "Skip a study question", description: "Skip without scoring or covering the question. A skipped due review remains unresolved." },
   pause_study: { name: "pause_study", title: "Pause a study session", description: "Save a paused session without clearing its remaining reviews or recording answers." },
   resume_study: { name: "resume_study", title: "Resume a study session", description: "Resume a saved session and reconcile reviews now due. An explicit other activity may retain this paused session." },
-  record_help: { name: "request_study_help", title: "Request source-backed teaching", description: "Record answer assistance before supplying an explanation or contextual ChatGPT coaching. Use the active original question ID and session ID. Bank excerpts are the available evidence; external knowledge and verified video timestamps are unavailable until configured." },
+  record_help: { name: "request_study_help", title: "Request source-backed teaching", description: "Record answer assistance before giving a hint or explanation for the active original question. Use its question ID and session ID. Explain only from the returned bank explanation; external knowledge and verified video timestamps are unavailable until configured." },
   set_confusion: { name: "set_question_confusion", title: "Update unresolved confusion", description: "Set a learner's explicit confusion flag, or clear it only on their confirmation. A correct answer does not clear it. Bring review within24 hours without resetting learned status." },
   update_profile: { name: "update_profile", title: "Update the study plan", description: "Save the learner's goal, timezone, target date and study weekdays. Offer10,12,15 or their custom number of new unique questions per study day. Reviews count separately." },
   start_mock: { name: "start_mock_test", title: "Start a timed mock test", description: "Start a30-question20-minute random licence-B practice test. Answers remain provisional. Passing requires27/30 and no wrong or unanswered critical question. Official library mode is unavailable until supplied. Honour an explicit test request while retaining due reviews." },
@@ -83,6 +83,29 @@ export function createLearningTools(runtime: LearningRuntime | null, persistence
     });
   }
   return runtime ? tools : tools.filter(tool => tool.name === "get_course" || tool.name === "list_units");
+}
+
+type ShownQuestion = NonNullable<ReturnType<typeof studyView>["question"]>;
+
+function questionBlock(question: ShownQuestion, origin: string) {
+  return [
+    `${question.id}: ${question.question}`,
+    ...(question.imagePath ? [`Hình: ${origin}/images/${question.imagePath.split("/").at(-1)}`] : []),
+    ...question.options.map(option => `${option.id}. ${option.text}`)
+  ].join("\n");
+}
+
+export function learningText(view: object, origin: string) {
+  if (!("kind" in view) || view.kind !== "study") return JSON.stringify(view);
+  const study = view as ReturnType<typeof studyView>;
+  const lines = [`Buổi học ${study.sessionId} · ${study.completed}/${study.total} câu đã xử lý · ${study.status}`];
+  if (study.currentFeedback) {
+    const feedback = study.currentFeedback;
+    lines.push(`Kết quả ${feedback.questionId}: ${feedback.correct ? "Đúng" : "Sai"}. Đáp án gốc: ${feedback.correctAnswer}.`, `Giải thích từ ngân hàng: ${feedback.explanation}`, "Call next_study_question for the next original question. Do not write a question yourself.");
+  } else if (study.question) {
+    lines.push("Original bank question. Show it to the learner exactly as written, with every option and the image link:", questionBlock(study.question, origin));
+  } else lines.push("Không còn câu hỏi trong buổi học này.");
+  return lines.join("\n");
 }
 
 export function learningError(error: unknown) {
