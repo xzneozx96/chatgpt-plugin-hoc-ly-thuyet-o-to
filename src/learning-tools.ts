@@ -14,7 +14,7 @@ export interface LearningTool {
   run(input: unknown): Promise<object>;
 }
 
-const cardCommands = new Set(["start_study", "resume_study", "next_study", "skip_study", "start_mock", "view_mock"]);
+const cardCommands = new Set(["start_study", "resume_study", "next_study", "skip_study", "start_mock", "view_mock", "start_lightning"]);
 
 const commands: Record<string, { name: string; title: string; description: string }> = {
   start_study: { name: "start_study", title: "Start a study session", description: "Use whenever the learner wants to study, learn, review or continue. Reopens the open daily session or starts one: all due reviews, then new questions within the daily goal. Explicit category or family requests may override review ordering while retaining due work. unitId accepts a bank category, a confusing-question group, or de_nham_lan for all confusing-question groups. Pass count for a specific number of questions, such as 5. Supply selected original question IDs to assemble a focused source-supported lesson." },
@@ -30,7 +30,8 @@ const commands: Record<string, { name: string; title: string; description: strin
   save_mock_choice: { name: "save_mock_choice", title: "Save a provisional test answer", description: "Save or replace a choice in an active test without revealing correctness or updating learning history. The server records its accepted time." },
   finalise_mock: { name: "finalise_mock_test", title: "Submit the mock test", description: "Finalise the test once and publish answered learning results atomically. Before early submission with unanswered items, obtain learner confirmation and pass confirmUnanswered=true. Expiry finalises automatically." },
   abandon_mock: { name: "abandon_mock_test", title: "Leave the mock test", description: "Abandon a running test only after the learner confirms leaving. Provisional answers never become scored learning evidence." },
-  view_mock: { name: "get_mock_test", title: "Resume or inspect a mock test", description: "Retrieve an own saved test. The server finalises an expired attempt before returning its result." }
+  view_mock: { name: "get_mock_test", title: "Resume or inspect a mock test", description: "Retrieve an own saved test. The server finalises an expired attempt before returning its result." },
+  start_lightning: { name: "start_lightning", title: "Start a lightning round (chớp nhoáng)", description: "Start a 60-second lightning round over up to 30 original questions the learner has already answered. Use only when the learner asks for one or taps it on the card. Every answer is a normal scored attempt: a wrong answer lapses the question and schedules its review, and a correct answer to a question that is not due is early practice. The card shows a counter and no explanations during the round. Answers after 60 seconds are rejected and not saved." }
 };
 
 export function createLearningTools(runtime: LearningRuntime | null, persistence: "local" | "authenticated" | "unavailable"): LearningTool[] {
@@ -170,7 +171,9 @@ const errorMessages: Record<string, string> = {
   MOCK_NOT_FOUND: "Không tìm thấy bài thi thử này.",
   MOCK_NOT_ACTIVE: "Bài thi thử này đã kết thúc nên không thể lưu thêm lựa chọn.",
   MOCK_ABANDONED: "Bài thi thử này đã dừng nên không thể nộp. Hãy bắt đầu bài mới.",
-  CONFIRM_UNANSWERED: "Còn câu chưa trả lời. Hỏi người học xác nhận, rồi nộp lại với confirmUnanswered=true."
+  CONFIRM_UNANSWERED: "Còn câu chưa trả lời. Hỏi người học xác nhận, rồi nộp lại với confirmUnanswered=true.",
+  LIGHTNING_EXPIRED: "Đã hết 60 giây của lượt chớp nhoáng nên câu trả lời này không được ghi. Xem kết quả lượt hoặc bắt đầu lượt mới.",
+  LIGHTNING_NEEDS_HISTORY: "Chưa có câu nào đã trả lời để chơi chớp nhoáng. Hãy học vài câu trước bằng start_study."
 };
 
 export function learningError(error: unknown) {

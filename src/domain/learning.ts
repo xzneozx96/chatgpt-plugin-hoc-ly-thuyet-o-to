@@ -4,6 +4,7 @@ import { submitAnswer } from "./quiz.js";
 import { bankQuestions, bankVersion, categories, categoryTitles, CONFUSING_CATEGORY_ID, families, safeQuestion, unitQuestions } from "./course.js";
 import { answerAwards, comboOf, lessonXp, xpSummary } from "./game.js";
 export const DAY = 86400000;
+const LIGHTNING_MS = 60000;
 const id = z.string().uuid();
 const qid = z.string().regex(/^q\d{3}$/).refine(value => bankQuestions.some(q => q.questionId === value), "Unknown original question");
 const time = z.number().finite().nonnegative();
@@ -220,6 +221,10 @@ export const LearningCommandSchema = z.discriminatedUnion("kind", [
     z.object({
         ...mockInput,
         kind: z.literal("view_mock")
+    }),
+    z.object({
+        ...base,
+        kind: z.literal("start_lightning")
     })
 ]);
 export type LearningCommand = z.infer<typeof LearningCommandSchema>;
@@ -556,6 +561,11 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
             practice: planned.filter(i => i.kind === "practice").length,
             pairGroups: new Set(s.items.flatMap(i => i.group === undefined ? [] : [i.group])).size
         },
+        deadline: s.deadline ?? null,
+        remainingMs: s.deadline === undefined ? null : Math.max(0, s.deadline - now),
+        serverNow: now,
+        correctCount: results.correctAttempts,
+        wrongItems: [...new Set(answers.filter(e => !e.correct).map(e => e.questionId))],
         pair: active?.group === undefined ? null : {
             group: active.group,
             familyId: active.group,
@@ -721,10 +731,23 @@ export function runningMockQuestions(state: LearnerState) {
     return new Set(state.mocks.flatMap(m => m.status === "active" ? m.questionIds : []));
 }
 function reopen(state: LearnerState, s: z.infer<typeof session>, now: number) {
+    if (s.mode === "lightning" && s.status === "complete")
+        return;
     if (activeItem(s)?.status === "answered")
         s.status = "active";
     else
         reconcile(state, s, now);
+}
+/** A lightning round ends at its deadline. Its unanswered questions stay unanswered and unscored. */
+export function closeExpiredLightning(state: LearnerState, now: number) {
+    let closed = false;
+    for (const s of state.sessions)
+        if (s.mode === "lightning" && s.status !== "complete" && s.deadline !== undefined && now >= s.deadline) {
+            s.status = "complete";
+            activate(s, undefined);
+            closed = true;
+        }
+    return closed;
 }
 function closeMock(state: LearnerState, attemptId: string, now: number, reason: "submit" | "expiry") {
     const m = findMock(state, attemptId);
@@ -820,6 +843,7 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
     const expired = state.mocks.filter(m => m.status === "active" && now >= m.deadline).map(m => m.id);
     for (const attemptId of expired)
         closeMock(state, attemptId, now, "expiry");
+    closeExpiredLightning(state, now);
     let activityId: string | null = null;
     let viewKind: "course" | "study" | "mock" | "help" | "answer" = "course";
     let resumed = false;
@@ -905,6 +929,8 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
             const s = findSession(state, command.sessionId);
             activityId = s.id;
             viewKind = "study";
+            if (s.mode === "lightning" && s.deadline !== undefined && now >= s.deadline)
+                throw new Error("LIGHTNING_EXPIRED");
             if (s.status !== "active")
                 throw new Error("SESSION_NOT_ACTIVE");
             const active = activeItem(s);
@@ -1097,6 +1123,32 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
         case "view_mock": {
             activityId = findMock(state, command.attemptId).id;
             viewKind = "mock";
+            break;
+        }
+        case "start_lightning": {
+            // INT-03: up to 30 distinct questions this learner has answered before, in an order seeded by the request ID.
+            const progress = questionProgress(state);
+            const blocked = runningMockQuestions(state);
+            const seen = bankQuestions.map(q => q.questionId).filter(q => progress.get(q)?.coveredAt !== null && !blocked.has(q));
+            if (!seen.length)
+                throw new Error("LIGHTNING_NEEDS_HISTORY");
+            const order = seen.map(q => ({ q, key: createHash("sha256").update(`${command.requestId}:${q}`).digest("hex") })).sort((a, b) => a.key.localeCompare(b.key)).slice(0, 30);
+            activityId = randomUUID();
+            state.sessions.push({
+                id: activityId,
+                createdAt: now,
+                status: "active",
+                // Lightning is its own activity: never reopened as the daily lesson and never given due reviews.
+                override: true,
+                reviewOnly: false,
+                unitId: null,
+                items: order.map(({ q }) => ({ questionId: q, kind: "practice", status: "pending", bindingAt: now })),
+                activeQuestionId: order[0]?.q ?? null,
+                activeRepair: false,
+                mode: "lightning",
+                deadline: now + LIGHTNING_MS
+            });
+            viewKind = "study";
             break;
         }
         default: {

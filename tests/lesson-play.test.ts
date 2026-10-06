@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { createLearner, courseView, executeLearning, questionProgress, DAY, type LearnerState, type LearningCommand } from "../src/domain/learning.js";
 import { answerAwards } from "../src/domain/game.js";
-import { families, safeQuestion } from "../src/domain/course.js";
+import { bankQuestions, families, safeQuestion } from "../src/domain/course.js";
+import { LearningRuntime } from "../src/domain/learning-runtime.js";
+import { SqliteLearningStore } from "../src/persistence/learning-store.js";
 import { submitAnswer, type AnswerId } from "../src/domain/quiz.js";
 
 // Tuesday 10:00 in Vietnam.
@@ -177,4 +179,80 @@ test("skipping a pair requeues both questions together", () => {
     const skipped = run(reached.state, { kind: "skip_study", requestId: requestId(), sessionId: daily.sessionId }, morning + MINUTE);
     assert.deepEqual(skipped.sessions.at(-1)?.items.slice(-2).map(i => i.questionId), ids);
     assert.equal(skipped.sessions.at(-1)?.status, "paused");
+});
+
+/** A learner who answered the first n bank questions correctly at `at`. */
+function answered(n: number, at = morning) {
+    let s = createLearner(at);
+    for (const q of bankQuestions.slice(0, n).map(q => q.questionId))
+        s = run(s, { kind: "answer_question", requestId: requestId(), questionId: q, answer: right(q) }, at);
+    return s;
+}
+function lightning(state: LearnerState, now: number, id = requestId()) {
+    const result = executeLearning(state, { kind: "start_lightning", requestId: id }, now);
+    assert.ok(result.view.kind === "study");
+    return { state: result.state, view: result.view, sessionId: result.view.sessionId };
+}
+
+test("a lightning round takes up to 30 distinct seen questions in an order seeded by the request", () => {
+    assert.throws(() => executeLearning(createLearner(morning), { kind: "start_lightning", requestId: requestId() }, morning), /LIGHTNING_NEEDS_HISTORY/);
+    const seen = answered(40);
+    const seenIds = new Set(bankQuestions.slice(0, 40).map(q => q.questionId));
+    const id = requestId();
+    const round = lightning(seen, morning + MINUTE, id);
+    const items = round.state.sessions.at(-1)?.items ?? [];
+    assert.equal(items.length, 30);
+    assert.equal(new Set(items.map(i => i.questionId)).size, 30);
+    assert.ok(items.every(i => seenIds.has(i.questionId) && i.kind === "practice"));
+    assert.deepEqual([round.view.mode, round.view.deadline, round.view.remainingMs, round.view.serverNow], ["lightning", morning + 2 * MINUTE, MINUTE, morning + MINUTE]);
+    const again = lightning(seen, morning + MINUTE, id);
+    assert.deepEqual(again.state.sessions.at(-1)?.items.map(i => i.questionId), items.map(i => i.questionId), "the same request gives the same order");
+    const other = lightning(seen, morning + MINUTE);
+    assert.notDeepEqual(other.state.sessions.at(-1)?.items.map(i => i.questionId), items.map(i => i.questionId));
+    const daily = executeLearning(round.state, { kind: "start_study", requestId: requestId() }, morning + MINUTE).view;
+    assert.ok(daily.kind === "course" && daily.nothingToStudy, "the daily lesson never reopens a lightning round");
+});
+
+test("lightning answers are scored attempts worth 1 XP each up to 15 a round, with mastery bonuses on top and no repairs", () => {
+    const seen = answered(20);
+    const round = lightning(seen, morning + DAY);
+    const sessionId = round.sessionId;
+    let s = round.state;
+    const order = s.sessions.at(-1)?.items.map(i => i.questionId) ?? [];
+    for (const [i, q] of order.entries()) {
+        s = answerIn(s, sessionId, q, morning + DAY + i * 1000, i === 0 ? wrong(q) : right(q));
+        if (i < order.length - 1)
+            s = next(s, sessionId, morning + DAY + i * 1000);
+    }
+    assert.equal(s.sessions.at(-1)?.items.length, 20, "a wrong lightning answer adds no repair step");
+    const facts = s.evidence.filter(e => e.kind === "answer" && e.activityId === sessionId);
+    assert.ok(facts.every(e => e.kind === "answer" && e.origin === "study"));
+    const awards = facts.map(e => answerAwards(s).get(e.id));
+    assert.deepEqual(awards[0], { xp: 0, reason: "lightning", masteredNow: false });
+    assert.equal(questionProgress(s).get(order[0] ?? "")?.successes, 0, "the wrong answer lapses the question as usual");
+    assert.ok(awards.slice(1).every(a => a?.reason === "lightning" && a.masteredNow), "due recalls master the other 19");
+    assert.equal(awards.reduce((sum, a) => sum + (a?.xp ?? 0) - (a?.masteredNow ? 15 : 0), 0), 15, "1 XP per correct answer, at most 15 a round");
+    const view = study(s, { kind: "resume_study", requestId: requestId(), sessionId }, morning + DAY + 30000);
+    assert.deepEqual([view.correctCount, view.wrongItems], [19, [order[0]]]);
+});
+
+test("an answer after the 60 seconds is rejected and records nothing, and the round closes", async () => {
+    const store = new SqliteLearningStore(":memory:");
+    let now = morning;
+    const runtime = new LearningRuntime(store, "learner-a", () => now);
+    for (const q of ["q001", "q002"])
+        await runtime.command({ kind: "answer_question", requestId: requestId(), questionId: q, answer: right(q) });
+    const round = await runtime.command({ kind: "start_lightning", requestId: requestId() });
+    assert.ok(round.kind === "study" && round.question);
+    const before = await store.load("learner-a");
+    now = morning + MINUTE;
+    await assert.rejects(runtime.command({ kind: "answer_study", requestId: requestId(), sessionId: round.sessionId, questionId: round.question.id, answer: right(round.question.id) }), /LIGHTNING_EXPIRED/);
+    assert.deepEqual(await store.load("learner-a"), before, "nothing was saved");
+    const closed = await runtime.session(round.sessionId);
+    assert.deepEqual([closed.status, closed.remainingMs, closed.question, closed.correctCount], ["complete", 0, null, 0]);
+    assert.equal((await store.load("learner-a"))?.state.sessions.at(-1)?.status, "complete", "reading after the deadline saves the closed round");
+    const resumed = await runtime.command({ kind: "resume_study", requestId: requestId(), sessionId: round.sessionId });
+    assert.ok(resumed.kind === "study");
+    assert.equal(resumed.status, "complete", "an ended round cannot be resumed");
+    store.close();
 });
