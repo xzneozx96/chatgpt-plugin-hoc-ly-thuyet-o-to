@@ -562,6 +562,24 @@ test("tapping a suggested group selects that suggestion and offers Học nhóm n
   });
 });
 
+test("a confusing-question group with images carries an image marker in the list", async () => {
+  await withPreview(async ({ origin, page, app, tool }) => {
+    await tool("start_study", { requestId: randomUUID() });
+    await page.goto(`${origin}/preview`);
+    await app.getByRole("button", { name: "Chọn chủ đề" }).click();
+    await app.getByRole("button", { name: /^Câu hỏi dễ nhầm lẫn/ }).click();
+    await app.getByRole("button", { name: "Chọn nhóm" }).click();
+    const marked = async (query: string) => {
+      await app.locator("#search").fill(query);
+      await app.getByRole("button", { name: "Tìm kiếm" }).click();
+      await app.locator(`.frow input[value="${query}"]`).waitFor({ state: "attached" });
+      return app.locator(".frow").getByText("có hình").count();
+    };
+    assert.equal(await marked("rules-officer-gestures"), 1, "a group of image questions is marked");
+    assert.equal(await marked("rules-road-components"), 0, "a text-only group is not");
+  });
+});
+
 test("a question without bank text says so and offers Hỏi ChatGPT inside the verdict", async () => {
   await withPreview(async ({ origin, page, app, tool, open }) => {
     const started = await tool("start_study", { questionIds: ["q010"], requestId: randomUUID() });
