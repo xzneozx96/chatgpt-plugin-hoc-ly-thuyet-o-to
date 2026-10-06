@@ -257,7 +257,7 @@ Khóa học bằng B
 ```
 
 - Tiles are never locked. "Học" starts a lesson from that pool. If reviews are due, the intro notes "Còn 6 câu ôn đến hạn", and they stay due.
-- "Câu hỏi dễ nhầm lẫn" opens the family picker. It shows three personalised suggestions with reasons, then a search field that accepts unaccented Vietnamese or a question number. Rows show title, member count, an image marker and draft/approved status. One selection and "Học nhóm này".
+- "Câu hỏi dễ nhầm lẫn" opens the family picker. It shows three personalised suggestions with reasons, then a search field that accepts unaccented Vietnamese or a question number. Rows show title, member count and an image marker. They carry no status badge, because every group has been reviewed and approved. One selection and "Học nhóm này".
 - Detail views (needs repair, flagged confusion, next review date) are one tap deeper on each tile and follow PRD appendix A1.
 
 ### 4.11 League board
@@ -346,7 +346,6 @@ None of these states uses colour. Each verdict is announced through an `aria-liv
 | Missing approved explanation | "Chưa có giải thích được duyệt cho câu này" with "Hỏi ChatGPT" | Bank verdict and saved review |
 | Teaching MCP unavailable | Retained approved text with an optional retry | Lesson continues without invented sources |
 | No or removed video | The "Video" button is hidden. If a link fails: "Video không còn khả dụng". | Active step |
-| Draft family | Picker row marked "Bản nháp". Questions are playable, with no approved comparison line. | Original content |
 | Stale card | "Bài học đang tiếp tục ở thẻ mới nhất" | Historic answers |
 | Library not supplied | "Chưa có bộ đề gốc" with "Tạo đề ngẫu nhiên" | No substituted test |
 | Test expired while away | The result screen on return | Original deadline and final choices, finalised once |

@@ -136,7 +136,7 @@ function courseText(course: ReturnType<typeof courseView> & { historyAvailable?:
     `Mục tiêu ${course.dailyGoal} câu mới mỗi ngày; hôm nay đã học ${course.newToday} câu mới.`,
     `Kết quả: ${course.results.correctAttempts}/${course.results.totalAttempts} lượt đúng (${course.results.accuracyPercent}%).`,
     ...course.units.map(unit => `- ${unit.title} (${unit.id}): ${unit.covered}/${unit.questionCount} đã thử, ${unit.learned} đã nhớ`),
-    `- ${course.customCategory.title} (${course.customCategory.id}): ${course.customCategory.covered}/${course.customCategory.total} đã thử, ${course.customCategory.familyCount} nhóm nháp`
+    `- ${course.customCategory.title} (${course.customCategory.id}): ${course.customCategory.covered}/${course.customCategory.total} đã thử, ${course.customCategory.familyCount} nhóm`
   ];
   const open = course.sessions.filter(session => session.status !== "complete");
   if (open.length) lines.push(`Buổi học đang mở: ${open.map(session => `${session.id} (${session.status})`).join(", ")}.`);
@@ -180,7 +180,7 @@ function pairLines(study: ReturnType<typeof studyView>, pair: NonNullable<Return
   const verdicts = pair.feedback.flatMap(feedback => feedback ? [feedback] : []);
   if (verdicts.length === pair.questions.length) return [
     ...verdicts.flatMap(feedback => [`Kết quả ${feedback.questionId}: ${feedback.correct ? "Đúng" : "Sai"}. Đáp án gốc: ${feedback.correctAnswer}.`, `Giải thích từ ngân hàng: ${feedback.explanation}`]),
-    `Hai câu dễ nhầm thuộc nhóm nháp chưa duyệt "${pair.title}". Khía cạnh so sánh của nhóm: ${pair.axes.join("; ")}.`,
+    `Hai câu dễ nhầm thuộc nhóm "${pair.title}". Khía cạnh so sánh của nhóm: ${pair.axes.join("; ")}.`,
     "Call next_study_question for the next original question. Do not write a question yourself."
   ];
   const answered = new Set(study.queue.filter(item => item.group === pair.group && item.status === "answered").map(item => item.questionId));

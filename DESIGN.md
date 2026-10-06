@@ -146,7 +146,7 @@ Idle tiles use the light `--line` border on purpose. The tile's own text and let
 | Headline | 21–24 px / 800 | Screen titles, verdict ("Chính xác!" 19 px / 800 in the feedback panel) |
 | Hero number | 26–64 px mono / 700 | Ring centre, finish counts, test score |
 | Body | 14–15 px / 400–600 | Explanations, coach copy |
-| Chip | 11 px / 800, uppercase | Step chips (ÔN LẠI, MỚI), status tags |
+| Chip | 11 px / 800, uppercase | Step chips (ÔN LẠI, MỚI, THỬ LẠI, THỬ THÁCH) |
 | Small | 12–13 px / 600–700 | Metadata, secondary text buttons |
 
 ## Layout

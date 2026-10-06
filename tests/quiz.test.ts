@@ -139,6 +139,7 @@ test("text replies are readable summaries and errors are plain Vietnamese", asyn
   const course = text(await client.callTool({ name: "get_course", arguments: {} }));
   assert.match(course, /^Khóa học bằng B: đã thử \d+\/600 câu/m);
   assert.match(course, /Câu hỏi dễ nhầm lẫn \(de_nham_lan\)/);
+  assert.doesNotMatch(course, /nháp|draft/i, "confusing-question groups are approved, not drafts");
   assert.ok(course.length < 2000, `course summary stays short (${course.length} chars)`);
   assert.match(text(await client.callTool({ name: "get_question", arguments: { questionId: "q001" } })), /^q001: Phần của đường bộ/m);
   const lesson = await client.callTool({ name: "start_study", arguments: { questionIds: ["q002"], requestId: randomUUID() } });

@@ -240,6 +240,10 @@ test("a compare-the-pair step submits both answers, shows both verdicts and the 
     await app.locator(".vchip").getByText("Chính xác!").waitFor();
     await app.locator(".vchip").getByText("Chưa đúng").waitFor();
     assert.equal(await app.locator(".diff .axes li").count() > 0, true, "the family's aspects are named");
+    assert.doesNotMatch(await app.locator(".diff").innerText(), /NHÁP|duyệt/i, "the difference panel says nothing about drafts");
+    const pairText = ((await tool("get_study_session", { sessionId })) as unknown as { content: { text: string }[] }).content[0]?.text ?? "";
+    assert.match(pairText, /Khía cạnh so sánh/);
+    assert.doesNotMatch(pairText, /nháp|draft/i, "ChatGPT is not told the family is a draft");
     const calls = () => sent().then((log) => log.filter((m) => m.method === "tools/call" && m.name !== "get_study_session").map((m) => [m.name, m.arguments?.questionId ?? null]));
     assert.deepEqual(await calls(), [["submit_study_answer", a], ["submit_study_answer", b]], "two answers, no next yet");
     await app.locator(".diff").getByRole("button", { name: "Tiếp tục" }).click();
@@ -578,6 +582,8 @@ test("a confusing-question group with images carries an image marker in the list
     };
     assert.equal(await marked("rules-officer-gestures"), 1, "a group of image questions is marked");
     assert.equal(await marked("rules-road-components"), 0, "a text-only group is not");
+    assert.equal(await app.locator(".frow").filter({ hasText: /ĐÃ DUYỆT|BẢN NHÁP/ }).count(), 0, "family rows carry no status badge");
+    assert.equal(await app.getByRole("button", { name: "Giải thích: Bản nháp" }).count(), 0);
   });
 });
 
