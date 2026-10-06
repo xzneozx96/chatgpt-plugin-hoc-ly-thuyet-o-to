@@ -341,7 +341,7 @@ None of these states uses colour. Each verdict is announced through an `aria-liv
 | --- | --- | --- |
 | Not signed in | "Đăng nhập để lưu tiến độ" with the connection path. Nothing is claimed as saved. | Current step if supported, marked unsaved |
 | Progress load failure | "Chưa tải được tiến độ" with "Thử lại". The home card shows no numbers rather than zeros. | Saved state is never overwritten by empty data |
-| Answer save failure | Verdict with ⟳ "Chưa lưu được — thử lại". "Tiếp tục" waits until saved or until the learner chooses "Lưu sau", which keeps the retry queued. | Stable attempt ID, no duplicate XP |
+| Answer not delivered | No verdict. The selection stays, with a dashed ⟳ row "Chưa gửi được — thử lại". "Thử lại" resends with the same request ID. ✕ still pauses. | Stable request ID, so no duplicate attempt or XP |
 | `tools/call` unavailable on this client | "Thẻ không phản hồi — tiếp tục trong khung chat" | ChatGPT continues in text mode from the same session |
 | Missing approved explanation | "Chưa có giải thích được duyệt cho câu này" with "Hỏi ChatGPT" | Bank verdict and saved review |
 | Teaching MCP unavailable | Retained approved text with an optional retry | Lesson continues without invented sources |

@@ -73,7 +73,7 @@ The progress bar at the top of the card advances after every step. After a wrong
 | PLAY-04 | P0 | One-line why | Every verdict shows approved teaching text (B3 KB-07) in ≤ 2 sentences, with optional expansion. If no approved text exists, say so plainly and offer "Hỏi ChatGPT". |
 | PLAY-05 | P0 | Repair inside the lesson | A wrong answer schedules one repair attempt later in the same lesson, after at least 2 other steps. Repair earns reduced XP and never counts as delayed recall. |
 | PLAY-06 | P0 | Learning rules unchanged | Scoring, confidence, assistance, confusion and review scheduling follow appendix B2–B4 exactly. The game layer reads their results and never alters them. |
-| PLAY-07 | P0 | Resilient on bad networks | If saving fails, the card says "Chưa lưu được — thử lại" and retries with the same attempt ID (DAT-02, DAT-03). It never shows a verdict that the server did not return. |
+| PLAY-07 | P0 | Resilient on bad networks | If a request does not reach the server or gets no reply, the card keeps the selection, shows no verdict, and says "Chưa gửi được — thử lại". "Thử lại" resends with the same request ID, so the answer counts once (DAT-02, DAT-03). The learner can still pause. The card never shows a verdict that the server did not return. |
 
 ## 4. Session shape
 
