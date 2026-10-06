@@ -67,7 +67,7 @@ test("learning preview drives course, goal, families, study, confusion, help, pa
     await app.locator("details.more-actions summary").click();
 
     await action("help").click();
-    await page.locator("#host-message").getByText(/ChatGPT không chạy tại đây/).waitFor();
+    await app.locator("#status").getByText(/Host này không gửi được yêu cầu vào ChatGPT/).waitFor();
     await app.getByText(/Kho kiến thức và video bổ sung chưa kết nối/).waitFor();
 
     await app.locator("details.more-actions summary").click();
