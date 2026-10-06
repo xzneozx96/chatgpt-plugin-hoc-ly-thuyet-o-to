@@ -68,7 +68,9 @@ const session = z.object({
     // A question can appear twice once it has a repair step, so this says which of the two is active.
     activeRepair: z.boolean().default(false),
     mode: z.enum(["lesson", "lightning"]).default("lesson"),
-    deadline: time.optional()
+    deadline: time.optional(),
+    // When the session first completed; a reopened daily lesson keeps it, so its finish bonus never moves.
+    completedAt: time.optional()
 });
 type Session = z.infer<typeof session>;
 type Item = z.infer<typeof item>;
@@ -696,6 +698,8 @@ function reconcile(state: LearnerState, s: z.infer<typeof session>, now: number)
     s.items.sort((a, b) => Number(b.kind === "review") - Number(a.kind === "review"));
     activate(s, s.items.find(i => i.status === "pending" && !blocked.has(i.questionId)));
     s.status = s.activeQuestionId ? "active" : s.items.some(i => i.status === "pending") ? "paused" : "complete";
+    if (s.status === "complete")
+        s.completedAt ??= now;
 }
 /**
  * PLAY-05: one repair step after a wrong answer, placed after the next two pending steps, or last when

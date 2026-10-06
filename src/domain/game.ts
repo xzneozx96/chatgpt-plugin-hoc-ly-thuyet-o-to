@@ -76,11 +76,16 @@ function sessionAnswers(state: LearnerState, sessionId: string) {
     return state.evidence.filter((e): e is AnswerFact => e.kind === "answer" && e.activityId === sessionId).sort((a, b) => a.at - b.at || a.sequence - b.sequence);
 }
 
-/** A lesson counts as finished once it is complete with at least one answer of its own. */
+/**
+ * A lesson counts as finished once it has completed with at least one answer of its own. A daily lesson
+ * reopened later for newly due reviews keeps that finish. Sessions saved before completedAt existed use
+ * their last answer while complete.
+ */
 export function lessonFinishedAt(state: LearnerState, session: LearnerState["sessions"][number]) {
-    if (session.mode !== "lesson" || session.status !== "complete")
+    const lastAnswerAt = sessionAnswers(state, session.id).at(-1)?.at;
+    if (session.mode !== "lesson" || lastAnswerAt === undefined)
         return null;
-    return sessionAnswers(state, session.id).at(-1)?.at ?? null;
+    return session.completedAt ?? (session.status === "complete" ? lastAnswerAt : null);
 }
 
 /** The lesson-finished bonus a session has earned: 10 once it is finished, otherwise 0. */

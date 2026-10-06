@@ -14,6 +14,7 @@ const requestId = () => randomUUID();
 const right = (q: string) => submitAnswer(q, safeQuestion(q).options[0]?.id ?? "A").correctAnswer;
 const wrong = (q: string) => safeQuestion(q).options.find(o => o.id !== right(q))?.id ?? "A";
 const run = (state: LearnerState, c: LearningCommand, now: number) => executeLearning(state, c, now).state;
+const next = (state: LearnerState, sessionId: string, now: number) => run(state, { kind: "next_study", requestId: requestId(), sessionId }, now);
 function lesson(state: LearnerState, questionIds: string[], now: number) {
     state = run(state, { kind: "start_study", requestId: requestId(), questionIds }, now);
     const session = state.sessions.at(-1);
@@ -172,6 +173,23 @@ test("the study view reports session XP, the latest award, the step kind and the
     const finished = executeLearning(done.state, { kind: "next_study", requestId: requestId(), sessionId }, morning + 3 * MINUTE).view;
     assert.ok(finished.kind === "study" && finished.status === "complete");
     assert.equal(finished.xp, 30, "finishing the lesson adds 10");
+});
+
+test("a finished daily lesson keeps its bonus when it reopens for newly due reviews", () => {
+    let s = answer(createLearner(morning), "q001", morning, wrong("q001")).state;
+    s = answer(s, "q002", morning + 2 * 3600000, wrong("q002")).state;
+    const reviewAt = morning + DAY + 3600000;
+    s = run(s, { kind: "start_study", requestId: requestId(), reviewOnly: true }, reviewAt);
+    const review = s.sessions.at(-1);
+    assert.ok(review);
+    assert.deepEqual(review.items.map(i => i.questionId), ["q001"], "q002 is not due yet");
+    s = next(answerIn(s, review.id, "q001", reviewAt), review.id, reviewAt);
+    assert.equal(s.sessions.at(-1)?.status, "complete");
+    const finished = xpSummary(s, reviewAt);
+    assert.equal(finished.total, 3 + 3 + 10 + 10);
+    s = run(s, { kind: "resume_study", requestId: requestId(), sessionId: review.id }, morning + DAY + 3 * 3600000);
+    assert.equal(s.sessions.at(-1)?.status, "active", "q002 is now due and joins the reopened lesson");
+    assert.deepEqual(xpSummary(s, morning + DAY + 3 * 3600000), finished, "XP never decreases");
 });
 
 test("today follows the learner's timezone, the week runs Monday to Sunday in Vietnam time, and over 500 XP in a day is flagged", () => {
