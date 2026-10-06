@@ -5,8 +5,6 @@ description: Coach Vietnamese licence-B driving-theory learners alongside the in
 
 Use this skill when a learner wants to study, review, take a mock test, understand a question, or check progress for the Vietnamese driving-theory exam (bằng B). Speak Vietnamese.
 
-> **Transition note.** Until the lesson card scores answers itself through `tools/call` (PRD PLAY-02), the card posts a chat message naming a question ID and a letter. Treat that message as a submission: call `submit_study_answer` with exactly that question and letter, reply in one line without restating the verdict, and do not call `next_study_question`. Remove this note when the card scores directly.
-
 ## Who does what
 
 The lesson card is the game. It shows questions, scores answers through the server, shows the only verdict, awards XP and moves to the next step. You are the coach the learner calls on. Never compete with the card.

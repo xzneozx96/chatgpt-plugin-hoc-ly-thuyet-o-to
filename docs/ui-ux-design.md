@@ -309,13 +309,13 @@ A pass shows "Đạt" with a one-time celebration and +50 XP in total. An expire
 | --- | --- | --- | --- | ---: |
 | Selected, not submitted | 2 px ink border, letter badge filled | — | — | — |
 | Correct | Ink fill, on-ink text | Filled circle ✓, draws in | "Chính xác!" | 10 |
-| Wrong (chosen option) | Dashed 2 px ink border | Outlined circle ✕, shake | "Chưa đúng" | 3 |
-| Correct option after a wrong answer | Solid 2 px ink border | — | "Đáp án đúng" | — |
+| Wrong (chosen option) | 2 px ink border; letter box filled with diagonal stripes, carrying an ✕ in a small circle | Outlined ✕, shake | "Chưa đúng"; the option is tagged "Bạn chọn" | 3 |
+| Correct option after a wrong answer | Inverted: ink fill, on-ink text, ✓ in the letter box | — | "Đáp án đúng" | — |
 | Correct after help | Ink fill | Outlined circle ✓, no bounce | "Đúng (có hỗ trợ)" | 3 |
 | Correct but guessed ("Tôi đoán" on) | Ink fill | Filled ✓ | "Đúng — lần sau thử không đoán nhé" | 10 |
 | Repair correct | Ink fill | Filled ✓ | "Đã sửa!" | 2 |
 | Newly Mastered | As correct | Filled ✓ | Extra line "Đã thuộc!" with a pop | +15 bonus |
-| Scored, not saved | As verdict | Small ⟳ beside the verdict | "Chưa lưu được — thử lại" with "Thử lại" | none until saved |
+| Request not delivered | Selection kept, options locked | Small ⟳ in a dashed row | No verdict, because the server has not scored anything. Dashed row "Chưa gửi được — thử lại" with "Thử lại", which resends with the same request ID | none |
 | Skipped | Options reset | — | "Đã bỏ qua · vẫn cần ôn" | 0 |
 
 None of these states uses colour. Each verdict is announced through an `aria-live` region.
