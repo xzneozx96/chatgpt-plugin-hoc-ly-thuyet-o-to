@@ -537,6 +537,29 @@ test("a lesson started from a confusing-question group or a category names it in
   });
 });
 
+test("tapping a suggested group selects that suggestion and offers Học nhóm này right below it", async () => {
+  await withPreview(async ({ origin, page, app, tool, messages }) => {
+    await tool("start_study", { requestId: randomUUID() });
+    await page.goto(`${origin}/preview`);
+    await app.getByRole("button", { name: "Chọn chủ đề" }).click();
+    await app.getByRole("button", { name: /^Câu hỏi dễ nhầm lẫn/ }).click();
+    await app.getByRole("button", { name: "Chọn nhóm" }).click();
+    const first = app.locator(".sugg").first();
+    const id = await first.locator("input").getAttribute("value");
+    assert.ok(id && await app.locator(`.frow input[value="${id}"]`).count() === 1, "the suggestion is also on the list's first page");
+    await first.click();
+    assert.equal(await app.locator(".sugg:has(input:checked)").count(), 1, "the tapped suggestion is the selection");
+    assert.equal(await app.locator(".frow:has(input:checked)").count(), 0, "its copy in the list is not");
+    // The card grows with its content in an inline host, so the action must sit next to the choice, not after the list.
+    const gap = await app.locator(".sugg:has(input:checked)").evaluate((label) => label.nextElementSibling!.querySelector("[data-action='unit']")!.getBoundingClientRect().top - label.getBoundingClientRect().bottom);
+    assert.ok(gap >= 0 && gap < 40, `Học nhóm này sits right below the choice (${gap}px)`);
+    const sent = await messages();
+    await app.getByRole("button", { name: "Học nhóm này" }).click();
+    await app.getByRole("button", { name: "Bắt đầu" }).waitFor();
+    assert.equal((await sent()).find((m) => m.name === "start_study")?.arguments?.unitId, id);
+  });
+});
+
 test("a question without bank text says so and offers Hỏi ChatGPT inside the verdict", async () => {
   await withPreview(async ({ origin, page, app, tool, open }) => {
     const started = await tool("start_study", { questionIds: ["q010"], requestId: randomUUID() });
