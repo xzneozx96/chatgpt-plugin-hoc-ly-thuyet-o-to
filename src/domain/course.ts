@@ -43,9 +43,12 @@ export function safeQuestion(id: string) {
         bankVersion
     };
 }
+export const CONFUSING_CATEGORY_ID = "de_nham_lan";
 export function unitQuestions(unitId?: string) {
     if (!unitId)
         return bankQuestions.filter(q => q.applicableLicenses.includes("B")).map(q => q.questionId);
+    if (unitId === CONFUSING_CATEGORY_ID)
+        return [...new Set(families.flatMap(f => f.questionIds))];
     const family = families.find(f => f.id === unitId);
     if (family)
         return [...new Set(family.questionIds)];

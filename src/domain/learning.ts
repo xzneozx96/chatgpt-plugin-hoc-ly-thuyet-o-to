@@ -1,7 +1,7 @@
 import { randomUUID, createHash } from "node:crypto";
 import { z } from "zod";
 import { submitAnswer } from "./quiz.js";
-import { bankQuestions, bankVersion, categories, categoryTitles, families, safeQuestion, unitQuestions } from "./course.js";
+import { bankQuestions, bankVersion, categories, categoryTitles, CONFUSING_CATEGORY_ID, families, safeQuestion, unitQuestions } from "./course.js";
 export const DAY = 86400000;
 const id = z.string().uuid();
 const qid = z.string().regex(/^q\d{3}$/).refine(value => bankQuestions.some(q => q.questionId === value), "Unknown original question");
@@ -125,7 +125,8 @@ export const LearningCommandSchema = z.discriminatedUnion("kind", [
         unitId: z.string().optional(),
         questionIds: z.array(qid).optional(),
         override: z.boolean().optional(),
-        reviewOnly: z.boolean().optional()
+        reviewOnly: z.boolean().optional(),
+        count: z.number().int().min(1).max(50).optional()
     }),
     z.object({
         ...base,
@@ -424,7 +425,7 @@ export function listUnits(state: LearnerState, query = "", now = Date.now()) {
     return {
         kind: "units" as const,
         customCategory: {
-            id: "de_nham_lan",
+            id: CONFUSING_CATEGORY_ID,
             title: "C\u00E2u h\u1ECFi d\u1EC5 nh\u1EA7m l\u1EABn",
             status: "draft_bank_analysis",
             familyCount: families.length,
@@ -724,7 +725,7 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
             const reviews = overridden ? [] : dueIds(state, now);
             const today = courseView(state, now);
             const remainingQuota = Math.max(0, state.profile.dailyGoal - today.newToday);
-            const selected = command.reviewOnly ? [] : overridden ? pool.slice(0, state.profile.dailyGoal) : pool.filter(q => progress.get(q)?.coveredAt === null).slice(0, remainingQuota);
+            const selected = command.reviewOnly ? [] : overridden ? pool.slice(0, command.count ?? state.profile.dailyGoal) : pool.filter(q => progress.get(q)?.coveredAt === null).slice(0, Math.min(remainingQuota, command.count ?? remainingQuota));
             const ids = [...new Set([...reviews, ...selected])];
             activityId = randomUUID();
             const s: z.infer<typeof session> = {

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { createLearner, executeLearning, importLegacyAttempts, questionProgress, courseView, listUnits, DAY, type LearnerState, type LearningCommand } from "../src/domain/learning.js";
-import { safeQuestion, bankQuestions } from "../src/domain/course.js";
+import { safeQuestion, bankQuestions, families } from "../src/domain/course.js";
 import { submitAnswer, type AnswerId } from "../src/domain/quiz.js";
 const clock = Date.parse("2026-10-05T16:55:00Z");
 const requestId = () => randomUUID();
@@ -412,4 +412,14 @@ test("starting a mock while one runs says it resumed, and a later start shuffles
     assert.ok(fresh.view.kind === "mock");
     assert.equal(fresh.view.resumed, false);
     assert.notDeepEqual(fresh.view.questions.map(q => q.id), first.view.questions.map(q => q.id), "a new test is a new shuffle");
+});
+test("the custom confusing-question category starts a session of the requested size, grouped by family", () => {
+    const s = run(createLearner(clock), { kind: "start_study", requestId: requestId(), unitId: "de_nham_lan", count: 5 }, clock);
+    const items = s.sessions.at(-1)?.items.map(i => i.questionId) ?? [];
+    assert.equal(items.length, 5);
+    const firstFamily = families[0];
+    assert.ok(firstFamily);
+    assert.deepEqual(items.slice(0, Math.min(5, firstFamily.questionIds.length)), firstFamily.questionIds.slice(0, 5), "siblings in one family come together");
+    const daily = run(createLearner(clock), { kind: "start_study", requestId: requestId(), count: 3 }, clock);
+    assert.equal(daily.sessions.at(-1)?.items.length, 3);
 });
