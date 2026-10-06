@@ -2,6 +2,7 @@ import { randomUUID, createHash } from "node:crypto";
 import { z } from "zod";
 import { submitAnswer } from "./quiz.js";
 import { bankQuestions, bankVersion, categories, categoryTitles, CONFUSING_CATEGORY_ID, families, safeQuestion, unitQuestions } from "./course.js";
+import { answerAwards, comboOf, lessonXp, xpSummary } from "./game.js";
 export const DAY = 86400000;
 const id = z.string().uuid();
 const qid = z.string().regex(/^q\d{3}$/).refine(value => bankQuestions.some(q => q.questionId === value), "Unknown original question");
@@ -240,7 +241,7 @@ export function createLearner(now: number): LearnerState {
         receipts: {}
     });
 }
-function localDay(at: number, timezone: string) {
+export function localDay(at: number, timezone: string) {
     return new Intl.DateTimeFormat("en-CA", {
         timeZone: timezone,
         year: "numeric",
@@ -248,7 +249,8 @@ function localDay(at: number, timezone: string) {
         day: "2-digit"
     }).format(at);
 }
-export function questionProgress(state: LearnerState) {
+// observe sees each answer fact as the replay classifies it; it cannot change the replay.
+export function questionProgress(state: LearnerState, observe?: (fact: AnswerFact, step: AnswerStep) => void) {
     const result = new Map<string, {
         successes: number;
         stage: number;
@@ -300,6 +302,8 @@ export function questionProgress(state: LearnerState) {
                 p.dueAt = earlier(p.dueAt, soon);
             continue;
         }
+        const first = p.coveredAt === null;
+        const learnedBefore = p.successes >= 2;
         if (p.coveredAt === null) {
             p.coveredAt = e.at;
             p.coveredDay = e.localDay;
@@ -331,6 +335,7 @@ export function questionProgress(state: LearnerState) {
         if (p.confused && due)
             p.dueAt = earlier(p.dueAt, soon);
         p.prior = true;
+        observe?.(e, { first, due, learnedBefore, learnedAfter: p.successes >= 2 });
     }
     return result;
 }
@@ -344,7 +349,13 @@ function dueIds(state: LearnerState, now: number) {
         return Number(y?.lastWrong) - Number(x?.lastWrong) || Number(b.isCritical) - Number(a.isCritical) || (x?.dueAt ?? 0) - (y?.dueAt ?? 0) || a.id - b.id;
     }).map(q => q.questionId);
 }
-type AnswerFact = Extract<z.infer<typeof fact>, { kind: "answer" }>;
+export type AnswerFact = Extract<z.infer<typeof fact>, { kind: "answer" }>;
+export interface AnswerStep {
+    first: boolean;
+    due: boolean;
+    learnedBefore: boolean;
+    learnedAfter: boolean;
+}
 function answerFacts(evidence: LearnerState["evidence"]) {
     return evidence.filter((e): e is AnswerFact => e.kind === "answer").sort((a, b) => a.at - b.at || a.sequence - b.sequence);
 }
@@ -385,6 +396,7 @@ export function courseView(state: LearnerState, now: number, nothingToStudy = fa
         }
     }
     const calendarCapacity = Math.max(0, Math.ceil((state.profile.targetDate - now) / DAY));
+    const tomorrow = localDay(now + DAY, state.profile.timezone);
     return {
         kind: "course" as const,
         nothingToStudy,
@@ -406,6 +418,10 @@ export function courseView(state: LearnerState, now: number, nothingToStudy = fa
         customCategory: listUnits(state, "", now).customCategory,
         mockLibraryAvailable: false,
         results: answerResults(answerFacts(state.evidence)),
+        xp: xpSummary(state, now),
+        // Not due yet, but due by the end of the learner-local tomorrow: what the finish screen says comes back tomorrow.
+        // Answers given just now are due 24 hours after they were given, which is slightly under now + 24 hours.
+        tomorrowDue: [...p.values()].filter(q => q.dueAt !== null && q.dueAt > now && q.dueAt < now + 3 * DAY && localDay(q.dueAt, state.profile.timezone) <= tomorrow).length,
         recentAnswers: answerFacts(state.evidence).slice(-20).reverse().map(e => ({
             questionId: e.questionId,
             answer: e.answer,
@@ -490,6 +506,8 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
     const answers = answerFacts(state.evidence).filter(e => e.activityId === s.id);
     const results = answerResults(answers);
     const activeAnswer = active?.status !== "answered" ? undefined : active.answerId ? answers.find(e => e.id === active.answerId) : answers.filter(e => e.questionId === q).at(-1);
+    const awards = answerAwards(state);
+    const planned = s.items.filter(i => i.repairOf === undefined && i.group === undefined);
     return {
         kind: "study" as const,
         sessionId: s.id,
@@ -516,6 +534,19 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
             correct: results.correctAttempts,
             wrong: results.wrongAttempts,
             items: answers.map(e => ({ questionId: e.questionId, answer: e.answer, correct: e.correct }))
+        },
+        mode: s.mode,
+        itemKind: active?.kind ?? null,
+        repairOf: active?.repairOf ?? null,
+        xp: answers.reduce((sum, e) => sum + (awards.get(e.id)?.xp ?? 0), 0) + lessonXp(state, s),
+        combo: comboOf(answers),
+        lastAward: activeAnswer ? awards.get(activeAnswer.id) ?? null : null,
+        // The lesson plan for the intro screen; repair steps and compare-the-pair items are counted separately.
+        steps: {
+            review: planned.filter(i => i.kind === "review").length,
+            new: planned.filter(i => i.kind === "new").length,
+            practice: planned.filter(i => i.kind === "practice").length,
+            pairGroups: new Set(s.items.flatMap(i => i.group === undefined ? [] : [i.group])).size
         }
     };
 }
