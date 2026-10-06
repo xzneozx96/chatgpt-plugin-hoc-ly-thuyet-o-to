@@ -230,6 +230,18 @@ A ring of segments, one per new question in today's goal. Filled segments fade i
 
 The three labels Đã gặp, Đã thuộc and Cần ôn hôm nay always appear together in this order, as mono hero numbers with labels underneath. Overlapping detail counts are never shown as if they add up.
 
+When the server reports questions with one qualifying answer (`onTheWay`), the Đã thuộc tile adds a small `--mute` line under its label, "+13 đang chờ ôn lại", with the number in mono. The main number never includes them.
+
+### Info popover
+
+A learner who wonders why a number or rule is what it is taps the ⓘ beside it.
+
+- The ⓘ is a 20 px circle-i icon with a 2 px stroke and a 32 px target. It sits after the label it explains, or in the top-right corner of a progress tile. It is never inside an answer option or on a primary button, and never inside a `<label>` or another button.
+- One popover serves every ⓘ, and only one is open at a time. It is a `--bg` panel with a 2 px `--fg` border, a 16 px radius and a solid 4 px `--fg` bottom edge. It has a bold 14 px title, 14 px body text and a small pointer at its button.
+- It opens below its button, above when only that fits, and otherwise below with the card grown to hold it. It never leaves the card. It is at most 320 px wide and spans the card on narrow screens.
+- It opens with `rise` and closes on a second tap, Esc, a tap outside or a new screen. A keyboard open moves focus to its title; Esc and Tab return focus to the button.
+- The copy is short Vietnamese that matches the server's rules. Live values, such as the next review time, come from the server's view.
+
 ### Mock test
 
 Fullscreen if the host allows. The test has:
