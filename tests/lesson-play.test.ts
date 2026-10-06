@@ -6,6 +6,7 @@ import { answerAwards } from "../src/domain/game.js";
 import { bankQuestions, families, safeQuestion } from "../src/domain/course.js";
 import { LearningRuntime } from "../src/domain/learning-runtime.js";
 import { SqliteLearningStore } from "../src/persistence/learning-store.js";
+import { learningText } from "../src/learning-tools.js";
 import { submitAnswer, type AnswerId } from "../src/domain/quiz.js";
 
 // Tuesday 10:00 in Vietnam.
@@ -170,6 +171,25 @@ test("both pair questions are shown and answered before either verdict, and each
     assert.equal(s.sessions.at(-1)?.status, "complete");
     assert.equal(courseView(s, morning + 5 * MINUTE).covered, 13);
     assert.equal(s.evidence.filter(e => e.kind === "answer" && e.questionId === a).length, 1, "the moved question is answered once");
+});
+
+test("the text ChatGPT receives for a pair holds both verdicts until both answers are in", () => {
+    const daily = dailyLesson();
+    const reached = playToPair(daily.state, daily.sessionId);
+    const [a, b] = reached.view.pair?.questions.map(q => q.id) ?? [];
+    assert.ok(a && b);
+    const opening = learningText(reached.view, "https://example.test");
+    assert.ok(opening.includes(`${a}: `) && opening.includes(`${b}: `), "both questions are shown");
+    assert.match(opening, /do not judge an answer or call next_study_question until both are submitted/);
+    const half = executeLearning(reached.state, { kind: "answer_study", requestId: requestId(), sessionId: daily.sessionId, questionId: a, answer: wrong(a) }, morning + MINUTE);
+    const halfText = learningText(half.view, "https://example.test");
+    assert.ok(halfText.includes(`${a}: đã trả lời`));
+    assert.equal(/Kết quả q\d{3}:/.test(halfText), false, "no verdict yet");
+    assert.equal(halfText.includes(`sai: ${a}`), false, "the session summary does not reveal it either");
+    const both = executeLearning(half.state, { kind: "answer_study", requestId: requestId(), sessionId: daily.sessionId, questionId: b, answer: right(b) }, morning + 2 * MINUTE);
+    const bothText = learningText(both.view, "https://example.test");
+    assert.ok(bothText.includes(`Kết quả ${a}: Sai`) && bothText.includes(`Kết quả ${b}: Đúng`));
+    assert.match(bothText, /Call next_study_question/);
 });
 
 test("skipping a pair requeues both questions together", () => {

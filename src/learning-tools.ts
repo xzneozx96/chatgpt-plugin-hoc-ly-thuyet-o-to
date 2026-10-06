@@ -158,6 +158,23 @@ function leagueText(league: ReturnType<typeof leagueView>) {
   ].join("\n");
 }
 
+// A compare-the-pair step reports both verdicts together, after both answers, as the card does.
+function pairLines(study: ReturnType<typeof studyView>, pair: NonNullable<ReturnType<typeof studyView>["pair"]>, origin: string) {
+  const verdicts = pair.feedback.flatMap(feedback => feedback ? [feedback] : []);
+  if (verdicts.length === pair.questions.length) return [
+    ...verdicts.flatMap(feedback => [`Kết quả ${feedback.questionId}: ${feedback.correct ? "Đúng" : "Sai"}. Đáp án gốc: ${feedback.correctAnswer}.`, `Giải thích từ ngân hàng: ${feedback.explanation}`]),
+    `Hai câu dễ nhầm thuộc nhóm nháp chưa duyệt "${pair.title}". Khía cạnh so sánh của nhóm: ${pair.axes.join("; ")}.`,
+    "Call next_study_question for the next original question. Do not write a question yourself."
+  ];
+  const answered = new Set(study.queue.filter(item => item.group === pair.group && item.status === "answered").map(item => item.questionId));
+  return [
+    "Compare-the-pair step: two original questions from one draft confusing-question family. The learner answers both before either result is shown. Submit each answer with submit_study_answer; do not judge an answer or call next_study_question until both are submitted.",
+    ...pair.questions.map(question => answered.has(question.id)
+      ? `${question.id}: đã trả lời; kết quả hiện cùng câu còn lại.`
+      : `Original bank question. Show it to the learner exactly as written, with every option and the image link:\n${questionBlock(question, origin)}`)
+  ];
+}
+
 export function learningText(view: object, origin: string) {
   const kind = "kind" in view ? view.kind : null;
   const teaching = "teaching" in view ? view.teaching as ReturnType<typeof questionTeaching> : null;
@@ -169,7 +186,8 @@ export function learningText(view: object, origin: string) {
   const study = view as ReturnType<typeof studyView>;
   const lines = [`Buổi học ${study.sessionId} · ${study.completed}/${study.total} câu đã xử lý · ${study.status}`, `Kết quả buổi này: ${study.sessionResults.correct}/${study.sessionResults.answered} đúng${study.sessionResults.wrong ? ` · sai: ${study.sessionResults.items.filter(item => !item.correct).map(item => item.questionId).join(", ")}` : ""}`];
   if (teaching) lines.push(helpText(teaching));
-  if (study.currentFeedback) {
+  if (study.pair) lines.push(...pairLines(study, study.pair, origin));
+  else if (study.currentFeedback) {
     const feedback = study.currentFeedback;
     lines.push(`Kết quả ${feedback.questionId}: ${feedback.correct ? "Đúng" : "Sai"}. Đáp án gốc: ${feedback.correctAnswer}.`, `Giải thích từ ngân hàng: ${feedback.explanation}`, "Call next_study_question for the next original question. Do not write a question yourself.");
   } else if (study.question) {
