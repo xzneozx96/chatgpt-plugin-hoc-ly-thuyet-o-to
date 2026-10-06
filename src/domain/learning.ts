@@ -565,6 +565,12 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
         sessionId: s.id,
         status: s.status,
         override: s.override,
+        // The category or confusing-question group the learner chose, so the intro names the skill (ui-ux 3).
+        unit: !s.unitId ? null : {
+            id: s.unitId,
+            title: s.unitId === CONFUSING_CATEGORY_ID ? "Câu hỏi dễ nhầm lẫn" : categoryTitles[s.unitId] ?? families.find(f => f.id === s.unitId)?.title ?? s.unitId,
+            family: !categories.includes(s.unitId)
+        },
         reviewOnly: s.reviewOnly,
         pendingDue: dueIds(state, now).length,
         remaining: s.items.filter(i => i.status === "pending").length,

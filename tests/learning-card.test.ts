@@ -514,6 +514,23 @@ test("the verdict's pop, bounce, sparks and shake start after Kiểm tra", async
   });
 });
 
+test("a lesson started from a confusing-question group or a category names it in the intro", async () => {
+  await withPreview(async ({ origin, page, app, tool, open }) => {
+    const family = ((await tool("list_units", { kind: "family", query: "toc do", limit: 1 })).structuredContent.units as { id: string; title: string }[])[0];
+    assert.ok(family);
+    const grouped = await tool("start_study", { unitId: family.id, override: true, requestId: randomUUID() });
+    await page.goto(`${origin}/preview`);
+    await app.locator("[data-action]").first().waitFor();
+    await open(grouped);
+    await app.getByRole("heading", { name: family.title }).waitFor();
+    await app.getByText(`${grouped.structuredContent.total} câu trong nhóm dễ nhầm này.`, { exact: false }).waitFor();
+    const category = await tool("start_study", { unitId: "bien_bao", override: true, requestId: randomUUID() });
+    await open(category);
+    await app.getByRole("heading", { name: "Biển báo" }).waitFor();
+    await app.getByText(`${category.structuredContent.total} câu trong chủ đề này.`, { exact: false }).waitFor();
+  });
+});
+
 test("a question without bank text says so and offers Hỏi ChatGPT inside the verdict", async () => {
   await withPreview(async ({ origin, page, app, tool, open }) => {
     const started = await tool("start_study", { questionIds: ["q010"], requestId: randomUUID() });
