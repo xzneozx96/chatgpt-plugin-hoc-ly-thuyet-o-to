@@ -109,7 +109,7 @@ test("in ChatGPT the card's answer button scores the choice through tools/call a
     await app.getByRole("heading", { name: /Phần của đường bộ được sử dụng/ }).waitFor();
     const messages = await recordWidgetMessages(page);
     await app.locator('input[name="answer"][value="A"]').check();
-    await app.getByRole("button", { name: "Tôi đoán" }).click();
+    await app.getByRole("button", { name: "Tôi đoán", exact: true }).click();
     await app.locator('[data-action="answer"]').click();
     await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
     const sent = await messages();

@@ -501,3 +501,28 @@ test("today's mistakes list each wrong question once with its latest choice, the
     assert.equal(courseView(s, today + 180000).wrongToday, 2);
     assert.equal(JSON.stringify(s), before, "reviewing mistakes records nothing");
 });
+
+test("questions with one qualifying success are on the way to Đã thuộc until their due review or a wrong answer", () => {
+    const MINUTE = 60000;
+    let s = createLearner(clock);
+    for (const [i, q] of ["q001", "q002", "q003"].entries())
+        s = answer(s, q, clock + i * MINUTE);
+    const today = courseView(s, clock + 5 * MINUTE);
+    assert.deepEqual([today.learned, today.onTheWay, today.nextLearnAt], [0, 3, clock + DAY], "three first-time correct answers are on the way, the earliest back 24 hours later");
+    const units = listUnits(s, "", clock + 5 * MINUTE);
+    assert.equal(units.units.filter(u => u.kind === "category").reduce((sum, u) => sum + u.onTheWay, 0), 3, "each category counts its own");
+    assert.equal(units.customCategory.onTheWay, 3, "q001 to q003 are all in confusing-question families");
+    s = answer(s, "q001", clock + DAY);
+    const reviewed = courseView(s, clock + DAY + MINUTE);
+    assert.deepEqual([reviewed.learned, reviewed.onTheWay, reviewed.nextLearnAt], [1, 2, clock + MINUTE + DAY], "the due review next day learns q001");
+    s = answer(s, "q002", clock + DAY + 2 * MINUTE, wrong("q002"));
+    const lapsed = courseView(s, clock + DAY + 3 * MINUTE);
+    assert.deepEqual([lapsed.learned, lapsed.onTheWay, lapsed.nextLearnAt], [1, 1, clock + 2 * MINUTE + DAY], "a wrong answer takes q002 off the way");
+    // Help after the success lets a review count only 24 hours after the help, later than q003's due time.
+    s = run(s, { kind: "record_help", requestId: requestId(), questionId: "q003" }, clock + DAY + 4 * MINUTE);
+    assert.equal(p(s, "q003")?.dueAt, clock + 2 * MINUTE + DAY);
+    assert.equal(courseView(s, clock + DAY + 5 * MINUTE).nextLearnAt, clock + 4 * MINUTE + 2 * DAY);
+    s = answer(s, "q003", clock + DAY + 6 * MINUTE, wrong("q003"));
+    const none = courseView(s, clock + DAY + 7 * MINUTE);
+    assert.deepEqual([none.onTheWay, none.nextLearnAt], [0, null]);
+});

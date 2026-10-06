@@ -259,6 +259,26 @@ test("the study view splits a mastery award and counts mastered, guessed, assist
     assert.ok(finished.kind === "study" && finished.status === "complete");
     assert.deepEqual([finished.masteredCount, finished.guessedCount, finished.assistedCount, finished.skippedCount, finished.skippedPending], [1, 1, 1, 1, 0]);
     const course = courseView(s, at + MINUTE);
-    assert.deepEqual(finished.goal, { newToday: course.newToday, dailyGoal: course.dailyGoal, dueCount: course.dueCount, wrongToday: course.wrongToday, tomorrowDue: course.tomorrowDue });
+    assert.deepEqual(finished.goal, { newToday: course.newToday, dailyGoal: course.dailyGoal, dueCount: course.dueCount, wrongToday: course.wrongToday, tomorrowDue: course.tomorrowDue, onTheWay: course.onTheWay, nextLearnAt: course.nextLearnAt });
     assert.deepEqual([finished.goal.newToday, finished.goal.tomorrowDue], [3, 3], "q002 to q004 are new today and come back tomorrow; mastered q001 waits three days");
+});
+
+test("the study view counts this lesson's first-time correct answers that count toward Đã thuộc", () => {
+    // q005 was answered before this lesson, and help on q004 was recorded before it.
+    let s = answer(createLearner(morning), "q005", morning).state;
+    s = run(s, { kind: "record_help", requestId: requestId(), questionId: "q004" }, morning);
+    const at = morning + MINUTE;
+    const started = lesson(s, ["q001", "q002", "q003", "q004", "q005"], at);
+    const sessionId = started.sessionId;
+    s = next(answerIn(started.state, sessionId, "q001", at), sessionId, at);
+    s = next(run(s, { kind: "answer_study", requestId: requestId(), sessionId, questionId: "q002", answer: right("q002"), confidence: "guess" }, at), sessionId, at);
+    s = next(answerIn(s, sessionId, "q003", at, wrong("q003")), sessionId, at);
+    s = next(answerIn(s, sessionId, "q004", at), sessionId, at);
+    s = next(answerIn(s, sessionId, "q005", at), sessionId, at);
+    // The repair step for q003 comes last, and its correct answer is assisted practice.
+    s = next(answerIn(s, sessionId, "q003", at), sessionId, at);
+    const finished = executeLearning(s, { kind: "resume_study", requestId: requestId(), sessionId }, at + MINUTE).view;
+    assert.ok(finished.kind === "study" && finished.status === "complete");
+    assert.deepEqual([finished.firstCorrectCount, finished.masteredCount], [1, 0], "only q001 counts: not the guess, the miss, the question helped before, the one answered earlier or the repair");
+    assert.deepEqual([finished.goal.onTheWay, finished.goal.nextLearnAt], [2, morning + DAY], "q001 and the earlier q005 are on the way, q005 back first");
 });
