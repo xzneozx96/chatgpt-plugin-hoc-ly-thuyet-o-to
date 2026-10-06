@@ -316,3 +316,38 @@ test("when the lightning countdown reaches zero the card fetches the round once 
     await app.getByText(`Bạn chọn: ${wrong(first)} ·`, { exact: false }).waitFor();
   });
 });
+
+test("the home card draws the goal ring and the three numbers from the course view, and the course map starts a category", async () => {
+  await withPreview(async ({ origin, page, app, tool, messages }) => {
+    const started = await tool("start_study", { questionIds: ["q001", "q002", "q003", "q004", "q005"], requestId: randomUUID() });
+    const sessionId = started.structuredContent.sessionId as string;
+    // Plays the whole lesson, missing q002 once, so it finishes and the league invitation appears.
+    let current = started.structuredContent.question as { id: string } | null, missed = false;
+    while (current) {
+      const miss: boolean = current.id === "q002" && !missed;
+      missed ||= miss;
+      await tool("submit_study_answer", { sessionId, questionId: current.id, answer: miss ? wrong(current.id) : right(current.id), requestId: randomUUID() });
+      current = (await tool("next_study_question", { sessionId, requestId: randomUUID() })).structuredContent.question as { id: string } | null;
+    }
+    const course = (await tool("get_course", {})).structuredContent as { covered: number; learned: number; dueCount: number; newToday: number; dailyGoal: number };
+    await page.goto(`${origin}/preview`);
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    assert.equal(await app.locator(".ring-num").innerText(), `${course.newToday}/${course.dailyGoal}`);
+    assert.equal(await app.locator(".ring .seg").count(), course.dailyGoal, "one segment per new question in today's goal");
+    assert.equal(await app.locator(".ring .seg.on").count(), course.newToday);
+    const tiles = await app.locator(".nums .ntile").allInnerTexts();
+    assert.deepEqual(tiles.map((t) => t.replace(/\s+/g, " ").trim()), [`${course.covered}/600 Đã gặp`, `${course.learned}/600 Đã thuộc`, `${course.dueCount} câu Cần ôn hôm nay`]);
+    await app.getByRole("button", { name: /Tham gia nhóm thi đua tuần/ }).waitFor();
+    assert.equal(await app.locator(".row-btn").count(), 0, "a learner outside the league sees only the invitation");
+    await app.getByText("Theo nhịp 12 câu/ngày: xong lượt đầu ngày", { exact: false }).waitFor();
+
+    await app.getByRole("button", { name: "Chọn chủ đề" }).click();
+    await app.getByRole("button", { name: /^Biển báo, đã gặp 0 trên 185/ }).click();
+    await app.getByRole("heading", { name: "Biển báo" }).waitFor();
+    const sent = await messages();
+    await app.locator(".sheet").getByRole("button", { name: "Học", exact: true }).click();
+    await app.getByRole("button", { name: "Bắt đầu" }).waitFor();
+    const call = (await sent()).find((m) => m.name === "start_study");
+    assert.deepEqual([call?.arguments?.unitId, call?.arguments?.override], ["bien_bao", true]);
+  });
+});

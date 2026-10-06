@@ -25,25 +25,18 @@ test("learning preview drives course, goal, families, lesson, confusion, help, p
     const app = page.frameLocator("#widget");
     const action = (name: string) => app.locator(`[data-action="${name}"]`).first();
 
-    await app.getByRole("heading", { name: "Khóa học bằng B" }).waitFor();
-    assert.equal(await app.locator(".course-row").count(), 8);
-    await app.getByText("Câu hỏi dễ nhầm lẫn").waitFor();
-    await app.getByText("12 câu mỗi ngày").waitFor();
-
-    await action("goals").click();
+    // A first visit opens the goal picker: 12 is recommended but not chosen, so "Bắt đầu" waits for a choice.
+    await app.getByRole("heading", { name: "Mỗi ngày bạn muốn học bao nhiêu câu mới?" }).waitFor();
+    assert.equal(await app.locator('input[name="goal"]:checked').count(), 0, "no goal is preselected");
+    assert.equal(await app.getByRole("button", { name: "Bắt đầu" }).isDisabled(), true);
+    await app.locator('input[name="goal"][value="12"]').check();
+    await app.getByText("Xong lượt đầu 600 câu sau 50 ngày học, còn 10 ngày dự phòng.").waitFor();
     await app.locator('input[name="goal"][value="custom"]').check();
     await app.locator("#custom-goal").fill("20");
-    await app.getByRole("button", { name: "Lưu mục tiêu" }).click();
-    await app.getByText("20 câu mỗi ngày").waitFor();
-
-    await action("families").click();
-    await app.getByRole("heading", { name: "Nhóm dễ nhầm lẫn" }).waitFor();
-    await app.locator("#search").fill("145");
-    await app.getByRole("button", { name: "Tìm kiếm" }).click();
-    await app.locator(".note", { hasText: /^[1-9]\d* kết quả$/ }).waitFor();
-    assert.ok(await app.locator(".course-row").count() > 0, "family search by original question number finds groups");
-    await action("course").click();
-
+    await app.getByText("Xong lượt đầu 600 câu sau 30 ngày học, còn 30 ngày dự phòng.").waitFor();
+    await app.getByRole("button", { name: "Bắt đầu" }).click();
+    await app.getByRole("heading", { name: "Tiến độ của bạn được lưu" }).waitFor();
+    await app.getByText("Bước 2/2").waitFor();
     await action("daily").click();
     await action("lesson-start").click();
     await app.getByRole("heading", { name: /Phần của đường bộ được sử dụng/ }).waitFor();
@@ -52,7 +45,8 @@ test("learning preview drives course, goal, families, lesson, confusion, help, p
     await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
     await app.getByText("Đáp án đúng: B ·").waitFor();
     await page.reload();
-    await action("inspect-session").click();
+    await app.getByText("Theo nhịp 20 câu/ngày", { exact: false }).waitFor();
+    await action("daily").click();
     await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
     await app.getByRole("heading", { name: /Phần của đường bộ được sử dụng/ }).waitFor();
     assert.equal(await action("skip").count(), 0, "feedback stays bound and skip is unavailable until next");
@@ -79,16 +73,36 @@ test("learning preview drives course, goal, families, lesson, confusion, help, p
     server = startHttpServer(port, { dataPath });
     if (!server.listening) await once(server, "listening");
     await page.reload();
-    await app.getByText("20 câu mỗi ngày").waitFor();
-    await action("resume").click();
+    await app.getByText("Theo nhịp 20 câu/ngày", { exact: false }).waitFor();
+    await action("daily").click();
     await app.getByRole("heading", { name: "Làn đường là gì?" }).waitFor();
     await app.locator("#verdict").waitFor();
     await app.getByText("2/23", { exact: true }).waitFor();
 
-    assert.equal(await app.locator(".brand").isVisible(), false, "no global navigation during a lesson");
+    assert.equal(await app.locator("nav").count(), 0, "no global navigation during a lesson");
     await page.reload();
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    // The course map shows the seven categories and the confusing-question category, which opens the family picker.
+    await app.getByRole("button", { name: "Chọn chủ đề" }).click();
     await app.getByRole("heading", { name: "Khóa học bằng B" }).waitFor();
-    await app.locator(".brand nav [data-action='mock-entry']").click();
+    assert.equal(await app.locator('[data-action="map-node"]').count(), 8);
+    await app.getByRole("button", { name: /^Câu hỏi dễ nhầm lẫn/ }).click();
+    await app.getByRole("button", { name: "Chọn nhóm" }).click();
+    await app.getByRole("heading", { name: "Câu hỏi dễ nhầm lẫn" }).waitFor();
+    await app.locator("#search").fill("145");
+    await app.getByRole("button", { name: "Tìm kiếm" }).click();
+    await app.locator(".note", { hasText: /^[1-9]\d* kết quả$/ }).waitFor();
+    assert.ok(await app.locator(".frow").count() > 0, "family search by original question number finds groups");
+    await app.locator(".frow").first().click();
+    await app.getByRole("button", { name: "Học nhóm này" }).waitFor();
+    await action("map").click();
+    await action("course").click();
+    await app.getByRole("button", { name: "Đổi mục tiêu" }).click();
+    assert.equal(await app.locator('input[name="goal"][value="custom"]').isChecked(), true, "changing the goal starts from the saved one");
+    await app.locator('input[name="goal"][value="15"]').check();
+    await app.getByRole("button", { name: "Lưu mục tiêu" }).click();
+    await app.getByText("Theo nhịp 15 câu/ngày", { exact: false }).waitFor();
+    await app.getByRole("button", { name: "Thi thử" }).click();
     await action("mock-start").click();
     await app.getByRole("heading", { name: "Thi thử ngẫu nhiên" }).waitFor();
     await app.locator("#timer").filter({ hasText: /^(20:00|19:5\d)$/ }).waitFor();
