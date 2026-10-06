@@ -7,7 +7,7 @@
 - This version replaces direction B (Đường học) and the compact card-per-step model from the PRD 0.11 design.
 - The owner rejected that build as boring, flat and confusing, because each answer received a verdict in the card and another from ChatGPT.
 - The [direction-B contract](ui-ux-direction-b-contract.md) and the [first prototype](../design/chatgpt-learning/index.html) are now historical.
-- The prototype and `src/ui/learning.html` have not yet been rebuilt to this design.
+- `src/ui/learning.html` implements this design on branch `ui-game-card`, using the reference screens in `ui design/`. The old prototype in `design/chatgpt-learning/` is historical.
 - Host behaviour in ChatGPT is still unverified (section 8).
 
 Mockup rules from the earlier design still apply:

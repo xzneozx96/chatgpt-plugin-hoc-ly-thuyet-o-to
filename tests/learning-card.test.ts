@@ -595,3 +595,21 @@ test("a question without bank text says so and offers Hỏi ChatGPT inside the v
     assert.equal(await app.getByText("Ngân hàng câu hỏi chưa có", { exact: false }).count(), 0, "no fallback sentence stands in for an explanation");
   });
 });
+
+test("after lowering the goal below today's new questions, the home ring stays full and names the extra ones", async () => {
+  await withPreview(async ({ origin, page, app, tool }) => {
+    const started = await tool("start_study", { questionIds: ["q001", "q002", "q003", "q004", "q005"], requestId: randomUUID() });
+    const sessionId = started.structuredContent.sessionId as string;
+    let current = started.structuredContent.question as { id: string } | null;
+    while (current) {
+      await tool("submit_study_answer", { sessionId, questionId: current.id, answer: right(current.id), requestId: randomUUID() });
+      current = (await tool("next_study_question", { sessionId, requestId: randomUUID() })).structuredContent.question as { id: string } | null;
+    }
+    await tool("update_profile", { dailyGoal: 3, requestId: randomUUID() });
+    await page.goto(`${origin}/preview`);
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    assert.equal(await app.locator(".ring-num").innerText(), "3/3");
+    assert.equal(await app.locator(".ring .seg.on").count(), 3);
+    await app.getByText("3/3 câu mới · thêm 2", { exact: false }).waitFor();
+  });
+});
