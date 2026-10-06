@@ -18,7 +18,7 @@ test("public preview omits private progress and serves remote image URLs", async
   let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
   try {
     await client.connect(transport);
-    assert.deepEqual((await client.listTools()).tools.map((tool) => tool.name).sort(), ["get_question", "search_theory", "submit_answer"]);
+    assert.deepEqual((await client.listTools()).tools.map((tool) => tool.name).sort(), ["get_course", "get_question", "list_units", "search_theory", "submit_answer"]);
     assert.equal((await fetch(`${origin}/preview`)).status, 404);
     assert.equal((await fetch(`${origin}/preview/tool`, { method: "POST" })).status, 404);
     assert.equal((await fetch(`${origin}/play`)).status, 200);
@@ -38,6 +38,14 @@ test("public preview omits private progress and serves remote image URLs", async
       await route.fulfill({ status: image.status, contentType: "image/webp", body: Buffer.from(await image.arrayBuffer()) });
     });
     await page.goto(`${origin}/play`);
+    const widget = page.frameLocator("#widget");
+    await widget.getByText("Lịch sử học chưa khả dụng").waitFor();
+    assert.equal(await widget.locator('[data-action="daily"]').isDisabled(), true);
+    await widget.locator('.brand nav [data-action="review"]').click();
+    await widget.getByText(/Ôn tập cần lịch sử học đã lưu/).waitFor();
+    const course = await client.callTool({ name: "get_course", arguments: {} });
+    assert.equal((course.structuredContent as { historyAvailable: boolean }).historyAvailable, false);
+    await page.goto(`${origin}/play?legacy=1`);
     const quiz = page.frameLocator("#quiz");
     await quiz.getByRole("heading", { name: /Phần của đường bộ được sử dụng/ }).waitFor();
     assert.equal(await quiz.locator(".stats").isVisible(), false);

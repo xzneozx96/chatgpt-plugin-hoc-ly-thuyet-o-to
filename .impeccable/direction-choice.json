@@ -1,0 +1,12 @@
+{
+  "seed": "0907e97c",
+  "scope": "direction",
+  "mode": "operate",
+  "buildPath": "code",
+  "selected": "B",
+  "candidate": 1,
+  "name": "Đường học",
+  "evidence": "User: let's go with your recommendation on B",
+  "reference": "design/chatgpt-learning/directions/",
+  "contract": "docs/ui-ux-direction-b-contract.md"
+}

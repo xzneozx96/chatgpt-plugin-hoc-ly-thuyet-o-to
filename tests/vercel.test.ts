@@ -25,7 +25,7 @@ test("Vercel entry point serves the public quiz, bank image, and stateless MCP",
   const client = new Client({ name: "vercel-adapter-test", version: "1.0" });
   try {
     await client.connect(transport);
-    assert.deepEqual((await client.listTools()).tools.map((tool) => tool.name).sort(), ["get_question", "search_theory", "submit_answer"]);
+    assert.deepEqual((await client.listTools()).tools.map((tool) => tool.name).sort(), ["get_course", "get_question", "list_units", "search_theory", "submit_answer"]);
     assert.equal((await request("play")).status, 200);
     assert.equal((await request("ui/quiz.html")).status, 200);
     assert.equal((await request("images/q301.webp")).headers.get("content-type"), "image/webp");

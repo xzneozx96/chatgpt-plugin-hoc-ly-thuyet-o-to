@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { createServer, type RequestListener } from "node:http";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -9,11 +10,18 @@ import { AuthenticatedLearnerWorkspace, LearnerWorkspace, type UserAttemptStore 
 import { AttemptStore } from "./persistence/attempts.js";
 import { authenticateBearer, createAuthKitVerifier, readAuthKitConfig, type TokenVerifier } from "./auth/authkit.js";
 import { createRemoteAttemptStore } from "./persistence/remote-attempts.js";
+import { LearningRuntime } from "./domain/learning-runtime.js";
+import { createLearningTools, learningError } from "./learning-tools.js";
+import { createRemoteLearningStore, SqliteLearningStore, type LearningStore } from "./persistence/learning-store.js";
 
 const UI_URI = "ui://ly-thuyet-lai-xe/quiz-v1.html";
 const UI_MIME = "text/html;profile=mcp-app";
+const LEARNING_UI_URI = "ui://ly-thuyet-lai-xe/learning-v2.html";
 const htmlPath = process.env.VERCEL ? resolve("src/ui/quiz.html") : fileURLToPath(new URL("./ui/quiz.html", import.meta.url));
 const previewPath = process.env.VERCEL ? resolve("src/ui/preview.html") : fileURLToPath(new URL("./ui/preview.html", import.meta.url));
+const learningHtmlPath = process.env.VERCEL ? resolve("src/ui/learning.html") : fileURLToPath(new URL("./ui/learning.html", import.meta.url));
+const learningPreviewPath = process.env.VERCEL ? resolve("src/ui/learning-preview.html") : fileURLToPath(new URL("./ui/learning-preview.html", import.meta.url));
+const assetsPath = process.env.VERCEL ? resolve("src/ui/assets") : fileURLToPath(new URL("./ui/assets/", import.meta.url));
 const imagesPath = process.env.VERCEL ? resolve("images") : fileURLToPath(new URL("../images/", import.meta.url));
 const questionSchema = {
   id: z.string(),
@@ -34,11 +42,11 @@ const answerSchema = {
   nextReviewAt: z.string().nullable()
 };
 
-export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", workspace = new LearnerWorkspace(null), progressEnabled = false, authenticatedWorkspace?: AuthenticatedLearnerWorkspace): McpServer {
+export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", workspace = new LearnerWorkspace(null), progressEnabled = false, authenticatedWorkspace?: AuthenticatedLearnerWorkspace, learningRuntime: LearningRuntime | null = null): McpServer {
   const baseUrl = new URL(publicBaseUrl);
   const server = new McpServer(
-    { name: "ly-thuyet-lai-xe-tutor", version: "0.2.0" },
-    { instructions: `For Vietnamese driving-theory practice, call get_question. Score only after the learner selects an answer through submit_answer. Use search_theory for source-backed explanations from question-bank.json only. Do not invent missing explanations.${progressEnabled || authenticatedWorkspace ? " Progress tools show only the authenticated learner's own study history." : ""}` }
+    { name: "ly-thuyet-lai-xe-tutor", version: "0.3.0" },
+    { instructions: learningRuntime ? `Open get_course first for Vietnamese driving-theory learning, licence B. Explain coverage and learned recall separately. Default sessions handle ALL due reviews before new questions, even if longer than15–20 minutes. Honour explicit lesson/category/family/test requests while retaining outstanding review. Use list_units for bounded discovery; follow original categories and offer3 relevant confusing-group suggestions. Groups are draft discovery relationships, not verified teaching. Assemble purposeful lessons from selected original IDs, saved history and bank evidence: name the distinction, elicit an attempt, show supported conditions/comparison, check a related original question, then recap evidence and review dates. Score only the learner's actual choice through submit_study_answer or submit_answer. Never infer correctness or learned status. Do not reveal answers before an attempt unless requested. Call request_study_help to record assistance before giving hints, explanations or video help. Use bank excerpts and source references only; external knowledge and verified video timestamps are not connected. Report missing explanations explicitly. Let learners choose10,12,15 or custom daily NEW unique questions; reviews are separate. Conversational replies remain useful without a card. Bind every action to its session and question; generated teaching exercises never count as bank answers. Start tests only on learner request. Confirm early submission with unanswered items or abandonment. If historyAvailable=false, disclose unsaved practice and unavailable personalisation. Never claim remembered history, videos watched, source retrieval or full readiness without evidence.` : `Vietnamese driving-theory practice, licence B. This connection saves no learner history. Tell the learner that progress, daily goals, review schedules, study sessions and mock tests are unavailable here, and never claim saved or remembered progress. get_course and list_units show the course structure only. Practise with get_question; score only the learner's actual choice through submit_answer. Do not reveal answers before an attempt unless requested. Use search_theory for explanations from question-bank.json only. Report missing explanations explicitly. External knowledge and verified video timestamps are not connected. Do not invent them.` }
   );
 
   server.registerResource("quiz", UI_URI, { title: "Driving theory quiz", mimeType: UI_MIME }, async () => ({
@@ -49,6 +57,23 @@ export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", worksp
       _meta: { ui: { csp: { connectDomains: [], resourceDomains: [baseUrl.origin] } } }
     }]
   }));
+
+  server.registerResource("learning", LEARNING_UI_URI, { title: "Lý Thuyết Lái Xe · Đường học", mimeType: UI_MIME }, async () => ({
+    contents: [{ uri: LEARNING_UI_URI, mimeType: UI_MIME, text: readFileSync(learningHtmlPath, "utf8").replaceAll("{{BASE_URL}}", baseUrl.origin),
+      _meta: { ui: { csp: { connectDomains: [], resourceDomains: [baseUrl.origin] } } } }]
+  }));
+  for (const tool of createLearningTools(learningRuntime, learningRuntime ? authenticatedWorkspace ? "authenticated" : "local" : "unavailable")) {
+    server.registerTool(tool.name, {
+      title: tool.title, description: tool.description, inputSchema: tool.inputSchema,
+      annotations: { readOnlyHint: tool.readOnly, destructiveHint: false, openWorldHint: false },
+      _meta: { ui: { resourceUri: LEARNING_UI_URI, visibility: ["model", "app"] } }
+    }, async (input) => {
+      try {
+        const view = await tool.run(input);
+        return { structuredContent: { ...view }, content: [{ type: "text", text: JSON.stringify(view) }] };
+      } catch (error) { return learningError(error); }
+    });
+  }
 
   server.registerTool(
     "get_question",
@@ -84,8 +109,9 @@ export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", worksp
       annotations: { readOnlyHint: !progressEnabled && !authenticatedWorkspace, openWorldHint: false, destructiveHint: false, idempotentHint: false },
       _meta: { ui: { visibility: ["model", "app"] } }
     },
-    async ({ questionId, selectedAnswer, attemptId }) => {
+    async ({ questionId, selectedAnswer, attemptId = randomUUID() }) => {
       try {
+        await learningRuntime?.command({ kind: "answer_question", requestId: attemptId, questionId, answer: selectedAnswer });
         const result = await (authenticatedWorkspace ?? workspace).submitAnswer({ questionId, selectedAnswer, attemptId });
         return {
           structuredContent: { ...result },
@@ -143,11 +169,12 @@ export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", worksp
       title: "Delete my learning progress",
       description: "Permanently delete all of your saved answer attempts and review history. This cannot be undone. Set confirm to true only after the learner explicitly asks to delete their progress.",
       inputSchema: { confirm: z.literal(true) },
-      outputSchema: { deletedAttempts: z.number() },
+      outputSchema: { deletedAttempts: z.number(), deletedLearnerHistory: z.boolean() },
       annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: true, idempotentHint: true }
     }, async () => {
       const deletedAttempts = await authenticatedWorkspace.deleteProgress();
-      return { structuredContent: { deletedAttempts }, content: [{ type: "text", text: `Deleted ${deletedAttempts} saved attempts.` }] };
+      const deletedLearnerHistory = await learningRuntime?.delete() ?? false;
+      return { structuredContent: { deletedAttempts, deletedLearnerHistory }, content: [{ type: "text", text: `Deleted ${deletedAttempts} saved attempts${deletedLearnerHistory ? " and the saved course history" : ""}.` }] };
     });
   }
   return server;
@@ -160,6 +187,7 @@ export function createHttpHandler(options: {
   authConfig?: ReturnType<typeof readAuthKitConfig>;
   verifier?: TokenVerifier;
   remoteStore?: UserAttemptStore;
+  learningStore?: LearningStore;
 } = {}) {
   let authConfig: ReturnType<typeof readAuthKitConfig>;
   let authConfigurationError = false;
@@ -169,6 +197,9 @@ export function createHttpHandler(options: {
   const progressEnabled = !options.publicMode && (!configuredBase || new URL(configuredBase).hostname === "127.0.0.1");
   const store = progressEnabled ? new AttemptStore(options.dataPath ?? process.env.DATA_PATH ?? fileURLToPath(new URL("../.data/study.sqlite", import.meta.url))) : null;
   const workspace = new LearnerWorkspace(store);
+  const localLearningStore = progressEnabled && !options.learningStore ? new SqliteLearningStore(options.dataPath ?? process.env.DATA_PATH ?? fileURLToPath(new URL("../.data/study.sqlite", import.meta.url))) : null;
+  const learningStore = options.learningStore ?? localLearningStore ?? (authConfig ? createRemoteLearningStore(authConfig.databaseUrl) : null);
+  const localLearningRuntime = progressEnabled && learningStore ? new LearningRuntime(learningStore, "local-development") : null;
   const verifier = authConfig ? options.verifier ?? createAuthKitVerifier(authConfig) : null;
   let remoteStore: UserAttemptStore | null = null;
   if (authConfig && verifier) remoteStore = options.remoteStore ?? createRemoteAttemptStore(authConfig.databaseUrl);
@@ -196,11 +227,22 @@ export function createHttpHandler(options: {
         return void res.writeHead(404).end("Image not found");
       }
     }
+    if (path.startsWith("/ui/assets/") && req.method === "GET") {
+      const file = path.slice("/ui/assets/".length);
+      if (!/^[A-Za-z0-9_-]+\.(ttf|woff2|txt)$/.test(file)) return void res.writeHead(404).end("Not Found");
+      try { return void res.writeHead(200, { "Content-Type": file.endsWith(".woff2") ? "font/woff2" : file.endsWith(".ttf") ? "font/ttf" : "text/plain", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=86400" }).end(readFileSync(resolve(assetsPath, file))); }
+      catch { return void res.writeHead(404).end("Not Found"); }
+    }
+    if (path === "/ui/learning.html" && req.method === "GET") {
+      return void res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }).end(readFileSync(learningHtmlPath, "utf8").replaceAll("{{BASE_URL}}", publicBaseUrl));
+    }
     if (progressEnabled && path === "/preview" && req.method === "GET") {
-      return void res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }).end(readFileSync(previewPath));
+      const legacy = new URL(req.url, publicBaseUrl).searchParams.has("legacy");
+      return void res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }).end(readFileSync(legacy ? previewPath : learningPreviewPath));
     }
     if (!progressEnabled && path === "/play" && req.method === "GET") {
-      return void res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }).end(readFileSync(previewPath));
+      const legacy = new URL(req.url, publicBaseUrl).searchParams.has("legacy");
+      return void res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }).end(readFileSync(legacy ? previewPath : learningPreviewPath));
     }
     if (path === "/ui/quiz.html" && req.method === "GET") {
       return void res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }).end(readFileSync(htmlPath));
@@ -214,6 +256,13 @@ export function createHttpHandler(options: {
           if (body.length > 8192) throw new Error("REQUEST_TOO_LARGE");
         }
         const request = z.object({ name: z.string(), arguments: z.record(z.unknown()).default({}) }).parse(parsedBody ?? JSON.parse(body));
+        const learningTool = createLearningTools(localLearningRuntime, localLearningRuntime ? "local" : "unavailable").find(tool => tool.name === request.name);
+        if (learningTool) {
+          try {
+            const view = await learningTool.run(request.arguments);
+            return void res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }).end(JSON.stringify({ structuredContent: view, content: [{ type: "text", text: JSON.stringify(view) }] }));
+          } catch (error) { return void res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }).end(JSON.stringify(learningError(error))); }
+        }
         const baseUrl = new URL(publicBaseUrl);
         let result: object;
         if (request.name === "get_question") {
@@ -252,10 +301,12 @@ export function createHttpHandler(options: {
     res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id");
     if (authConfigurationError) return void res.writeHead(503, { "Cache-Control": "no-store" }).end("Authentication configuration incomplete");
     let authenticatedWorkspace: AuthenticatedLearnerWorkspace | undefined;
+    let learningRuntime = localLearningRuntime;
     if (authConfig && verifier && remoteStore) {
       try {
         const userId = await authenticateBearer(req.headers.authorization, verifier);
         authenticatedWorkspace = new AuthenticatedLearnerWorkspace(userId, remoteStore);
+        learningRuntime = learningStore ? new LearningRuntime(learningStore, userId) : null;
       } catch {
         return void res.writeHead(401, {
           "WWW-Authenticate": `Bearer resource_metadata="${authConfig.publicBaseUrl}/.well-known/oauth-protected-resource/mcp"`,
@@ -263,7 +314,7 @@ export function createHttpHandler(options: {
         }).end("Unauthorized");
       }
     }
-    const server = createQuizServer(publicBaseUrl, workspace, progressEnabled, authenticatedWorkspace);
+    const server = createQuizServer(publicBaseUrl, workspace, progressEnabled, authenticatedWorkspace, learningRuntime);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => { void transport.close(); void server.close(); });
     try {
@@ -274,7 +325,7 @@ export function createHttpHandler(options: {
       if (!res.headersSent) res.writeHead(500).end("Internal server error");
     }
   };
-  return { handler, close: () => store?.close(), progressEnabled };
+  return { handler, close: () => { store?.close(); localLearningStore?.close(); }, progressEnabled };
 }
 
 export function startHttpServer(port = Number(process.env.PORT ?? 8787), options: { dataPath?: string; publicBaseUrl?: string } = {}) {

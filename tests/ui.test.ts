@@ -17,7 +17,7 @@ test("local preview runs the real quiz, search, images, and saved progress", asy
   const browser = await chromium.launch({ executablePath, headless: true, args: ["--no-sandbox"] });
   try {
     const page = await browser.newPage();
-    await page.goto(`http://127.0.0.1:${address.port}/preview`);
+    await page.goto(`http://127.0.0.1:${address.port}/preview?legacy=1`);
     const quiz = page.frameLocator("#quiz");
     await quiz.getByRole("heading", { name: /Phần của đường bộ được sử dụng/ }).waitFor();
     await quiz.getByRole("button", { name: /Câu tiếp theo/ }).click();
