@@ -37,7 +37,7 @@ The brief named Tổng cục Đường bộ / Cục Đường bộ Việt Nam an
 | 4 | q505 | (a) | Explanation rewritten. |
 | 5 | q509 | (a) | Explanation rewritten. |
 | 6 | q521 | (a) | Explanation rewritten. |
-| 7 | q217 | (b): stem | Proposal: correct the stem. An explanation was added because the official content is now established. |
+| 7 | q217 | (b): stem | Stem corrected after owner approval (2026-10-07). An explanation was added because the official content is now established. |
 | 8 | q586 and family `signs_scenarios_narrow_priority_sign` | (c) | None. |
 | Extra | q215 | (b): stem | Proposal: correct the stem. Found while checking q217. |
 
@@ -194,6 +194,8 @@ Khi điều khiển xe ô tô rẽ trái, người lái xe cần thực hiện c
 **Change applied.** S1 establishes the question content, so q217 now has this explanation: `Muốn rẽ trái cần chuẩn bị từ xa: cách chỗ rẽ một khoảng an toàn thì bật xi nhan trái, giảm tốc, quan sát xung quanh (nhất là bên trái), chuyển sang làn bên trái rồi rẽ từ từ. Ý 2 sai vì tăng tốc qua chỗ giao nhau và đổi làn sang phải để "mở rộng vòng cua".`
 
 The explanation matches the options and the official stem. It will read naturally once the stem is corrected. The count of questions without an explanation drops from 43 to 42. `tests/quiz.test.ts` and `README.md` were updated to match.
+
+**Applied on 2026-10-07.** The owner approved the change. q217 `text` is now the official stem above, copied from S1 p49. The options, key and explanation are unchanged.
 
 ## 8. q586 and family `signs_scenarios_narrow_priority_sign`
 
