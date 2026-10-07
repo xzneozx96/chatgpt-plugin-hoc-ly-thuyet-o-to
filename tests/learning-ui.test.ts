@@ -7,7 +7,7 @@ import { test } from "node:test";
 import { chromium } from "playwright";
 import { startHttpServer } from "../src/server.js";
 
-test("learning preview drives course, goal, families, study, confusion, help, pause and mock through the shared tools", async () => {
+test("learning preview drives course, goal, families, lesson, confusion, help, pause and mock through the shared tools", async () => {
   const dir = mkdtempSync(join(tmpdir(), "driving-learning-ui-"));
   const dataPath = join(dir, "study.sqlite");
   let server = startHttpServer(0, { dataPath });
@@ -25,51 +25,46 @@ test("learning preview drives course, goal, families, study, confusion, help, pa
     const app = page.frameLocator("#widget");
     const action = (name: string) => app.locator(`[data-action="${name}"]`).first();
 
-    await app.getByRole("heading", { name: "Khóa học bằng B" }).waitFor();
-    assert.equal(await app.locator(".course-row").count(), 8);
-    await app.getByText("Câu hỏi dễ nhầm lẫn").waitFor();
-    await app.getByText("12 câu mỗi ngày").waitFor();
-
-    await action("goals").click();
+    // A first visit opens the goal picker: 12 is recommended but not chosen, so "Bắt đầu" waits for a choice.
+    await app.getByRole("heading", { name: "Mỗi ngày bạn muốn học bao nhiêu câu mới?" }).waitFor();
+    assert.equal(await app.locator('input[name="goal"]:checked').count(), 0, "no goal is preselected");
+    assert.equal(await app.getByRole("button", { name: "Bắt đầu" }).isDisabled(), true);
+    await app.locator('input[name="goal"][value="12"]').check();
+    await app.getByText("Xong lượt đầu 600 câu sau 50 ngày học, còn 10 ngày dự phòng.").waitFor();
     await app.locator('input[name="goal"][value="custom"]').check();
     await app.locator("#custom-goal").fill("20");
-    await app.getByRole("button", { name: "Lưu mục tiêu" }).click();
-    await app.getByText("20 câu mỗi ngày").waitFor();
-
-    await action("families").click();
-    await app.getByRole("heading", { name: "Nhóm dễ nhầm lẫn" }).waitFor();
-    await app.locator("#search").fill("145");
-    await app.getByRole("button", { name: "Tìm kiếm" }).click();
-    await app.locator(".note", { hasText: /^[1-9]\d* kết quả$/ }).waitFor();
-    assert.ok(await app.locator(".course-row").count() > 0, "family search by original question number finds groups");
-    await action("course").click();
-
+    await app.getByText("Xong lượt đầu 600 câu sau 30 ngày học, còn 30 ngày dự phòng.").waitFor();
+    await app.getByRole("button", { name: "Bắt đầu" }).click();
+    await app.getByRole("heading", { name: "Tiến độ của bạn được lưu" }).waitFor();
+    await app.getByText("Bước 2/2").waitFor();
     await action("daily").click();
+    await action("lesson-start").click();
     await app.getByRole("heading", { name: /Phần của đường bộ được sử dụng/ }).waitFor();
     await app.locator('input[name="answer"][value="A"]').check();
     await action("answer").click();
-    await app.getByText("Cần xem lại").waitFor();
-    await app.getByText("Đáp án gốc: B").waitFor();
+    await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
+    await app.getByText("Đáp án đúng: B ·").waitFor();
     await page.reload();
-    await action("inspect-session").click();
-    await app.getByText("Cần xem lại").waitFor();
+    await app.getByText("Theo nhịp 20 câu/ngày", { exact: false }).waitFor();
+    await action("daily").click();
+    await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
     await app.getByRole("heading", { name: /Phần của đường bộ được sử dụng/ }).waitFor();
-    assert.equal(await action("skip").isDisabled(), true, "feedback stays bound and skip is unavailable until next");
+    assert.equal(await action("skip").count(), 0, "feedback stays bound and skip is unavailable until next");
 
     await action("study-next").click();
     await app.getByRole("heading", { name: "Làn đường là gì?" }).waitFor();
+    await app.locator('input[name="answer"]').first().check();
+    await action("answer").click();
+    await app.locator("#verdict").waitFor();
 
-    await app.locator("details.more-actions summary").click();
     await app.getByRole("button", { name: "Tôi còn phân vân" }).click();
-    await app.getByRole("heading", { name: "Làn đường là gì?" }).waitFor();
-    await app.getByRole("button", { name: "Bỏ dấu phân vân" }).waitFor();
-    await app.locator("details.more-actions summary").click();
+    await app.locator('[data-action="confusion"][aria-pressed="true"]').waitFor();
+    await app.getByText("Đang phân vân").waitFor();
+    assert.equal(await app.locator("#verdict").count(), 1, "the verdict stays after flagging confusion");
 
     await action("help").click();
     await app.locator("#status").getByText(/Host này không gửi được yêu cầu vào ChatGPT/).waitFor();
-    await app.getByText(/Kho kiến thức và video bổ sung chưa kết nối/).waitFor();
 
-    await app.locator("details.more-actions summary").click();
     await action("pause").click();
     await app.getByRole("heading", { name: "Buổi học đã tạm dừng" }).waitFor();
 
@@ -78,18 +73,43 @@ test("learning preview drives course, goal, families, study, confusion, help, pa
     server = startHttpServer(port, { dataPath });
     if (!server.listening) await once(server, "listening");
     await page.reload();
-    await app.getByText("20 câu mỗi ngày").waitFor();
-    await action("resume").click();
+    await app.getByText("Theo nhịp 20 câu/ngày", { exact: false }).waitFor();
+    await action("daily").click();
     await app.getByRole("heading", { name: "Làn đường là gì?" }).waitFor();
-    await app.getByText("1/20 câu đã xử lý", { exact: false }).waitFor();
+    await app.locator("#verdict").waitFor();
+    await app.getByText("2/23", { exact: true }).waitFor();
 
-    await app.locator(".brand nav [data-action='mock-entry']").click();
+    assert.equal(await app.locator("nav").count(), 0, "no global navigation during a lesson");
+    await page.reload();
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    // The course map shows the seven categories and the confusing-question category, which opens the family picker.
+    await app.getByRole("button", { name: "Chọn chủ đề" }).click();
+    await app.getByRole("heading", { name: "Khóa học bằng B" }).waitFor();
+    assert.equal(await app.locator('[data-action="map-node"]').count(), 8);
+    await app.getByRole("button", { name: /^Câu hỏi dễ nhầm lẫn/ }).click();
+    await app.getByRole("button", { name: "Chọn nhóm" }).click();
+    await app.getByRole("heading", { name: "Câu hỏi dễ nhầm lẫn" }).waitFor();
+    await app.locator("#search").fill("145");
+    await app.getByRole("button", { name: "Tìm kiếm" }).click();
+    await app.locator(".note", { hasText: /^[1-9]\d* kết quả$/ }).waitFor();
+    assert.ok(await app.locator(".frow").count() > 0, "family search by original question number finds groups");
+    await app.locator(".frow").first().click();
+    await app.getByRole("button", { name: "Học nhóm này" }).waitFor();
+    await action("map").click();
+    await action("course").click();
+    await app.getByRole("button", { name: "Đổi mục tiêu" }).click();
+    assert.equal(await app.locator('input[name="goal"][value="custom"]').isChecked(), true, "changing the goal starts from the saved one");
+    await app.locator('input[name="goal"][value="15"]').check();
+    await app.getByRole("button", { name: "Lưu mục tiêu" }).click();
+    await app.getByText("Theo nhịp 15 câu/ngày", { exact: false }).waitFor();
+    await app.getByRole("button", { name: "Thi thử" }).click();
+    await app.getByRole("heading", { name: "Sẵn sàng thi thử?" }).waitFor();
     await action("mock-start").click();
-    await app.getByRole("heading", { name: "Thi thử ngẫu nhiên" }).waitFor();
     await app.locator("#timer").filter({ hasText: /^(20:00|19:5\d)$/ }).waitFor();
     const firstQuestion = await app.locator("#content h2").innerText();
     await app.locator('input[name="answer"]').first().check();
-    await app.getByText("Đáp án hiển thị là lựa chọn máy chủ đã lưu.").waitFor();
+    await app.getByText("Đã lưu lựa chọn.").waitFor();
+    await app.getByText("Đã trả lời 1/30").waitFor();
     await action("mock-next").click();
     await app.getByText("Câu 2/30", { exact: false }).waitFor();
     await action("mock-prev").click();
@@ -98,19 +118,25 @@ test("learning preview drives course, goal, families, study, confusion, help, pa
     assert.equal(await app.locator(".verdict").count(), 0, "provisional choice reveals no correctness");
 
     await action("mock-confirm").click();
-    await app.getByText("29 câu chưa trả lời. Nộp bài và chấm ngay?").waitFor();
+    const submit = app.getByRole("alertdialog", { name: "Nộp bài?" });
+    await submit.getByText("Câu chưa trả lời được tính là sai, kể cả câu điểm liệt.").waitFor();
+    assert.deepEqual((await submit.locator(".ntile b").allInnerTexts()), ["1", "29"], "answered and unanswered counts");
+    await action("confirm-no").click();
+    await submit.waitFor({ state: "detached" });
+    await action("mock-confirm").click();
     await action("confirm-yes").click();
-    await app.getByRole("heading", { name: "Kết quả thi thử" }).waitFor();
-    await app.getByText(/\/30 · Chưa đạt/).waitFor();
-    await app.getByText("29 câu bỏ trống", { exact: false }).waitFor();
+    await app.getByRole("heading", { name: "Kết quả" }).waitFor();
+    await app.getByText("CHƯA ĐẠT", { exact: true }).waitFor();
+    await app.getByText("Bỏ trống 29", { exact: false }).waitFor();
 
     await action("mock-entry").click();
     await action("mock-start").click();
-    await app.getByRole("heading", { name: "Thi thử ngẫu nhiên" }).waitFor();
+    await app.locator("#timer").waitFor();
     await app.locator('input[name="answer"]').first().check();
-    await app.getByText("Đáp án hiển thị là lựa chọn máy chủ đã lưu.").waitFor();
-    await app.locator("details.more-actions summary").click();
-    await action("mock-leave").click();
+    await app.getByText("Đã lưu lựa chọn.").waitFor();
+    await app.getByRole("button", { name: "Thoát bài thi" }).click();
+    const leave = app.getByRole("alertdialog", { name: "Thoát bài thi?" });
+    await leave.getByRole("button", { name: "Tiếp tục thi" }).waitFor();
     await action("confirm-yes").click();
     await app.getByRole("heading", { name: "Đã dừng bài thi" }).waitFor();
     assert.deepEqual(dialogs, [], "the card never opens browser dialogs");

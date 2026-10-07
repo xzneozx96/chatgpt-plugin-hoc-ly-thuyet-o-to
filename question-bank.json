@@ -8634,7 +8634,7 @@
   {
    "id": 215,
    "chapterId": 3,
-   "text": "Khi đi trên đường trơn, người lái xe ô tô cần chú ý điều gì để đảm bảo an toàn?",
+   "text": "Khi điều khiển xe trên đường vòng người lái xe cần phải làm gì để bảo đảm an toàn?",
    "imagePath": null,
    "options": [
     {
@@ -8666,7 +8666,7 @@
     "B1"
    ],
    "examCategory": "diem_liet",
-   "explanation": "Đường trơn bám kém, tăng tốc qua khúc cua là mất lái, văng xe ngay. Nguyên tắc sống còn: giảm tốc TRƯỚC khi vào cua, về số thấp, ôm cua với tốc độ phù hợp bán kính cong."
+   "explanation": "Qua đường vòng phải quan sát, báo hiệu bằng còi, đèn, giảm tốc tới mức cần thiết và về số thấp TRƯỚC khi vào cua, rồi ôm cua với tốc độ phù hợp bán kính cong. Tăng tốc qua đường vòng là dễ mất lái, văng xe."
   },
   {
    "id": 216,
@@ -8709,7 +8709,7 @@
   {
    "id": 217,
    "chapterId": 3,
-   "text": "Khi điều khiển xe máy qua nơi đông người cần chú ý gì để bảo đảm an toàn?",
+   "text": "Khi điều khiển xe ô tô rẽ trái, người lái xe cần thực hiện các thao tác nào để bảo đảm an toàn?",
    "imagePath": null,
    "options": [
     {
@@ -8738,7 +8738,7 @@
     "DE"
    ],
    "examCategory": "ky_thuat",
-   "explanation": null
+   "explanation": "Muốn rẽ trái cần chuẩn bị từ xa: cách chỗ rẽ một khoảng an toàn thì bật xi nhan trái, giảm tốc, quan sát xung quanh (nhất là bên trái), chuyển sang làn bên trái rồi rẽ từ từ. Ý 2 sai vì tăng tốc qua chỗ giao nhau và đổi làn sang phải để \"mở rộng vòng cua\"."
   },
   {
    "id": 218,
@@ -14840,7 +14840,7 @@
     "B1"
    ],
    "examCategory": "bien_bao",
-   "explanation": "Biển 1 vẽ hình hàng rào = giao nhau với đường sắt CÓ rào chắn (W.210). Mẹo: thấy hàng rào là có rào. Biển 2 là nhường đường; biển 3 là giao nhau có tín hiệu đèn."
+   "explanation": "Biển 1 vẽ hình hàng rào = giao nhau với đường sắt CÓ rào chắn (W.210). Mẹo: thấy hàng rào là có rào. Biển 2 (tam giác ngược) là giao nhau với đường ưu tiên (W.208); biển 3 là giao nhau có tín hiệu đèn."
   },
   {
    "id": 372,
@@ -16289,7 +16289,7 @@
     "B1"
    ],
    "examCategory": "bien_bao",
-   "explanation": "Biển 2 (W.222a) vẽ ô tô để lại vệt bánh ngoằn ngoèo — đường trơn, dễ trượt, cần giảm tốc. Biển 1 là chỗ ngoặt nguy hiểm có nguy cơ lật xe, biển 3 là đường ngầm (chỗ ngập nước)."
+   "explanation": "Biển 2 (W.222a) vẽ ô tô để lại vệt bánh ngoằn ngoèo — đường trơn, dễ trượt, cần giảm tốc. Biển 1 là chỗ ngoặt nguy hiểm có nguy cơ lật xe, biển 3 vẽ ô tô trên phà là bến phà (W.217)."
   },
   {
    "id": 407,
@@ -20237,7 +20237,7 @@
     "B1"
    ],
    "examCategory": "sa_hinh",
-   "explanation": "Biển trong hình là 'Cấm dừng xe và đỗ xe' (P.130). Chỉ xe tải nằm trong phạm vi hiệu lực của biển nên vi phạm; xe con và mô tô đỗ ngoài phạm vi biển nên không sao."
+   "explanation": "Biển 'Cấm dừng xe và đỗ xe' (P.130) có biển phụ 'Loại xe' (S.505a) vẽ xe tải, nên lệnh cấm chỉ áp dụng cho xe tải. Xe tải đỗ sau biển nên vi phạm; xe con và mô tô không thuộc loại xe bị cấm nên được đỗ."
   },
   {
    "id": 506,
@@ -20407,7 +20407,7 @@
     "B1"
    ],
    "examCategory": "sa_hinh",
-   "explanation": "Cả ba xe đều đỗ sai: đỗ ngay sát nơi đường giao nhau (luật buộc cách giao lộ tối thiểu 5 m) và trong phạm vi biển cấm — vị trí này che khuất tầm nhìn, rất nguy hiểm."
+   "explanation": "Hình không có biển, chỉ có vạch đi bộ qua đường. Mô tô đỗ trên vạch, xe con đỗ lấn lên vạch — cấm đỗ trên phần đường dành cho người đi bộ qua đường; xe tải đỗ ngược chiều xe con, tức bên trái theo chiều đi của nó, trong khi chỉ được đỗ sát lề phải (Luật TTATGT 2024, Điều 18)."
   },
   {
    "id": 510,
@@ -20863,7 +20863,7 @@
     "DE"
    ],
    "examCategory": "sa_hinh",
-   "explanation": "Hướng 2 có biển 'Cấm ô tô tải'; rẽ trái (3) và quay đầu (4) lại đụng đường một chiều ngược hướng, nên xe tải chỉ còn cách rẽ phải theo hướng 1."
+   "explanation": "Biển hiệu lệnh 'Hướng đi phải theo' (R.301) mũi tên rẽ phải có biển phụ 'Loại xe' (S.505a) vẽ xe tải: xe tải chỉ được rẽ phải ở nơi giao nhau này, tức chỉ đi hướng 1. Riêng hướng 2 còn có thêm biển 'Cấm xe ô tô tải' (P.106)."
   },
   {
    "id": 522,

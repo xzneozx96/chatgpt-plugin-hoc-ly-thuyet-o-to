@@ -2,7 +2,10 @@ import { randomUUID, createHash } from "node:crypto";
 import { z } from "zod";
 import { submitAnswer } from "./quiz.js";
 import { bankQuestions, bankVersion, categories, categoryTitles, CONFUSING_CATEGORY_ID, families, safeQuestion, unitQuestions } from "./course.js";
+import { answerAwards, awardParts, comboOf, hasFinishedLesson, lessonXp, xpSummary } from "./game.js";
+import { leagueDisplayName } from "./league.js";
 export const DAY = 86400000;
+const LIGHTNING_MS = 60000;
 const id = z.string().uuid();
 const qid = z.string().regex(/^q\d{3}$/).refine(value => bankQuestions.some(q => q.questionId === value), "Unknown original question");
 const time = z.number().finite().nonnegative();
@@ -45,7 +48,15 @@ const item = z.object({
     questionId: qid,
     kind: z.enum(["review", "new", "practice"]),
     status: z.enum(["pending", "answered"]),
-    bindingAt: time
+    bindingAt: time,
+    // Set on the one repair step a wrong lesson answer schedules (PLAY-05).
+    repairOf: qid.optional(),
+    // Compare-the-pair items share their family ID here (INT-02).
+    group: z.string().optional(),
+    // The answer fact that resolved this item in this session.
+    answerId: id.optional(),
+    // Set once the learner skips this item; a skip is never scored, so this is its only trace.
+    skipped: z.boolean().optional()
 });
 const session = z.object({
     id,
@@ -55,8 +66,16 @@ const session = z.object({
     reviewOnly: z.boolean().default(false),
     unitId: z.string().nullable(),
     items: z.array(item),
-    activeQuestionId: qid.nullable()
+    activeQuestionId: qid.nullable(),
+    // A question can appear twice once it has a repair step, so this says which of the two is active.
+    activeRepair: z.boolean().default(false),
+    mode: z.enum(["lesson", "lightning"]).default("lesson"),
+    deadline: time.optional(),
+    // When the session first completed; a reopened daily lesson keeps it, so its finish bonus never moves.
+    completedAt: time.optional()
 });
+type Session = z.infer<typeof session>;
+type Item = z.infer<typeof item>;
 const provisional = z.object({
     answer: choice,
     at: time,
@@ -104,7 +123,12 @@ export const LearnerStateSchema = z.object({
         digest: z.string(),
         activityId: z.string().nullable(),
         viewKind: z.enum(["course", "study", "mock", "help", "answer"])
-    }))
+    })),
+    league: z.object({
+        displayName: z.string(),
+        joinedAt: time,
+        hidden: z.boolean()
+    }).nullable().default(null)
 });
 export type LearnerState = z.infer<typeof LearnerStateSchema>;
 const base = {
@@ -202,6 +226,24 @@ export const LearningCommandSchema = z.discriminatedUnion("kind", [
     z.object({
         ...mockInput,
         kind: z.literal("view_mock")
+    }),
+    z.object({
+        ...base,
+        kind: z.literal("start_lightning")
+    }),
+    z.object({
+        ...base,
+        kind: z.literal("join_league"),
+        displayName: z.string().max(100)
+    }),
+    z.object({
+        ...base,
+        kind: z.literal("leave_league")
+    }),
+    z.object({
+        ...base,
+        kind: z.literal("set_league_hidden"),
+        hidden: z.boolean()
     })
 ]);
 export type LearningCommand = z.infer<typeof LearningCommandSchema>;
@@ -231,7 +273,8 @@ function localDay(at: number, timezone: string) {
         day: "2-digit"
     }).format(at);
 }
-export function questionProgress(state: LearnerState) {
+// observe sees each answer fact as the replay classifies it; it cannot change the replay.
+export function questionProgress(state: LearnerState, observe?: (fact: AnswerFact, step: AnswerStep) => void) {
     const result = new Map<string, {
         successes: number;
         stage: number;
@@ -283,6 +326,8 @@ export function questionProgress(state: LearnerState) {
                 p.dueAt = earlier(p.dueAt, soon);
             continue;
         }
+        const first = p.coveredAt === null;
+        const learnedBefore = p.successes >= 2;
         if (p.coveredAt === null) {
             p.coveredAt = e.at;
             p.coveredDay = e.localDay;
@@ -314,6 +359,7 @@ export function questionProgress(state: LearnerState) {
         if (p.confused && due)
             p.dueAt = earlier(p.dueAt, soon);
         p.prior = true;
+        observe?.(e, { first, due, qualified: qualifies, learnedBefore, learnedAfter: p.successes >= 2 });
     }
     return result;
 }
@@ -327,9 +373,27 @@ function dueIds(state: LearnerState, now: number) {
         return Number(y?.lastWrong) - Number(x?.lastWrong) || Number(b.isCritical) - Number(a.isCritical) || (x?.dueAt ?? 0) - (y?.dueAt ?? 0) || a.id - b.id;
     }).map(q => q.questionId);
 }
-type AnswerFact = Extract<z.infer<typeof fact>, { kind: "answer" }>;
+export type AnswerFact = Extract<z.infer<typeof fact>, { kind: "answer" }>;
+export interface AnswerStep {
+    first: boolean;
+    due: boolean;
+    // The answer counted toward learning (B4): a qualifying correct answer.
+    qualified: boolean;
+    learnedBefore: boolean;
+    learnedAfter: boolean;
+}
 function answerFacts(evidence: LearnerState["evidence"]) {
     return evidence.filter((e): e is AnswerFact => e.kind === "answer").sort((a, b) => a.at - b.at || a.sequence - b.sequence);
+}
+function feedbackOf(e: AnswerFact) {
+    return {
+        ...submitAnswer(e.questionId, e.answer),
+        assisted: e.assisted,
+        confidence: e.confidence,
+        sourceId: `question-bank.json#${e.questionId}`,
+        // As in helpView: a question without bank text has no explanation to show, only the fallback sentence.
+        teachingStatus: bankQuestions.find(q => q.questionId === e.questionId)?.explanation ? "bank_text_unreviewed" : "teaching_gap"
+    };
 }
 function answerResults(answers: AnswerFact[]) {
     const correctAttempts = answers.filter(e => e.correct).length;
@@ -340,12 +404,53 @@ function answerResults(answers: AnswerFact[]) {
         accuracyPercent: answers.length ? Math.round(correctAttempts * 100 / answers.length) : 0
     };
 }
+/** Today's wrong answers, the latest per question and newest first, for read-only review. Viewing them records nothing. */
+export function todayMistakes(state: LearnerState, now: number) {
+    const today = localDay(now, state.profile.timezone);
+    const latest = new Map<string, AnswerFact>();
+    for (const e of answerFacts(state.evidence))
+        if (!e.correct && localDay(e.at, state.profile.timezone) === today)
+            latest.set(e.questionId, e);
+    return [...latest.values()].sort((a, b) => b.at - a.at || b.sequence - a.sequence).map(e => ({
+        question: safeQuestion(e.questionId),
+        chosen: e.answer,
+        correctAnswer: submitAnswer(e.questionId, e.answer).correctAnswer,
+        explanation: bankQuestions.find(q => q.questionId === e.questionId)?.explanation ?? null,
+        at: e.at
+    }));
+}
+/** Questions with one qualifying success: not learned yet, learned by the next qualifying answer. */
+function onTheWay(questions: { successes: number }[]) {
+    return questions.filter(q => q.successes === 1).length;
+}
+/**
+ * Today's goal ring, what comes back tomorrow and the questions on the way to Đã thuộc, shared by the home
+ * card and the finish screen. nextLearnAt is the earliest time one of those can count: a due review that is
+ * also eligible, since help after the success delays eligibility past the due time.
+ */
+function dailySummary(state: LearnerState, now: number, p = questionProgress(state)) {
+    const today = localDay(now, state.profile.timezone);
+    const tomorrow = localDay(now + DAY, state.profile.timezone);
+    const progress = [...p.values()];
+    const learnAt = progress.flatMap(q => q.successes === 1 && q.dueAt !== null ? [Math.max(q.dueAt, q.eligibleAt)] : []);
+    return {
+        newToday: progress.filter(q => q.coveredAt !== null && q.coveredDay === today).length,
+        dailyGoal: state.profile.dailyGoal,
+        dueCount: progress.filter(q => q.dueAt !== null && q.dueAt <= now).length,
+        wrongToday: todayMistakes(state, now).length,
+        // Not due yet, but due by the end of the learner-local tomorrow: what the finish screen says comes back tomorrow.
+        // Answers given just now are due 24 hours after they were given, which is slightly under now + 24 hours.
+        tomorrowDue: progress.filter(q => q.dueAt !== null && q.dueAt > now && q.dueAt < now + 3 * DAY && localDay(q.dueAt, state.profile.timezone) <= tomorrow).length,
+        onTheWay: onTheWay(progress),
+        nextLearnAt: learnAt.length ? Math.min(...learnAt) : null
+    };
+}
 export function courseView(state: LearnerState, now: number, nothingToStudy = false) {
     const p = questionProgress(state);
     const covered = [...p.values()].filter(q => q.coveredAt !== null);
-    const today = localDay(now, state.profile.timezone);
+    const daily = dailySummary(state, now, p);
     const requiredStudyDays = Math.ceil((600 - covered.length) / state.profile.dailyGoal);
-    const todayNew=covered.filter(q=>q.coveredDay===today).length;
+    const todayNew = daily.newToday;
     let cursor = todayNew>=state.profile.dailyGoal?now+DAY:now, availableStudyDays = 0, forecastFinishAt: number | null = requiredStudyDays === 0 ? now : null;
     for (let i = 0; i < 10000 && forecastFinishAt === null; i++, cursor += DAY) {
         const weekday = new Date(new Intl.DateTimeFormat("en-US", {
@@ -361,6 +466,7 @@ export function courseView(state: LearnerState, now: number, nothingToStudy = fa
         }
     }
     const calendarCapacity = Math.max(0, Math.ceil((state.profile.targetDate - now) / DAY));
+    const unitList = listUnits(state, "", now);
     return {
         kind: "course" as const,
         nothingToStudy,
@@ -368,20 +474,25 @@ export function courseView(state: LearnerState, now: number, nothingToStudy = fa
         total: 600,
         covered: covered.length,
         learned: [...p.values()].filter(q => q.successes >= 2).length,
-        newToday: covered.filter(q => q.coveredDay === today).length,
-        dailyGoal: state.profile.dailyGoal,
-        dueCount: dueIds(state, now).length,
+        onTheWay: daily.onTheWay,
+        nextLearnAt: daily.nextLearnAt,
+        newToday: daily.newToday,
+        dailyGoal: daily.dailyGoal,
+        dueCount: daily.dueCount,
+        wrongToday: daily.wrongToday,
         requiredStudyDays,
         calendarCapacity,
         bufferDays: calendarCapacity - requiredStudyDays,
         forecastFinishAt,
         targetCompatible: forecastFinishAt !== null && forecastFinishAt <= state.profile.targetDate,
         profile: state.profile,
-        familyStatus: "draft_bank_analysis",
-        units: listUnits(state, "", now).units.filter(u => u.kind === "category"),
-        customCategory: listUnits(state, "", now).customCategory,
+        familyStatus: "approved",
+        units: unitList.units.filter(u => u.kind === "category"),
+        customCategory: unitList.customCategory,
         mockLibraryAvailable: false,
         results: answerResults(answerFacts(state.evidence)),
+        xp: xpSummary(state, now),
+        tomorrowDue: daily.tomorrowDue,
         recentAnswers: answerFacts(state.evidence).slice(-20).reverse().map(e => ({
             questionId: e.questionId,
             answer: e.answer,
@@ -420,6 +531,7 @@ export function listUnits(state: LearnerState, query = "", now = Date.now()) {
         firstQuestionId: questionIds[0] ?? null,
         covered: questionIds.filter(id => p.get(id)?.coveredAt !== null).length,
         learned: questionIds.filter(id => (p.get(id)?.successes ?? 0) >= 2).length,
+        onTheWay: onTheWay(questionIds.flatMap(id => p.get(id) ?? [])),
         due: questionIds.filter(id => {
             const due = p.get(id)?.dueAt;
             return due !== null && due !== undefined && due <= now;
@@ -430,11 +542,16 @@ export function listUnits(state: LearnerState, query = "", now = Date.now()) {
         customCategory: {
             id: CONFUSING_CATEGORY_ID,
             title: "C\u00E2u h\u1ECFi d\u1EC5 nh\u1EA7m l\u1EABn",
-            status: "draft_bank_analysis",
+            status: "approved",
             familyCount: families.length,
             total: new Set(families.flatMap(f => f.questionIds)).size,
             covered: [...new Set(families.flatMap(f => f.questionIds))].filter(id => p.get(id)?.coveredAt !== null).length,
-            learned: [...new Set(families.flatMap(f => f.questionIds))].filter(id => (p.get(id)?.successes ?? 0) >= 2).length
+            learned: [...new Set(families.flatMap(f => f.questionIds))].filter(id => (p.get(id)?.successes ?? 0) >= 2).length,
+            onTheWay: onTheWay([...new Set(families.flatMap(f => f.questionIds))].flatMap(id => p.get(id) ?? [])),
+            due: [...new Set(families.flatMap(f => f.questionIds))].filter(id => {
+                const due = p.get(id)?.dueAt;
+                return due !== null && due !== undefined && due <= now;
+            }).length
         },
         units: selected,
         suggestions: selected.filter(u => u.kind === "family").sort((a, b) => b.due - a.due || a.covered - b.covered).slice(0, 3)
@@ -446,6 +563,13 @@ function findSession(state: LearnerState, id: string) {
         throw new Error("SESSION_NOT_FOUND");
     return s;
 }
+function activeItem(s: Session) {
+    return s.items.find(i => i.questionId === s.activeQuestionId && (i.repairOf !== undefined) === s.activeRepair);
+}
+function activate(s: Session, i: Item | undefined) {
+    s.activeQuestionId = i?.questionId ?? null;
+    s.activeRepair = i?.repairOf !== undefined;
+}
 function findMock(state: LearnerState, id: string) {
     const m = state.mocks.find(m => m.id === id);
     if (!m)
@@ -455,13 +579,37 @@ function findMock(state: LearnerState, id: string) {
 export function studyView(state: LearnerState, sessionId: string, now: number) {
     const s = findSession(state, sessionId);
     const q = s.activeQuestionId;
-    const answers = answerFacts(state.evidence).filter(e => e.activityId === s.id);
+    const active = activeItem(s);
+    // Both pair verdicts appear together (INT-02), so a half-answered pair's answer stays out of every result below.
+    const waitingGroups = new Set(s.items.flatMap(i => i.group !== undefined && i.status === "pending" ? [i.group] : []));
+    const withheld = new Set(s.items.flatMap(i => i.group !== undefined && waitingGroups.has(i.group) && i.answerId ? [i.answerId] : []));
+    const answers = answerFacts(state.evidence).filter(e => e.activityId === s.id && !withheld.has(e.id));
     const results = answerResults(answers);
+    const answerOf = (i: Item) => i.status !== "answered" ? undefined : i.answerId ? answers.find(e => e.id === i.answerId) : answers.filter(e => e.questionId === i.questionId).at(-1);
+    const activeAnswer = active ? answerOf(active) : undefined;
+    const awards = answerAwards(state);
+    const firstSuccesses = new Set<string>();
+    questionProgress(state, (e, step) => {
+        if (step.first && step.qualified)
+            firstSuccesses.add(e.id);
+    });
+    const planned = s.items.filter(i => i.repairOf === undefined && i.group === undefined);
+    const repairStep = active?.repairOf !== undefined && active.status === "pending" ? active : undefined;
+    const pairItems = active?.group === undefined ? [] : s.items.filter(i => i.group === active.group);
+    const family = families.find(f => f.id === active?.group);
+    const wrongItems = [...new Set(answers.filter(e => !e.correct).map(e => e.questionId))];
+    const lightningOver = s.mode === "lightning" && (s.status === "complete" || (s.deadline !== undefined && now >= s.deadline));
     return {
         kind: "study" as const,
         sessionId: s.id,
         status: s.status,
         override: s.override,
+        // The category or confusing-question group the learner chose, so the intro names the skill (ui-ux 3).
+        unit: !s.unitId ? null : {
+            id: s.unitId,
+            title: s.unitId === CONFUSING_CATEGORY_ID ? "Câu hỏi dễ nhầm lẫn" : categoryTitles[s.unitId] ?? families.find(f => f.id === s.unitId)?.title ?? s.unitId,
+            family: !categories.includes(s.unitId)
+        },
         reviewOnly: s.reviewOnly,
         pendingDue: dueIds(state, now).length,
         remaining: s.items.filter(i => i.status === "pending").length,
@@ -474,19 +622,60 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
         },
         question: q ? safeQuestion(q) : null,
         confusionEnabled: q ? questionProgress(state).get(q)?.confused ?? false : false,
-        questionStatus: s.items.find(i => i.questionId === q)?.status ?? null,
+        questionStatus: active?.status ?? null,
         queue: s.items,
-        currentFeedback: answers.filter(e => e.questionId === q).slice(-1).map(e => e.kind === "answer" ? {
-            ...submitAnswer(e.questionId, e.answer),
-            sourceId: `question-bank.json#${e.questionId}`,
-            teachingStatus: "bank_text_unreviewed"
-        } : null)[0] ?? null,
-        help: q && state.evidence.some(e => e.kind === "help" && e.questionId === q && e.at >= s.createdAt) ? helpView(q) : null,
+        currentFeedback: activeAnswer ? feedbackOf(activeAnswer) : null,
+        // A waiting repair step shows help only when asked for again, not because the wrong answer's feedback was shown.
+        help: q && state.evidence.some(e => e.kind === "help" && e.questionId === q && (repairStep ? !e.feedback && e.at >= repairStep.bindingAt : e.at >= s.createdAt)) ? helpView(q) : null,
         sessionResults: {
             answered: results.totalAttempts,
             correct: results.correctAttempts,
             wrong: results.wrongAttempts,
             items: answers.map(e => ({ questionId: e.questionId, answer: e.answer, correct: e.correct }))
+        },
+        mode: s.mode,
+        itemKind: active?.kind ?? null,
+        repairOf: active?.repairOf ?? null,
+        xp: answers.reduce((sum, e) => sum + (awards.get(e.id)?.xp ?? 0), 0) + lessonXp(state, s),
+        combo: comboOf(answers),
+        lastAward: activeAnswer ? awardParts(awards.get(activeAnswer.id)) : null,
+        // The lesson plan for the intro screen; repair steps and compare-the-pair items are counted separately.
+        steps: {
+            review: planned.filter(i => i.kind === "review").length,
+            new: planned.filter(i => i.kind === "new").length,
+            practice: planned.filter(i => i.kind === "practice").length,
+            pairGroups: new Set(s.items.flatMap(i => i.group === undefined ? [] : [i.group])).size
+        },
+        deadline: s.deadline ?? null,
+        remainingMs: s.deadline === undefined ? null : Math.max(0, s.deadline - now),
+        serverNow: now,
+        correctCount: results.correctAttempts,
+        wrongItems,
+        // Finish-screen counts for this session: newly mastered questions, then the muted assisted, guessed and skipped line.
+        masteredCount: answers.filter(e => awards.get(e.id)?.masteredNow).length,
+        // First answers to a question that counted toward learning: correct, unassisted, not a guess, with no earlier help.
+        firstCorrectCount: answers.filter(e => firstSuccesses.has(e.id)).length,
+        assistedCount: answers.filter(e => e.assisted).length,
+        guessedCount: answers.filter(e => e.confidence === "guess").length,
+        skippedCount: s.items.filter(i => i.skipped).length,
+        skippedPending: s.items.filter(i => i.skipped && i.status === "pending").length,
+        goal: dailySummary(state, now),
+        // Once a lightning round is over, the answers it got wrong, so the card can show them without recording help.
+        review: lightningOver ? wrongItems.map(questionId => {
+            const chosen = answers.filter(e => e.questionId === questionId && !e.correct).at(-1)?.answer ?? "A";
+            return { question: safeQuestion(questionId), chosen, correctAnswer: submitAnswer(questionId, chosen).correctAnswer };
+        }) : null,
+        pair: active?.group === undefined ? null : {
+            group: active.group,
+            familyId: active.group,
+            title: family?.title ?? active.group,
+            axes: family?.comparisonAxes ?? [],
+            status: "approved" as const,
+            questions: pairItems.map(i => safeQuestion(i.questionId)),
+            feedback: pairItems.map(i => {
+                const e = answerOf(i);
+                return e ? { ...feedbackOf(e), award: awardParts(awards.get(e.id)) } : null;
+            })
         }
     };
 }
@@ -499,6 +688,8 @@ export function mockView(state: LearnerState, attemptId: string, now: number, re
         createdAt: m.createdAt,
         status: m.status,
         deadline: m.deadline,
+        // When the test was submitted, expired or left; the result screen shows the time used.
+        closedAt: m.status === "active" ? null : m.closedAt,
         serverNow: now,
         remainingMs: m.status === "active" ? Math.max(0, m.deadline - now) : 0,
         expired: m.status === "active" && now >= m.deadline,
@@ -585,17 +776,77 @@ function reconcile(state: LearnerState, s: z.infer<typeof session>, now: number)
                     bindingAt: now
                 });
     s.items.sort((a, b) => Number(b.kind === "review") - Number(a.kind === "review"));
-    s.activeQuestionId = s.items.find(i => i.status === "pending" && !blocked.has(i.questionId))?.questionId ?? null;
+    activate(s, s.items.find(i => i.status === "pending" && !blocked.has(i.questionId)));
     s.status = s.activeQuestionId ? "active" : s.items.some(i => i.status === "pending") ? "paused" : "complete";
+    if (s.status === "complete")
+        s.completedAt ??= now;
+}
+/**
+ * PLAY-05: one repair step after a wrong answer, placed after the next two pending steps, or last when
+ * fewer remain. With no other step left, nothing separates it from the feedback that just showed the
+ * answer, so no repair is added. It never lands inside a compare-the-pair group.
+ */
+function insertRepair(s: Session, answered: Item, now: number) {
+    const at = s.items.indexOf(answered);
+    const later = s.items.flatMap((i, index) => index > at && i.status === "pending" ? [index] : []);
+    const siblingWaiting = answered.group !== undefined && s.items.some(i => i.group === answered.group && i.status === "pending");
+    if (!later.length && !siblingWaiting)
+        return;
+    let position = later[1] === undefined ? s.items.length : later[1] + 1;
+    while (position < s.items.length && s.items[position]?.group !== undefined && s.items[position]?.group === s.items[position - 1]?.group)
+        position++;
+    // bindingAt equals the feedback event's time, so B4 treats the repair answer as assisted.
+    s.items.splice(position, 0, { questionId: answered.questionId, kind: "practice", status: "pending", bindingAt: now, repairOf: answered.questionId });
+}
+/**
+ * INT-02: end the lesson with one of its new questions and a sibling from the same confusing-question
+ * family, grouped so both are answered before either verdict shows. The sibling is not learned, not
+ * already in the lesson and not in a running mock. Families with comparison axes and fewer members come
+ * first; ties take the family whose new question sits latest, which moves the lesson plan least.
+ */
+function addPair(s: Session, progress: ReturnType<typeof questionProgress>, blocked: Set<string>, now: number) {
+    const inLesson = new Set(s.items.map(i => i.questionId));
+    const newIds = s.items.filter(i => i.kind === "new").map(i => i.questionId);
+    const candidates = families.flatMap((family, order) => {
+        const question = newIds.filter(q => family.questionIds.includes(q)).at(-1);
+        const sibling = family.questionIds.find(q => !inLesson.has(q) && !blocked.has(q) && (progress.get(q)?.successes ?? 0) < 2);
+        return question !== undefined && sibling !== undefined ? [{ family, order, question, sibling }] : [];
+    });
+    const pick = candidates.sort((a, b) => Number(b.family.comparisonAxes.length > 0) - Number(a.family.comparisonAxes.length > 0)
+        || a.family.questionIds.length - b.family.questionIds.length
+        || newIds.indexOf(b.question) - newIds.indexOf(a.question)
+        || a.order - b.order)[0];
+    const moved = s.items.find(i => i.questionId === pick?.question);
+    if (!pick || !moved)
+        return;
+    const group = pick.family.id;
+    s.items = [
+        ...s.items.filter(i => i !== moved),
+        { ...moved, group },
+        { questionId: pick.sibling, kind: progress.get(pick.sibling)?.coveredAt === null ? "new" : "practice", status: "pending", bindingAt: now, group }
+    ];
 }
 export function runningMockQuestions(state: LearnerState) {
     return new Set(state.mocks.flatMap(m => m.status === "active" ? m.questionIds : []));
 }
 function reopen(state: LearnerState, s: z.infer<typeof session>, now: number) {
-    if (s.items.some(i => i.questionId === s.activeQuestionId && i.status === "answered"))
+    if (s.mode === "lightning" && s.status === "complete")
+        return;
+    if (activeItem(s)?.status === "answered")
         s.status = "active";
     else
         reconcile(state, s, now);
+}
+/** A lightning round ends at its deadline. Its unanswered questions stay unanswered and unscored. */
+export function closeExpiredLightning(state: LearnerState, now: number) {
+    let closed = false;
+    for (const s of state.sessions)
+        if (s.mode === "lightning" && s.status !== "complete" && s.deadline !== undefined && now >= s.deadline) {
+            s.status = "complete";
+            activate(s, undefined);
+            closed = true;
+        }
+    return closed;
 }
 function closeMock(state: LearnerState, attemptId: string, now: number, reason: "submit" | "expiry") {
     const m = findMock(state, attemptId);
@@ -691,6 +942,7 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
     const expired = state.mocks.filter(m => m.status === "active" && now >= m.deadline).map(m => m.id);
     for (const attemptId of expired)
         closeMock(state, attemptId, now, "expiry");
+    closeExpiredLightning(state, now);
     let activityId: string | null = null;
     let viewKind: "course" | "study" | "mock" | "help" | "answer" = "course";
     let resumed = false;
@@ -759,8 +1011,15 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
                     status: "pending",
                     bindingAt: now
                 })),
-                activeQuestionId: ids[0] ?? null
+                activeQuestionId: ids[0] ?? null,
+                activeRepair: false,
+                mode: "lesson"
             };
+            // An exact count or question list is the learner's or ChatGPT's chosen lesson, so it gets no extra challenge.
+            if (!command.reviewOnly && command.questionIds === undefined && command.count === undefined) {
+                addPair(s, progress, blocked, now);
+                activate(s, s.items[0]);
+            }
             state.sessions.push(s);
             viewKind = "study";
             break;
@@ -769,12 +1028,15 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
             const s = findSession(state, command.sessionId);
             activityId = s.id;
             viewKind = "study";
+            if (s.mode === "lightning" && s.deadline !== undefined && now >= s.deadline)
+                throw new Error("LIGHTNING_EXPIRED");
             if (s.status !== "active")
                 throw new Error("SESSION_NOT_ACTIVE");
-            if (s.activeQuestionId !== command.questionId)
-                throw new Error("QUESTION_BINDING_MISMATCH");
-            const i = s.items.find(i => i.questionId === command.questionId && i.status === "pending");
+            const active = activeItem(s);
+            const i = s.activeQuestionId === command.questionId ? active : active?.group === undefined ? undefined : s.items.find(i => i.group === active.group && i.questionId === command.questionId);
             if (!i)
+                throw new Error("QUESTION_BINDING_MISMATCH");
+            if (i.status !== "pending")
                 throw new Error("QUESTION_NOT_PENDING");
             assertNotInRunningMock(state, command.questionId);
             const scored = submitAnswer(command.questionId, command.answer);
@@ -790,10 +1052,16 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
                 activityId: s.id
             });
             i.status = "answered";
+            i.answerId = state.evidence.at(-1)?.id;
             append(state, command.questionId, now, {
                 kind: "help",
                 feedback: true
             });
+            if (!scored.correct && s.mode === "lesson" && i.repairOf === undefined)
+                insertRepair(s, i, now);
+            // Within a pair, the other question stays active until it is answered too.
+            if (i.group !== undefined)
+                activate(s, s.items.find(x => x.group === i.group && x.status === "pending") ?? i);
             break;
         }
         case "next_study": {
@@ -802,7 +1070,8 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
             viewKind = "study";
             if (s.status !== "active")
                 throw new Error("SESSION_NOT_ACTIVE");
-            if (s.items.some(i => i.questionId === s.activeQuestionId && i.status === "pending"))
+            const active = activeItem(s);
+            if (active?.status === "pending" || (active?.group !== undefined && s.items.some(i => i.group === active.group && i.status === "pending")))
                 throw new Error("ANSWER_OR_SKIP_FIRST");
             reconcile(state, s, now);
             break;
@@ -813,11 +1082,14 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
             viewKind = "study";
             if (s.status !== "active")
                 throw new Error("SESSION_NOT_ACTIVE");
-            const i = s.items.findIndex(i => i.questionId === s.activeQuestionId);
-            const skipped = s.items.splice(i, 1)[0];
-            if (skipped)
-                s.items.push(skipped);
-            s.activeQuestionId = s.items.find(i => i.status === "pending" && i.questionId !== skipped?.questionId && (skipped?.kind!=="review"||i.kind==="review"))?.questionId ?? null;
+            const active = activeItem(s);
+            // A compare-the-pair group is skipped and requeued as one step.
+            const skipped = active?.group === undefined ? active ? [active] : [] : s.items.filter(i => i.group === active.group);
+            for (const i of skipped)
+                if (i.status === "pending")
+                    i.skipped = true;
+            s.items = [...s.items.filter(i => !skipped.includes(i)), ...skipped];
+            activate(s, s.items.find(i => i.status === "pending" && !skipped.includes(i) && (active?.kind!=="review"||i.kind==="review")));
             if (!s.activeQuestionId)
                 s.status = "paused";
             break;
@@ -955,6 +1227,48 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
             viewKind = "mock";
             break;
         }
+        case "start_lightning": {
+            // INT-03: up to 30 distinct questions this learner has answered before, in an order seeded by the request ID.
+            const progress = questionProgress(state);
+            const blocked = runningMockQuestions(state);
+            const seen = bankQuestions.map(q => q.questionId).filter(q => progress.get(q)?.coveredAt !== null && !blocked.has(q));
+            if (!seen.length)
+                throw new Error("LIGHTNING_NEEDS_HISTORY");
+            const order = seen.map(q => ({ q, key: createHash("sha256").update(`${command.requestId}:${q}`).digest("hex") })).sort((a, b) => a.key.localeCompare(b.key)).slice(0, 30);
+            activityId = randomUUID();
+            state.sessions.push({
+                id: activityId,
+                createdAt: now,
+                status: "active",
+                // Lightning is its own activity: never reopened as the daily lesson and never given due reviews.
+                override: true,
+                reviewOnly: false,
+                unitId: null,
+                items: order.map(({ q }) => ({ questionId: q, kind: "practice", status: "pending", bindingAt: now })),
+                activeQuestionId: order[0]?.q ?? null,
+                activeRepair: false,
+                mode: "lightning",
+                deadline: now + LIGHTNING_MS
+            });
+            viewKind = "study";
+            break;
+        }
+        case "join_league": {
+            // LEA-01: after a finished lesson, under a name the learner chose; joining again only renames.
+            if (!hasFinishedLesson(state))
+                throw new Error("LEAGUE_NEEDS_LESSON");
+            const displayName = leagueDisplayName(command.displayName);
+            state.league = state.league ? { ...state.league, displayName } : { displayName, joinedAt: now, hidden: false };
+            break;
+        }
+        case "leave_league":
+            state.league = null;
+            break;
+        case "set_league_hidden":
+            if (!state.league)
+                throw new Error("LEAGUE_NOT_JOINED");
+            state.league.hidden = command.hidden;
+            break;
         default: {
             const exhaustive: never = command;
             throw new Error(String(exhaustive));

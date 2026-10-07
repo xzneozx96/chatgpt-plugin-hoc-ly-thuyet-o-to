@@ -1,60 +1,278 @@
 # Lý Thuyết Lái Xe: product requirements
 
-Version 0.11 · 6 October 2026 · Draft for product, design, and engineering review.
+Version 1.0 · 6 October 2026 · Supersedes version 0.11.
 
-This document defines the next product, not the capabilities of the current proof of concept. Confirmed direction comes from the product discussion. The owner authorised resolution of the review findings. Sections B3, B4, and B6 specify the resolved teaching, learning, and assessment policies. Pilot targets remain proposals. The external knowledge-base contract remains unverified. The owner confirmed external timestamped YouTube links as the video experience.
+Version 0.11 defined trustworthy learning rules, but it did not specify the experience. The deployed build that followed it felt flat. It also confused learners by giving feedback twice: once in the card and once from ChatGPT. Version 1.0 makes the experience the primary requirement: an interactive, game-like lesson inside ChatGPT inspired by Duolingo and Brilliant. Version 0.11's scoring, learning-evidence, mock-test, source and privacy rules remain in force. They are retained unchanged in the appendix, and the game layer is built on them. The [v1.0 evaluation](prd-evaluation-interactive-2026-10-06.md) records why this changed.
 
-## Product brief
+Owner decisions for v1.0 (6 October 2026):
+
+- Strict black-and-white themes. Correct and wrong are carried by icon, shape, motion and words, never colour.
+- XP, a daily goal ring and weekly leagues. No streaks, levels, badges or lives.
+- The card gives every verdict. ChatGPT coaches only on request, after repeated mistakes, and at lesson end.
+- Approved outline. Sign-in remains required to save progress.
+
+## 1. Product brief
 
 ### Problem
 
-Vietnamese car-licence candidates need to understand their mistakes and remember the relevant distinctions until their exam, but the current question-by-question experience leaves them to organise study and decide whether they have learned enough.
+Vietnamese licence-B candidates must study 600 questions, including 60 critical (điểm liệt) questions where one mistake fails the exam. Drilling a question bank is boring. Learners stop before they have covered the bank, and they forget confusing distinctions such as speed by road type, licence ages, and similar signs.
 
-The audit observed an endless question flow, static feedback, and no lesson objective or diagnostic. The review code treats immediate correct retries as progress. These observations support a product hypothesis, not a measured claim about learners' retention or abandonment.
+### Audience
 
-### Who and what they need
-
-| Learner | Job to be done | Successful experience |
+| Learner | What they need | Success feels like |
 | --- | --- | --- |
-| First-time candidate | Understand unfamiliar concepts and build a study habit | Complete a manageable lesson, explain the distinction, and know what to study next |
-| Candidate near the exam | Find weak areas and stop repeating mistakes | Prioritise overdue recall, critical questions, and targeted practice without losing overall coverage |
+| First-time candidate | A small, clear thing to do each day that makes progress | "I did today's goal in 10 minutes and I actually get this now." |
+| Candidate near the exam | Find weak areas fast and stop repeating mistakes | "My mock test score went up and I know which questions still trip me." |
 
-Vietnamese is the primary teaching language. The owner confirmed licence B for the first release. The bank remains the authority for question applicability. Other licence-specific preparation requires separate validation.
+Vietnamese is the only interface and teaching language. Licence B only.
 
 ### Product promise
 
-Each session helps the learner understand a previously confusing concept, check it independently, and return to it before forgetting.
-
-### Direction and boundaries
-
-Deliver a guided learning coach inside ChatGPT. Conversation handles explanation and learner reasoning. Compact interactive cards handle questions, images, source segments, and session progress. The normal new lesson lasts approximately 15–20 minutes. Complete all due review before starting new learning by default. Honour an explicit request to start a different lesson or mock test after briefly noting outstanding review; keep those items due. The owner accepts extending the total session beyond that duration when review needs more time. Show the estimated review and lesson time separately, with pause and resume available.
-
-The first release includes category-based guided lessons, daily spaced review of mistakes, approved explanations through an external MCP knowledge base, timestamped YouTube segments, saved learner progress, and timed mock tests. Mock tests have a supplied-library mode and a random mode. The playground is a development test harness. No learner journey depends on visiting it.
-
-The question bank controls original wording, options, images, and scoring. The owner-approved knowledge base supplies explanations and tips. ChatGPT adapts those materials without inventing source claims or changing answer keys.
-
-### Why this direction
-
-Guided coaching addresses both understanding and daily study choices. A challenge game alone can reward activity without recall. An exam simulator alone provides too little instruction for beginners. Use challenges and exam practice within the learning coach, with different pacing for the two audiences.
+A short daily driving-theory game inside ChatGPT that makes you remember. It is free and shared with Vietnamese learner communities.
 
 ### Success
 
-The primary learning outcome is delayed, unassisted recall. Supporting product outcomes are lesson completion and voluntary return. Proposed pilot thresholds are in Appendix C. None is an existing baseline or a promise of exam success.
+| Measure | Definition | Target for the first 100 active learners |
+| --- | --- | --- |
+| Fun | Learners who complete a second lesson within 48 hours of their first | ≥ 60% |
+| Habit | Activated learners who study on ≥ 3 distinct days in their first 7 days | ≥ 50% |
+| Lesson completion | Lessons finished ÷ lessons started (pauses excluded) | ≥ 80% |
+| Learning | Correct unassisted answers on due reviews of questions answered wrong 7+ days earlier | Report the trend. There is no claimed target until there is a baseline. |
 
-### Delivery appetite
+These targets are hypotheses. Never claim exam pass rates.
 
-Propose a six-week initial delivery window after scope approval and availability of the knowledge-base connection. Use the first two weeks to validate one complete lesson inside ChatGPT. Use the remaining window for persistent review, coverage, and a closed pilot. This is an initial appetite, not an engineering estimate. Replan after the first prototype and integration probes. Broad release depends on the gates below, even if the window expires.
+## 2. Experience principles
 
-### Decisions needed before build commitment
+1. **Play in the card, talk in the chat.** The card owns answering, verdicts, next steps and progress. ChatGPT is a coach the learner calls on. It never narrates every answer.
+2. **Instant feedback.** A verdict appears within one second of a tap, with motion that makes it felt.
+3. **Always one obvious next tap.** Every screen has exactly one primary action.
+4. **Small wins, often.** XP after every step, a goal ring that fills, and a celebration at the end of every lesson.
+5. **Learning is real, not just activity.** Game rewards come from the same server events as the learning rules. A question is "Mastered" only under the appendix B4 contract, however much XP it earned.
+6. **Never punish.** No lives, no streak loss, no shaming copy. A break means "Welcome back", never "You failed".
+7. **Monochrome and calm.** Pure black and white like ChatGPT. Delight comes from motion and typography, not colour.
 
-- Confirm the proposed pilot targets after baseline measurement. Licence B and the learning-policy resolutions are settled.
-- Inspect the knowledge-base MCP tools, authorisation, source metadata, and timestamps.
-- Verify that source-derived timestamped YouTube links open externally from the actual ChatGPT host and that the study session can resume.
-- Assign editorial review responsibility and estimate full-bank teaching coverage.
-- Confirm the production identity and persistence approach. The learner experience must not depend on a specific vendor.
-- Obtain the supplied mock-test library and its category-composition rules. The owner confirmed that any incorrect critical-question answer causes failure regardless of total score.
+## 3. The core loop
 
-## Appendix A. Experience and scope
+Each lesson step follows the same rhythm:
+
+1. **Prompt.** The card shows the question, its image if any, and options as large tap targets. An optional "Tôi đoán" (I'm guessing) chip records low confidence before submitting.
+2. **Tap.** One tap selects. Submission happens on the "Kiểm tra" (Check) tap, so learners can change their choice before submitting.
+3. **Verdict (instant).** The card scores the answer through the server and shows the result in place:
+   - Correct: a filled check icon, the chosen option inverts (black ↔ white), a short bounce, the text "Chính xác!", and "+10 XP" floating up. From 3 correct in a row, a combo counter appears ("3 câu liên tiếp").
+   - Wrong: an outlined ✕ icon, a short horizontal shake, the text "Chưa đúng". The correct option is outlined heavily and labelled "Đáp án đúng".
+4. **Why (one line).** The approved explanation in at most two sentences, with "Xem thêm" to expand. For a question in a confusing family, include a one-line contrast ("Câu 145 khác vì đây là đường hai chiều").
+5. **Continue.** A full-width "Tiếp tục" button. Secondary actions sit behind a quiet row: "Hỏi ChatGPT", "Tôi còn phân vân", "Xem video".
+
+The progress bar at the top of the card advances after every step. After a wrong answer, the same question returns later in the lesson as a repair step. It is labelled "Thử lại" and counts as repair practice, not recall (REV-03).
+
+| ID | Priority | Requirement | Acceptance criteria |
+| --- | --- | --- | --- |
+| PLAY-01 | P0 | One living lesson card | A lesson runs in one card that updates in place. The card never asks ChatGPT to open a new card per question. Reloading the chat restores the current step from the server. |
+| PLAY-02 | P0 | Instant, self-contained scoring | The card calls `submit_study_answer` directly through the host's `tools/call` bridge. It never posts the answer as a chat message, and it never polls for a verdict that ChatGPT must produce. The verdict renders within 1 s at p95 on mobile data. |
+| PLAY-03 | P0 | Felt feedback | Correct and wrong verdicts each have a distinct icon, motion (≤ 400 ms), and words. They are fully understandable without motion and without colour. `prefers-reduced-motion` replaces movement with a fade. A screen reader announces the verdict (live region). |
+| PLAY-04 | P0 | One-line why | Every verdict shows approved teaching text (B3 KB-07) in ≤ 2 sentences, with optional expansion. If no approved text exists, say so plainly and offer "Hỏi ChatGPT". |
+| PLAY-05 | P0 | Repair inside the lesson | A wrong answer schedules one repair attempt later in the same lesson, after at least 2 other steps. Repair earns reduced XP and never counts as delayed recall. |
+| PLAY-06 | P0 | Learning rules unchanged | Scoring, confidence, assistance, confusion and review scheduling follow appendix B2–B4 exactly. The game layer reads their results and never alters them. |
+| PLAY-07 | P0 | Resilient on bad networks | If a request does not reach the server or gets no reply, the card keeps the selection, shows no verdict, and says "Chưa gửi được — thử lại". "Thử lại" resends with the same request ID, so the answer counts once (DAT-02, DAT-03). The learner can still pause. The card never shows a verdict that the server did not return. |
+
+## 4. Session shape
+
+A lesson is 8–12 steps and takes about 6–10 minutes. A normal daily session (goal ring closed) is 2–3 lessons, about 15–20 minutes, which matches the owner's preferred session length. Due review can extend it (REV-02).
+
+| Part | Steps | What happens |
+| --- | --- | --- |
+| Warm-up | Due reviews first (B4 review-first ordering) | "Ôn lại" label. Items are taken from the saved due queue. A long queue becomes review-only lessons until it is empty, and the remaining count stays visible. |
+| New skill | 3–6 new questions from one category or family | A one-screen intro names the skill ("Tốc độ tối đa theo loại đường"), then questions and interactions |
+| Challenge | 1–2 harder or contrasting items | A confusing-pair comparison or a lightning round |
+| Finish | Celebration screen | XP earned, goal-ring progress, accuracy, newly Mastered questions, what comes back tomorrow, and the "Bài tiếp theo" button |
+
+| ID | Priority | Requirement | Acceptance criteria |
+| --- | --- | --- | --- |
+| SES-01 | P0 | Review-first, chunked | Due reviews come before new learning by default (REV-02). If more than 10 are due, the lesson contains 10 reviews and no new questions. The next lesson continues the queue, and new learning starts once the queue is empty. The home card shows the remaining due count. Explicit learner requests for another activity are honoured without clearing due work. |
+| SES-02 | P0 | Named skill per lesson | Every lesson after the warm-up has one named skill drawn from a category or confusing family, plus a one-screen intro that teaches before testing. |
+| SES-03 | P0 | Finish screen | Shows XP earned, goal ring, correct count, newly Mastered count, items scheduled for tomorrow, and one primary "Bài tiếp theo" button. "Xong hôm nay" ends quietly. |
+| SES-04 | P0 | Pause anywhere | Closing or leaving keeps the exact step. "Học tiếp" in any chat resumes it (resume rules in B4). |
+
+## 5. Interaction types
+
+Variety is what makes Brilliant and Duolingo feel interactive. Any answer to an original bank question, in any interaction, is a normal scored attempt under appendix B4. It earns coverage, can lapse a Mastered question, and earns normal XP. Derived interactions (INT-04 sort, INT-05 tap the clue) do not answer a bank question. They never count toward official accuracy, coverage or Mastered status (TUT-06, REV-06), and they earn XP for teaching.
+
+| ID | Priority | Interaction | Description | Content source |
+| --- | --- | --- | --- | --- |
+| INT-01 | P0 | Multiple choice | Original bank question with 2–4 options | Bank |
+| INT-02 | P0 | Compare the pair | Two confusing questions side by side, each answered in turn as a scored attempt. Then one line names the difference ("Khác nhau ở: loại đường"). That reveal is teaching help for any later attempt in this lesson. | Approved family comparisons (CON-06) |
+| INT-03 | P0 | Lightning round | 60 seconds, as many already-seen questions as possible. Shows a counter but no per-question explanation. Each answer is a scored attempt under B4. A correct answer that is not due is early practice, and a wrong answer lapses the question as usual. The intro screen says this in one line. | Previously answered questions |
+| INT-04 | P1 | Sort it | Drag or tap condition cards into buckets, for example speed limits by road type | Approved family comparison dimensions |
+| INT-05 | P1 | Tap the clue | Tap the part of a sign or intersection image that decides the answer, then answer the question | Editor-reviewed image regions only. Never AI-guessed, and never used to decide the official answer. |
+| INT-06 | P0 | Image zoom | Pinch or tap to enlarge any question image with accessible controls | Bank images |
+
+Every interaction is fully usable by tap, keyboard and screen reader, and at 360 px width.
+
+## 6. Gamification
+
+All game values are computed on the server from saved learning events. The card displays them and never computes them.
+
+### 6.1 XP
+
+| Event | XP |
+| --- | ---: |
+| First-time answer, correct | 10 |
+| First-time answer, wrong | 3 (effort, never zero) |
+| Due review, correct | 10 |
+| Due review, wrong | 3 |
+| Qualifying delayed recall that newly makes a question Mastered (B4) | +15 bonus |
+| Repair attempt or derived interaction (INT-04, INT-05) | 2 per step |
+| Lightning round | 1 per correct, max 15 per round |
+| Lesson finished | 10 |
+| Mock test finalised | 20, plus 30 more for a pass |
+
+Rules:
+
+- XP never decreases.
+- A replayed submission earns nothing (DAT-02).
+- Answers after a hint or explanation earn the "wrong" amount even when correct. This keeps help free but unrewarded.
+- Abandoned mock tests earn nothing.
+- Practice on questions that are not due is capped at 50 XP per day, so grinding known questions cannot dominate leagues.
+
+### 6.2 Daily goal ring
+
+The ring is the learner's daily new-question goal (10, 12, 15 or custom; appendix A2a). It fills by first-pass coverage: one segment per new question answered today. A small check in the centre lights when today's due reviews are done. Both must be complete for the ring to close with a celebration. On review-only days, the ring shows "Hôm nay: ôn tập" and closes when reviews are done. The ring never carries over a deficit to the next day.
+
+### 6.3 Weekly leagues
+
+| ID | Priority | Requirement | Acceptance criteria |
+| --- | --- | --- | --- |
+| LEA-01 | P0 | Opt-in and pseudonymous | Learners join after first finishing a lesson and choosing a display name. The display name is checked against a profanity list, and it is not taken from their ChatGPT or account identity. They can leave or hide at any time. Non-members see no league UI except one invitation. |
+| LEA-02 | P0 | Weekly cohorts | Members are grouped into cohorts of up to 30 by join time. Ranking is weekly XP, Monday 00:00 to Sunday 23:59 Vietnam time (UTC+7). The board shows rank, display name and weekly XP only. |
+| LEA-03 | P0 | No punishment | There is no demotion, no losing streak, and no copy that shames a low rank. The end-of-week card celebrates the learner's own XP and the top 3. |
+| LEA-04 | P0 | Fair play | XP comes only from server-recorded events under 6.1. The server rejects any score from the client. Daily XP above 500 is flagged for review rather than ranked automatically. |
+| LEA-05 | P0 | Privacy | League data never shows answers, accuracy, weak areas or exam dates. Deleting study data (DAT-05) also removes league history. |
+| LEA-06 | P1 | Tiers | Promotion-only tiers (for example Đồng → Bạc → Vàng) once there are enough active learners. |
+
+## 7. Card and ChatGPT ownership contract
+
+This section fixes the confusion in the v0.11 build.
+
+| Moment | Card does | ChatGPT does |
+| --- | --- | --- |
+| Learner says "Học tiếp" / "Ôn tập" | — | Calls `start_study` once. Its reply is one short sentence ("Bắt đầu nhé!"). |
+| Lesson running | Shows questions, scores through `tools/call`, shows verdicts, XP and next steps. Keeps ChatGPT informed silently with `ui/update-model-context` (active question, choice, verdict). | Stays silent. Never repeats or contradicts the card's verdict. |
+| Learner taps "Hỏi ChatGPT" | Calls `request_study_help` (recording assistance, TUT-04), then posts one chat message containing the question ID, choice and verdict | Explains from approved material (TUT-03). Card stays on the same step. |
+| Learner types a question mid-lesson | Unchanged | Answers using the model context. Never opens a second lesson card. |
+| Learner types an answer ("B") while a card is live | Unchanged | Does not submit or judge it. Replies in one line asking them to tap their choice on the card. Typed answering stays available in text-only use (TUT-05). |
+| A question is wrong again on its repair step, or 3 answers are wrong in one lesson | Shows "ChatGPT có thể giải thích kỹ hơn" with a button | Coaches only if the learner taps it |
+| Lesson finished | Shows the finish screen, then posts one message with the lesson summary | Writes a 2–3 sentence coach note: one strength, one thing to watch, and tomorrow's review. No new verdicts. |
+| Learner taps "Nhờ ChatGPT nhắc tôi" | Posts one message asking for a daily reminder at the chosen time. Saves nothing. | Creates a daily ChatGPT scheduled task that opens the course, calls `get_course` and reports the due reviews. Says so plainly if scheduled tasks are unavailable on the learner's plan, and never claims a reminder exists without the task. |
+| Text-only use (card fails) | — | Falls back to the v0.11 conversational flow (TUT-05) |
+
+| ID | Priority | Requirement | Acceptance criteria |
+| --- | --- | --- | --- |
+| OWN-01 | P0 | Single verdict source | In every tested flow, each answer has exactly one verdict, shown by the card. ChatGPT messages never contain a correct/wrong judgement the card has not already shown. The test suite includes a learner typing an answer while a card is live. |
+| OWN-02 | P0 | Tool descriptions and tutor skill enforce silence | Tool descriptions and `skills/driving-theory-tutor/SKILL.md` instruct ChatGPT to stay silent during card play and to coach only in the moments above. Verified with a scripted conversation suite in real ChatGPT. |
+| OWN-03 | P0 | Single progress source | Progress numbers in the card, in `get_progress`, and in ChatGPT's answers to "Tiến độ của tôi?" come from the same server summary and match. |
+
+## 8. Progress as learners see it
+
+Learners see four numbers on the home card, and the same words wherever a number appears:
+
+| Label | Meaning | Rule |
+| --- | --- | --- |
+| **Đã gặp** (Seen) | Questions answered at least once | First-pass coverage (A2a) |
+| **Đã thuộc** (Mastered) | Questions recalled correctly, unassisted, on two separate days since the last mistake | Learned status (B4) |
+| **Cần ôn hôm nay** (Due today) | Reviews due now | Due queue (B4) |
+| **Sai hôm nay** (Wrong today) | Questions answered wrong today, in the learner's timezone, each counted once however often it was missed | The latest wrong answer per question today, listed read-only by `get_today_mistakes`. The questions return through their scheduled review (B4) |
+
+The home card shows the goal ring, these four numbers (Đã gặp and Đã thuộc out of 600), weekly XP and league rank (if joined), and one primary "Học tiếp" button. Tapping Sai hôm nay opens a read-only list of today's wrong questions with the learner's choice, the correct answer and the bank explanation. Opening it records no attempt and no help, and nothing on it can be answered; the questions come back in their scheduled review. A course map shows the seven categories and "Câu hỏi dễ nhầm lẫn" as tiles. Each tile has a Seen / Mastered bar and a lock-free "Bắt đầu". The detailed views (needs repair, flagged confusion, next review date, family detail) are one tap deeper, and they follow appendix A1.
+
+| ID | Priority | Requirement | Acceptance criteria |
+| --- | --- | --- | --- |
+| PRG-01 | P0 | Progress labels | The home card and ChatGPT's progress answers use exactly these four labels and definitions. The finish screen and course map use the first three. Overlapping detail counts are never shown as if they add up. |
+| PRG-02 | P0 | Mastery moments | When a question becomes Mastered, the card shows a short "Đã thuộc!" moment on that step and lists it on the finish screen. A later wrong answer quietly moves it back with the copy "Cần ôn lại". |
+| PRG-03 | P0 | Honest forecast | The home card shows the 60-day plan forecast from A2a in one line ("Theo nhịp 12 câu/ngày: xong lượt đầu ngày 25/11"). Missed days re-forecast without blame. |
+
+## 9. Visual design
+
+This section supersedes direction B (navy and blue). The owner chose the original game-like monochrome style on 6 October 2026. `DESIGN.md` holds the full design system, and `src/ui/learning.html` implements it.
+
+| Token | Light | Dark | Use |
+| --- | --- | --- | --- |
+| `--bg` | `#ffffff` | `#000000` | Card ground |
+| `--fg` | `#000000` | `#ffffff` | Text, icons, primary fills, correct-option fill |
+| `--mute` | `#5d5d5d` | `#a8a8a8` | Secondary text, bottom edge of filled buttons |
+| `--line` | `#e2e2e2` | `#2b2b2b` | Idle borders and edges, dividers |
+| `--soft` | `#f4f4f4` | `#121212` | Inset panels, selected tile fill |
+| `--soft2` | `#ebebeb` | `#1f1f1f` | Empty progress, disabled buttons |
+
+- The theme follows the ChatGPT host automatically, with no in-card toggle. Before release, check `--bg` against ChatGPT's actual light and dark backgrounds, and match the host if they differ.
+- Tiles and buttons are pressable. Each has a 2 px border plus a solid bottom edge that collapses 3 px on press.
+- Correct inverts the option and pops a check. Wrong strikes the chosen option with diagonal stripes and an ✕, shakes it, and inverts the correct option with "Đáp án đúng". Feedback never relies on colour.
+- Every state indicator has at least 3:1 contrast. Idle tiles may use the light `--line` border because their text identifies them.
+- Typography: Nunito for text and JetBrains Mono for numbers, both bundled with the widget. Question 18 px / 600, options 15 px / 500, headlines, buttons and chips 700, body 400. Numbers stay mono 700.
+- Shapes: card 22 px radius, tiles and buttons 16 px, chips are pills. Minimum tap target is 44 px, and primary buttons are 52–54 px high.
+- Motion: pop, rise, shake, bounce, sparks, XP float, count-up and stamp, per `DESIGN.md`. All motion respects `prefers-reduced-motion`.
+- No emoji, mascots or decorative illustrations in the chrome.
+
+Contrast meets WCAG 2.2 AA in both themes. Keyboard focus is a visible 3 px `--fg` outline with a 2 px offset.
+
+## 10. Mock test: "Thi thử"
+
+The mock test is the boss level. It follows appendix B6 exactly: 30 questions, 20 minutes, at least 27/30, and any wrong or unanswered critical question fails. During the test there are no XP floats, verdicts or coaching. It uses a question navigator, a timer, and Previous/Next. After finalisation, the result screen counts the score up, shows "Đạt" or "Chưa đạt" with the exact reason, lists wrong items grouped by category, and offers "Ôn các câu sai" as the primary action. Random tests are always labelled "Đề ngẫu nhiên từ ngân hàng 600 câu".
+
+| ID | Priority | Requirement | Acceptance criteria |
+| --- | --- | --- | --- |
+| MOCK-01 | P0 | Exam integrity | All B6 rules (EXAM-01 to EXAM-08) pass. Saving a choice goes through `tools/call` from the card without chat messages. |
+| MOCK-02 | P0 | Result as a moment | The result screen has a count-up score, the pass/fail reason, XP earned, and one primary "Ôn các câu sai" action that starts a lesson from the wrong items. |
+
+## 11. Onboarding and identity
+
+1. The learner opens the app in ChatGPT ("Học lái xe bằng B").
+2. One card: "Mỗi ngày bạn muốn học bao nhiêu câu mới?" with 10, 12 (Đề xuất), 15 or Tự chọn, plus a one-line 60-day forecast and "Bắt đầu".
+3. Sign-in to save progress (DAT-01), explained in one sentence.
+4. The first lesson starts immediately in Điểm liệt or Quy tắc giao thông. There is no diagnostic in v1.0.
+
+Exam date and study days are optional, and the learner sets them later by saying so in chat. The friction of sign-in is a known risk. Measure the drop-off between steps 2 and 4.
+
+## 12. Scope, milestones and release checks
+
+### In scope
+
+PLAY, SES, INT P0, XP, goal ring, leagues P0, OWN, PRG, the monochrome visual system, Thi thử, and everything in the appendix that these depend on.
+
+### Out of scope for v1.0
+
+Streaks, levels, badges, lives or hearts, sound, push notifications, voice, animated traffic simulations, generated official questions, standalone website, other licence classes, embedded video player (video opens YouTube externally per B3).
+
+### Milestones
+
+| Milestone | Exit evidence |
+| --- | --- |
+| M1. Living card | One lesson in real ChatGPT. The card scores through `tools/call`, each answer has one verdict (OWN-01), the monochrome themes are in place, and motion works. Fullscreen and inline display are both tested, and the better one is chosen. |
+| M2. Game layer | XP, goal ring, finish screen, three-number progress, compare-the-pair, and lightning round |
+| M3. Community | Leagues, mock-test result moment, and 5–8 learner playtests in ChatGPT with fun and confusion notes |
+| Release | Release checks below pass. Share with Vietnamese learner communities. |
+
+### Release checks
+
+1. Every P0 in this document, including the appendix, passes in the real ChatGPT connection, in both themes, on mobile and desktop.
+2. Scripted conversation suite: 0 cases where ChatGPT gives a verdict, contradicts the card, or opens a duplicate card.
+3. All appendix policy scenarios (C4) and mock-test cases pass with a controlled clock.
+4. XP, ring and league values match the event log for two test accounts across replays, concurrent chats and timezone changes. Deleting a learner's data removes their league entry.
+5. Content and scoring match the 600-question bank. Before the public community launch, all 600 questions have approved retained teaching text (KB-07). An earlier invite-only beta may show missing text honestly (KB-05), and it must be labelled as a beta.
+
+## 13. Risks
+
+| Risk | Mitigation |
+| --- | --- |
+| The host does not support direct `tools/call` reliably on all ChatGPT clients | Test in M1 on web, iOS and Android. Fall back to the conversational flow (TUT-05) rather than the old message-plus-polling flow. |
+| ChatGPT still narrates verdicts despite instructions | Return minimal model-visible text from card tool calls. Test with the scripted suite. Iterate tool descriptions. |
+| Leagues reward grinding over learning | XP rules in 6.1, the cap on practice that is not due, and the 500 XP flag |
+| A display name exposes identity, or abuse | Pseudonyms, profanity filter, hide/leave, and no learning data on boards |
+| Monochrome reads as dull | Motion, typography scale and celebration moments carry the delight. Validate in M3 playtests. |
+| Missing teaching text for some questions | Honest gap message (KB-05). Start lessons with the best-covered categories. |
+
+## Appendix: retained rules from version 0.11
+
+The sections below are carried over unchanged from version 0.11. They keep their original section numbers and requirement IDs, because code, tests and other documents refer to them. Where they mention ChatGPT cards, sections 3–11 above now define the card behaviour. Where they mention the 15–20 minute session, section 4 delivers it as 2–3 short lessons. Their scoring, evidence and scheduling rules are unchanged.
 
 ### A1. The category-based learning path
 
@@ -87,22 +305,6 @@ Separate selection for new learning from selection for recall. Correctly learned
 
 The [question-family catalogue](question-family-analysis.md) records source-grounded families and comparison dimensions across the bank. The full-bank textual pass records 249 overlapping families covering 598 questions and two explicit singletons, accounting for all 600 IDs. 132 families require visual review. All mappings remain draft analysis. Families appear beneath "Câu hỏi dễ nhầm lẫn" and also support lessons in the original categories. They must preserve original question IDs, conditions, and images. They can overlap. A comparison of licence permissions must not conflate licence issuance age with permission to drive a specific vehicle. Image-dependent distinctions require visual review before approval. Catalogue coverage and teaching approval are separate. The [ChatGPT family guidance](chatgpt-question-family-guidance.md) records the proposed tutor instructions and the integration handoff. These saved documents are not yet exposed by the running plugin.
 
-### A2. The daily lesson
-
-The owner confirmed review-first ordering. Complete the due queue before starting a new lesson by default, even when this extends the total session. If the learner explicitly requests another lesson or a mock test, briefly mention outstanding reviews and start the requested activity. Do not require a second confirmation solely for the review override. Keep pending reviews due and retain their schedules. The learner may pause and resume; remaining due review must not silently disappear to fit a time cap. Completing review means handling its scheduled attempts and recording the resulting schedule, not answering every item correctly through repeated retries. Mistakes receive repair and delayed review rather than an endless same-session loop.
-
-The following timing is a design hypothesis for a small queue, not a fixed quota:
-
-| Step | Approximate time | Learner activity |
-| --- | ---: | --- |
-| Recall | Variable; approximately 3 minutes for a small queue | Complete all due review attempts before new learning; receive coaching after each attempt as needed |
-| Understand | 5 minutes | Investigate one distinction using approved explanation and optional video |
-| Apply | 6 minutes | Answer original questions, compare examples, or identify an image clue |
-| Check independently | 3 minutes | Apply the concept to a different bank question without help |
-| Finish | 1 minute | Review demonstrated gains, unresolved gaps, and the next review plan |
-
-Adapt to the learner's pace. Do not require a reasoning conversation after every easy answer. A learner can ask for less detail, more explanation, a hint, or a related question. Show progress through the review queue and explain when the combined review and new lesson will exceed the original estimate. The learner can stop or pause at any point. An incomplete due queue resumes before new learning by default. An explicit learner request may override that order without clearing the queue.
-
 ### A2a. Learner-selected daily goal and 60-day plan
 
 The owner requested a selectable daily goal with several plans for covering the 600-question bank within 60 calendar days. Offer the following starting choices and a custom goal. Recommend 12 new questions per study day because its arithmetic leaves room for missed sessions or extra consolidation. These are planning options, not experimentally established optimal daily quotas.
@@ -123,55 +325,6 @@ The daily new-question goal measures additional first-pass coverage. Review, rep
 Onboarding offers a compact goal chooser in ChatGPT and an equivalent conversational path. The learner may change the daily goal or deadline at any time. Recommend the next category-based lesson from remaining coverage and approved teaching resources. Break the goal into focused lessons if needed. Keep deeper explanations and all due review; do not compress these to promise that 12 or 15 questions always fit 15–20 minutes. Estimate review and new-learning time separately using observed pace when available, otherwise label time as provisional.
 
 After missed days, pauses, or review-only days, show remaining coverage and the revised forecast. Calculate the required pace from remaining unique questions and available new-learning days before the target date. Offer keeping the goal with a later finish, changing the goal, or changing the study calendar. Never silently increase the chosen goal, cancel review, or imply failure for taking a break. A partially completed day saves its actual coverage and pending activity. Optional extra questions cannot become a compulsory next-day quota. If pilot content approval supports only a subset, disclose that the full-bank plan is not yet available rather than forecasting unsupported teaching.
-
-### A3. ChatGPT user flows
-
-All example dialogue below describes intended behaviour. It is not a transcript of an implemented feature.
-
-| Flow | Learner entry | Interaction in ChatGPT | Completion |
-| --- | --- | --- | --- |
-| First visit | "Tôi mới học bằng B, mỗi ngày có 20 phút." | Confirm licence, experience, optional exam date, and time. Offer 10, 12, 15, or a custom daily new-question goal and explain the 60-day forecast. Offer a short diagnostic or immediate lesson. Render question cards and explain the proposed focus. | Save preferences and a limited initial assessment. Do not label a short diagnostic as comprehensive readiness. |
-| Daily study | "Học tiếp hôm nay." | Fetch saved state and show due-review count, estimated review time, daily new-question goal, remaining coverage, and the proposed new lesson. Complete due review first, then move to new learning by default. Honour an explicit request to change activity and retain outstanding reviews. Explain any extension beyond 15–20 minutes. Alternate cards and conversation. | Summarise independent performance, help used, remaining gaps, and next review. |
-| Daily review | "Ôn tập hôm nay." | Fetch due questions. Give recall attempts first. Coach mistakes, offer relevant clips, and check understanding later in the session. | Save results and future due dates. Complete the due queue even when the duration extends, or save remaining items for explicit pause and resume. Offer new learning after review is complete. |
-| Explain a mistake | "Tại sao tôi chọn C lại sai?" | Confirm the active question and choice. Retrieve its verdict and supported teaching material. Ask one reasoning question when needed. Explain the distinction with provenance. | Offer another original question or return to the lesson. |
-| Watch explanation | "Cho tôi xem đoạn thầy giải thích câu này." | Retrieve an actual matching source segment. Show title, source, timestamp range, relevance, and a timestamped YouTube link. The learner clicks to open YouTube externally. | Retain the study step while the learner watches externally. On their next message, offer an application check. Do not claim to detect whether they watched. Viewing alone does not establish learning. |
-| Ask freely | "Tôi hay nhầm hai biển này." | Retrieve applicable questions and explanations. Compare original images and supported distinctions. Offer a clue-finding or explanation activity. | Link the concept back into the lesson or review plan. |
-| Category lesson | "Hôm nay học biển báo." | Select the `bien_bao` pool, show its learning progress, and build a manageable lesson using original bank questions and approved teaching material. | Save progress against that category and offer its next lesson or due review. |
-| Confusing-question lesson | "Học câu hỏi dễ nhầm lẫn." | Open the eighth category, "Câu hỏi dễ nhầm lẫn". Offer three personalised family suggestions with selection reasons, such as age, licence scope, speed conditions, or similar signs. Allow conversational search across the complete catalogue. Use approved focused distinctions for teaching; distinguish draft mappings from approved lesson content. Use saved history to propose a focused comparison lesson. Preserve each member's original category and review status. | Save question-level results and offer relevant due review. Do not mark the entire family learned from one answer. |
-| Near-exam preparation | "Tuần sau tôi thi, giúp tôi tập trung." | Adjust the plan toward mixed recall, weak categories, and critical questions. Offer a mock test or a focused repair lesson. | Debrief errors and create targeted repair lessons. Avoid unvalidated pass probabilities. |
-| Supplied mock test | "Cho tôi làm đề số 3." | Retrieve that exact test from the owner's supplied library. Confirm the 30-question, 20-minute profile, then start a timed question card with an answer navigator. | Submit early or finalise at the deadline. Show score, pass/fail under the configured rule, and repair options. |
-| Random mock test | "Tạo một đề ngẫu nhiên." | ChatGPT requests a random test from the bank. Freeze 30 distinct applicable questions, show the test profile, and start only after confirmation. | Score against bank keys, identify the attempt as random, and send mistakes into spaced review. |
-| Resume in another chat | "Tiếp tục bài hôm qua." | Retrieve the latest saved session for the same learner. If multiple sessions exist, identify the intended one. | Resume without replaying scored submissions or silently discarding study state. |
-
-### A4. Scope by stage
-
-| Stage | Required outcome | Content boundary |
-| --- | --- | --- |
-| Functional prototype | One complete ChatGPT lesson with coaching, sourced video, independent check, and a return review | Approximately 10–15 carefully reviewed questions. Explicitly limited content. |
-| Closed pilot | Both audience paths, saved progress, daily review, external knowledge retrieval, and random mock tests work together. Validate library mode once its dataset is supplied. | All 600 questions retrievable. Guided teaching limited to an explicitly listed reviewed subset. |
-| Initial broad release | All P0 requirements and launch gates pass in ChatGPT | All 600 questions accounted for in the learning map. Every question has an approved text explanation retained by the plugin and available during teaching-MCP outages. Unresolved teaching gaps block broad release as a sole learning resource. |
-
-P0 denotes a release requirement. P1 denotes a subsequent improvement or a feature dependent on separately validated content. P1 must not delay the central learning loop.
-
-Out of scope for the initial release: a learner-facing standalone website, learner configuration of infrastructure credentials, leaderboards, punitive streaks, push notifications, voice tutoring, generated official questions, animated traffic simulations, and a claim to provide live driving or legal advice. Daily review is learner-initiated in ChatGPT. Automatic reminders are a separate future opt-in feature.
-
-## Appendix B. Requirements and acceptance criteria
-
-### B1. Core experience
-
-| ID | Priority | Requirement | Acceptance criteria |
-| --- | --- | --- | --- |
-| EXP-01 | P0 | Operate entirely through ChatGPT | First lesson, answer submission, explanation, review, summary, and resume can be completed inside ChatGPT. No playground URL is required. An external source video may open through an explicit action. |
-| EXP-02 | P0 | Personalise without lengthy onboarding | Licence, experience, optional exam date, study duration, timezone, daily new-question goal, and target date can be set or changed conversationally. Diagnostic is optional. Unknown values remain unknown. |
-| EXP-03 | P0 | Make review-first sessions clear and resumable | Before starting, show the review count, estimated review time, new-lesson objective and duration, and selection reason. Complete due review before new learning by default. Honour an explicit request for another lesson or mock test after briefly noting outstanding review, without requiring another confirmation for that override. Keep pending reviews due. The total duration can exceed 15–20 minutes. Show progress, pause, and finish. Do not truncate the due queue to meet a time cap. Skipping is distinct from an incorrect answer and leaves a due item unresolved. |
-| EXP-04 | P0 | Give control over teaching depth | Support hint, simpler explanation, deeper explanation, source video, and related practice requests. Use brief initial feedback with the supported explanation or focused comparison immediately available in that step. Deeper sources remain optional. Do not require free-text reasoning for every question. |
-| EXP-05 | P0 | Support useful visual learning | Original images can be enlarged with accessible controls. At least one reviewed visual comparison or clue activity is included in the prototype. Do not alter images used for official scoring. |
-| EXP-06 | P0 | Preserve trust and accessibility | Answers work by click and text. Keyboard operation, visible focus, named controls, non-colour feedback, and mobile layouts are tested. Normal study has one primary action per step and no repeated global shortcut rows. Optional activity changes and help use context-specific disclosure or conversation. Supported teaching appears directly after feedback without a mandatory extra navigation step. Phase indicators are noninteractive. Goal selection uses choices plus one Continue action, with custom entry inline. Timed tests retain visible Previous and Next and an expandable question index. Navigation never obscures the answer or silently changes activity. |
-| EXP-07 | P0 | Finish with evidence | Summary distinguishes independent answers, assisted answers, uncertain answers, and skipped items. It states remaining gaps and the next review plan. It does not convert activity counts into a readiness score. |
-| EXP-08 | P1 | Add richer image guidance | Reviewed highlights and image-region interactions can guide visual reasoning. Generic AI-detected highlights must not determine the official answer. |
-| EXP-09 | P0 | Assemble lessons using saved learning history | ChatGPT selects original bank questions within the category path using approved teaching resources, previous independent and assisted attempts, due review state, and known confusion. New learning excludes questions meeting the agreed learned criterion unless the learner explicitly requests them. Repeats for due recall or related application are identified as such. Deduplicate selected IDs across overlapping families. Retrieve selected metadata and relevant questions rather than the complete catalogue. When history is unavailable, disclose the limitation rather than pretend to personalise. |
-| EXP-10 | P0 | Complete a purposeful comparison lesson | Name a distinction, elicit an initial attempt, teach with approved evidence, include a comparison or scenario activity, check application with a related original question, and finish with demonstrated gains and the next review plan. When reasoning is unclear, use a concise learner explanation to adapt the teaching. Do not require discussion after every easy answer. The pilot demonstrates a speed-condition lesson and a reviewed sign or scenario lesson. Question navigation and answer reveals alone do not satisfy this requirement. |
-| EXP-11 | P0 | Let learners choose and revise a daily coverage goal | Offer 10, 12, 15, and a custom number of new unique questions per study day. Show 60, 50, and 40 study days for an untouched 600-question bank, with 0, 10, and 20 calendar days remaining in a 60-day window. Respect the study calendar and saved history. Display coverage, daily new-question progress, due review, and learned status separately. Deduplicate original IDs, preserve review-first and pause behaviour, and recalculate forecasts without silently raising the goal. Do not guarantee mastery or fixed session duration. See A2a. |
 
 ### B2. ChatGPT teaching behaviour
 
@@ -292,44 +445,6 @@ A test score and learning evidence have different purposes. Unanswered critical 
 
 The product needs persistent identity and storage. It does not require WorkOS or Neon as a product-level decision. Existing integration work may be reused after deployment validation.
 
-## Appendix C. Outcomes and evaluation
-
-### C1. Three primary pilot measures
-
-Targets below are proposed decision thresholds. Confirm them after baseline measurement and before judging the prototype. Do not infer statistical efficacy from a small usability pilot.
-
-| Measure | Definition | Proposed target |
-| --- | --- | --- |
-| Delayed exact-question recall | Correct unassisted answers on previously studied original questions 7 days after instruction. Predefine intervening exposure and assistance; report them rather than silently pool different review histories. | At least a 10 percentage-point improvement over the draft flow on matched material in a follow-up study designed for a meaningful comparison. |
-| Study completion | Report completed review sessions and completed new lessons separately, each divided by starts of that activity. A resumed activity keeps its original identity. A visit may contain both activities. Explicit pauses and overrides are reported separately from abandonment. | At least 75% completion for each activity in the closed pilot. |
-| Voluntary return | Activated learners who complete study on at least 3 distinct local days in their first 7 days, divided by activated learners eligible for the full observation window. Activation means one completed lesson or review. | At least 50% in the closed pilot, excluding researcher-directed visits. |
-
-Delayed transfer to held-out related bank questions is a separate diagnostic outcome. Specify the comparison dimension and ensure its answer was not previously supplied. It is not exact-question recall. Match content and exposure before comparing either outcome with the draft flow.
-
-These are learning and engagement hypotheses. Exam pass rate may be collected later as a self-reported outcome, but is not a validated launch claim.
-
-### C2. Research and instrumentation
-
-Begin with 5–8 participants split across the two audiences to find usability and teaching problems. Observe actual use inside ChatGPT. Compare matched content with the draft flow and counterbalance order. Record fatigue and enjoyment alongside behaviour. Plan a larger controlled evaluation for learning claims rather than invent a sample size without variance or effect estimates.
-
-Minimum events are session start, pause, resume, completion, answer, help request, source retrieval, video action, scheduled-review outcome, confusion flag changes, provisional test saves, test finalisation, activity overrides, daily-goal changes, first-pass coverage, and forecast revisions. Record learner-scoped IDs, question and content versions, assistance state, and timestamps. A video click means intent to watch; it is not evidence of completed viewing or learning. Prefer aggregate analytics to retaining free-text conversations.
-
-Guardrails include unsupported teaching claims, answer-key mismatches, false source citations, data-isolation failures, and duplicate submissions. Report coverage, hint use, repeated conceptual mistakes, confident wrong answers, latency, retrieval failures, actual review duration, and sessions with no new learning because review used the available time as diagnostics rather than additional headline success metrics.
-
-### C3. Release gates
-
-1. All P0 acceptance criteria pass in the actual ChatGPT connection. Playground success alone is insufficient.
-2. Original content and scoring match the versioned bank across all 600 questions. Relevant images load and remain readable when enlarged.
-3. A predefined tutor suite covers incorrect reasoning, correct guesses, missing explanations, conflicting sources, absent clips, off-bank requests, and interrupted sessions. There are no unresolved critical factual or provenance errors in that suite. Report its size and limitations.
-4. Two learner accounts demonstrate isolation, saved recall across new chats, restart recovery, and deletion. Submission replay and concurrent-chat cases pass.
-5. Controlled-clock cases verify the B4 contract, including 23:55 versus 00:05, an early attempt on another date, timezone changes, correct-wrong-correct sequences, guessed or assisted answers, and question-specific relearning. A long due queue completes before new learning by default, extends the estimated duration, and resumes correctly after pause. Explicit requests can start another lesson or mock test; outstanding reviews retain their due dates and do not produce synthetic completion or answer events. Personal confusion flags survive correct answers and clear only on learner confirmation. A newly flagged question due in 30 days returns within 24 hours; unresolved flags do not create an endless current-session loop. Clearing a flag preserves scheduled lapse review.
-6. Video links use real source metadata, open YouTube externally at the intended timestamp, and preserve the active study step for resume. Missing or removed videos have a supported text route.
-7. The closed pilot meets usability criteria or has an explicit product decision documenting remaining issues. Do not market proven learning efficacy before the follow-up evaluation supports it.
-8. All editorial coverage gaps are visible during the pilot and resolved before broad release. Before broad release, every question has approved retained text available during teaching-MCP outage. Unresolved explanation conflicts and withdrawn approvals cannot masquerade as valid fallback. Validate gap reporting on unsupported pilot questions.
-9. Mock-test cases verify 30-question uniqueness, supplied test fidelity, 27/30 boundaries, unanswered items, deadline expiry, answer changes, resume, submission replay, the approved critical-question rule, provisional-choice isolation, wrong-then-correct edits, unanswered gaps, abandoned tests, and finalisation replay. Delayed finalisation cannot create delayed recall from an early choice. Validate random composition honestly and record the practice profile used.
-
-10. Category discovery offers three relevant starting suggestions and conversational search, preserves original taxonomy, and never repeats a question solely because it belongs to overlapping families. Pilot lessons satisfy EXP-10 with approved comparisons, appropriate adaptation, and application checks.
-
 ### C4. Required policy acceptance scenarios
 
 | Case | Expected outcome |
@@ -359,61 +474,7 @@ Guardrails include unsupported teaching claims, answer-key mismatches, false sou
 | Learner misses a day or stops after due review | Preserve saved progress, recalculate the forecast from the remaining study calendar, and do not automatically raise the next day's goal. |
 | Question 600 receives its first correct answer on day 60 | Show full first-pass coverage while retaining its pending qualifying delayed recall. Do not claim all 600 are learned. |
 
-## Appendix D. Delivery, ownership, and risks
-
-### D1. Proposed milestones
-
-| Milestone | Proposed window after kickoff | Exit evidence |
-| --- | --- | --- |
-| Align and probe | Week 1 | Review PRD, assign editorial owner, inspect external MCP, verify ChatGPT messages, external timestamp links, resume, and approved-text fallback rights |
-| Complete one lesson | Week 2 | Run one focused comparison lesson inside ChatGPT with approved text, source coaching, an application check, and next-day review; conduct exploratory learner sessions |
-| Make daily return real | Weeks 3–4 | Persistent identity, separate activity resume, qualifying attempts, confusion scheduling, spaced review, failure recovery, and both audience paths demonstrated |
-| Closed pilot and coverage audit | Weeks 5–6 | Validate random mock tests and supplied tests when available, measure completion and return, start delayed-recall assessment, audit full-bank map and unresolved gaps |
-| Broad release | Gate-based | All P0 and editorial gates met; revised estimate after prototype findings |
-
-This window assumes engineering, design, editorial review, and MCP access are available. Content work and receipt of the mock-test library may determine the broad-release date. Mock tests are now part of initial-release scope and require re-estimation. Richer annotations retain separate scope and estimates.
-
-### D2. Responsibilities
-
-- Product owner approves problem, boundaries, target metrics, and release tradeoffs.
-- Design owns interaction choices and usability, including ChatGPT cards and mobile behaviour.
-- Engineering owns integrations, deterministic scoring and scheduling, persistence, recovery, and host validation.
-- Editorial reviewer owns source approval, concept mappings, tips, timestamps, and conflict resolution.
-
-These are responsibilities to assign, not claims that a staffed team already exists. Design and engineering review the PRD before implementation commitment.
-
-### D3. Risks and decisions
-
-| Risk or open decision | Consequence | Next evidence or decision |
-| --- | --- | --- |
-| Unknown external MCP contract and access scope | Retrieval or timestamp links may be unavailable | Obtain endpoint, non-secret tool schema, and a real timestamped sample result |
-| Missing timestamp metadata or removed videos | A useful external clip cannot be opened | Validate source metadata and timestamp links. Keep an approved text explanation available. |
-| Incomplete or outdated teaching material | Unsupported explanations undermine trust | Assign source review, effective-date checks, conflict handling, and coverage inventory |
-| Unsupported learner interpretation | ChatGPT may teach the wrong misconception | Evaluate reasoning prompts and let learners correct diagnoses |
-| Unvalidated interval sequence | Review may be too frequent or too sparse | Measure delayed recall and review burden; keep scheduling policy versioned |
-| Friction from connection or sign-in | Learners may not reach the first lesson | Observe activation in ChatGPT; preserve an honest unsaved trial where feasible |
-| Broad scope before learning validation | Delivery expands without proving usefulness | Ship one complete lesson prototype before full curriculum expansion |
-| Pending mock library | Supplied tests and category composition cannot yet be validated | Obtain the library and validate composition. Apply the confirmed critical-question failure rule. Describe the owner's practice profile without claiming verified official equivalence. |
-
-### D4. Current baseline and source notes
-
-The current implementation is a draft. It has bank retrieval, scoring, topic browsing, text search, images, and a basic interval schedule. Authentication and persistence code exists, but deployed multi-user ChatGPT behaviour has not been established by this PRD. The proposed coaching, external teaching MCP, video workflow, and revised recall semantics are requirements, not completed features.
-
-The current draft does not provide a complete timed mock-test flow. Version 0.2 adds it as a requirement and makes the existing bank categories the lesson path. The supplied-library dataset is still pending.
-
-The [product evaluation](product-evaluation-2026-10-06.md) records observed interface behaviour and the content audit. Earlier architecture and setup documents describe the draft and do not override this product scope. The [version 0.8 review](prd-review-2026-10-06.md) is a historical finding record; its resolution table maps the corrections in version 0.9. No implementation changes are included with this PRD.
-
-Prepared using the installed [RefoundAI writing-prds skill](https://github.com/RefoundAI/lenny-skills/tree/main/skills/writing-prds), especially its problem-first brief, explicit success criteria, bounded scope, and acceptance review checklist.
-
-Technical feasibility references:
-
-- [OpenAI: Add UI to your MCP server](https://developers.openai.com/plugins/build/chatgpt-ui). Describes conversation messages and model-visible UI integration. Actual host behaviour remains a release test.
-- [OpenAI: Plugin guidelines](https://developers.openai.com/plugins/app-guidelines). Embedding must respect platform permissions and restrictions.
-- [YouTube: Player parameters](https://developers.google.com/youtube/player_parameters). Start and end parameters support segment playback; seeking can begin slightly before the requested time.
-
-The retrieval-practice evidence cited in the product evaluation motivates the learning hypothesis. It does not validate this product's schedule, pilot targets, or exam outcomes.
-
-## Appendix E. Clarification interview
+### E. Decision log (version 0.11 clarification interview)
 
 The grill-with-docs review records owner decisions as they are resolved. Recommendations in unanswered questions remain proposals.
 

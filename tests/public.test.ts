@@ -39,10 +39,13 @@ test("public preview omits private progress and serves remote image URLs", async
     });
     await page.goto(`${origin}/play`);
     const widget = page.frameLocator("#widget");
-    await widget.getByText("Lịch sử học chưa khả dụng").waitFor();
-    assert.equal(await widget.locator('[data-action="daily"]').isDisabled(), true);
-    await widget.locator('.brand nav [data-action="review"]').click();
-    await widget.getByText(/Ôn tập cần lịch sử học đã lưu/).waitFor();
+    await widget.getByRole("heading", { name: "Đăng nhập để lưu tiến độ" }).waitFor();
+    assert.equal(await widget.locator('[data-action="daily"]').count(), 0, "nothing offers saved study without history");
+    assert.equal(await widget.locator(".nums").count(), 0, "no progress numbers are claimed");
+    await widget.getByRole("button", { name: "Chọn chủ đề để luyện" }).click();
+    await widget.getByRole("button", { name: /^Biển báo/ }).click();
+    await widget.getByRole("button", { name: "Luyện câu gốc" }).click();
+    await widget.getByRole("heading", { name: /Biển nào cấm các loại xe cơ giới/ }).waitFor();
     const course = await client.callTool({ name: "get_course", arguments: {} });
     assert.equal((course.structuredContent as { historyAvailable: boolean }).historyAvailable, false);
     await page.goto(`${origin}/play?legacy=1`);

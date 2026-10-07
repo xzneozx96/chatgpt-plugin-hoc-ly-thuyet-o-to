@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { createLearner, executeLearning, importLegacyAttempts, questionProgress, courseView, listUnits, DAY, type LearnerState, type LearningCommand } from "../src/domain/learning.js";
+import { createLearner, executeLearning, importLegacyAttempts, questionProgress, courseView, listUnits, todayMistakes, DAY, type LearnerState, type LearningCommand } from "../src/domain/learning.js";
 import { safeQuestion, bankQuestions, families } from "../src/domain/course.js";
 import { submitAnswer, type AnswerId } from "../src/domain/quiz.js";
 const clock = Date.parse("2026-10-05T16:55:00Z");
@@ -41,7 +41,7 @@ test("coverage forecast begins empty and keeps custom eight incompatible", () =>
     }, clock);
     assert.equal(courseView(s, clock).requiredStudyDays, 75);
     assert.equal(courseView(s, clock).targetCompatible, false);
-    assert.equal(listUnits(s, "", clock).customCategory.familyCount, 249);
+    assert.equal(listUnits(s, "", clock).customCategory.familyCount, 245);
 });
 test("midnight and early practice do not advance or move review", () => {
     let s = answer(createLearner(clock), "q001", clock);
@@ -388,6 +388,23 @@ test("returning to an open session keeps the answered question's feedback until 
     assert.equal(resumed.state.sessions.at(-1)?.status, "active");
     assert.notEqual("currentFeedback" in resumed.view ? resumed.view.currentFeedback : null, null);
 });
+test("saved feedback says whether the answer was a guess or followed help, so a reopened card shows the same verdict", () => {
+    let s = run(createLearner(clock), { kind: "start_study", requestId: requestId(), questionIds: ["q001", "q002"] }, clock);
+    const ss = s.sessions.at(-1);
+    assert.ok(ss);
+    s = run(s, { kind: "answer_study", requestId: requestId(), sessionId: ss.id, questionId: "q001", answer: right("q001"), confidence: "guess" }, clock + 1000);
+    const guessed = executeLearning(s, { kind: "resume_study", requestId: requestId(), sessionId: ss.id }, clock + 2000).view;
+    assert.ok(guessed.kind === "study");
+    assert.equal(guessed.currentFeedback?.confidence, "guess");
+    assert.equal(guessed.currentFeedback?.assisted, false);
+    assert.notEqual(guessed.help, null, "the server records feedback as help, so help alone cannot mark an answer assisted");
+    s = run(s, { kind: "next_study", requestId: requestId(), sessionId: ss.id }, clock + 3000);
+    s = run(s, { kind: "record_help", requestId: requestId(), sessionId: ss.id, questionId: "q002" }, clock + 4000);
+    const helped = executeLearning(s, { kind: "answer_study", requestId: requestId(), sessionId: ss.id, questionId: "q002", answer: right("q002") }, clock + 5000).view;
+    assert.ok(helped.kind === "study");
+    assert.equal(helped.currentFeedback?.assisted, true);
+    assert.equal(helped.currentFeedback?.confidence, "unknown");
+});
 test("course and session views report right and wrong answers from saved evidence", () => {
     let s = run(createLearner(clock), { kind: "start_study", requestId: requestId(), questionIds: ["q001", "q002", "q003"] }, clock);
     const session = s.sessions.at(-1);
@@ -452,4 +469,60 @@ test("a running mock keeps its questions out of study and finished mocks report 
     assert.ok(view.kind === "mock");
     assert.equal(view.remainingMs, 0);
     assert.throws(() => run(s, { kind: "abandon_mock", requestId: requestId(), attemptId: m.id }, clock + 4000), /MOCK_NOT_ACTIVE/);
+});
+
+test("the confusing-question category counts its due reviews, and a closed mock says when it closed", () => {
+    const s = answer(createLearner(clock), "q001", clock, wrong("q001"));
+    assert.equal(listUnits(s, "", clock).customCategory.due, 0);
+    assert.equal(listUnits(s, "", clock + DAY).customCategory.due, 1, "q001 belongs to a confusing-question family");
+    const started = executeLearning(s, { kind: "start_mock", requestId: requestId(), mode: "random" }, clock);
+    assert.ok(started.view.kind === "mock");
+    assert.equal(started.view.closedAt, null);
+    const done = executeLearning(started.state, { kind: "finalise_mock", requestId: requestId(), attemptId: started.view.attemptId, confirmUnanswered: true }, clock + 5 * 60000).view;
+    assert.ok(done.kind === "mock");
+    assert.equal(done.closedAt, clock + 5 * 60000);
+});
+
+test("today's mistakes list each wrong question once with its latest choice, the bank key and explanation, and leave yesterday out", () => {
+    const yesterday = clock; // 23:55 in Vietnam
+    const today = clock + 2 * 3600000; // 01:55 the next day
+    const noText = bankQuestions.find(q => !q.explanation)?.questionId ?? "";
+    let s = answer(createLearner(yesterday), "q010", yesterday, wrong("q010"));
+    s = answer(s, "q011", today, wrong("q011"));
+    s = answer(s, "q012", today, right("q012"));
+    s = answer(s, noText, today + 60000, wrong(noText));
+    s = answer(s, "q011", today + 120000, wrong("q011"));
+    const before = JSON.stringify(s);
+    const items = todayMistakes(s, today + 180000);
+    assert.deepEqual(items.map(i => i.question.id), ["q011", noText], "newest first, one entry per question, no correct or earlier-day answers");
+    assert.deepEqual([items[0]?.chosen, items[0]?.correctAnswer], [wrong("q011"), right("q011")]);
+    assert.equal(items[0]?.explanation, bankQuestions.find(q => q.questionId === "q011")?.explanation);
+    assert.equal(items[1]?.explanation, null, "a question without bank text says so rather than showing a fallback sentence");
+    assert.equal(courseView(s, today + 180000).wrongToday, 2);
+    assert.equal(JSON.stringify(s), before, "reviewing mistakes records nothing");
+});
+
+test("questions with one qualifying success are on the way to Đã thuộc until their due review or a wrong answer", () => {
+    const MINUTE = 60000;
+    let s = createLearner(clock);
+    for (const [i, q] of ["q001", "q002", "q003"].entries())
+        s = answer(s, q, clock + i * MINUTE);
+    const today = courseView(s, clock + 5 * MINUTE);
+    assert.deepEqual([today.learned, today.onTheWay, today.nextLearnAt], [0, 3, clock + DAY], "three first-time correct answers are on the way, the earliest back 24 hours later");
+    const units = listUnits(s, "", clock + 5 * MINUTE);
+    assert.equal(units.units.filter(u => u.kind === "category").reduce((sum, u) => sum + u.onTheWay, 0), 3, "each category counts its own");
+    assert.equal(units.customCategory.onTheWay, 3, "q001 to q003 are all in confusing-question families");
+    s = answer(s, "q001", clock + DAY);
+    const reviewed = courseView(s, clock + DAY + MINUTE);
+    assert.deepEqual([reviewed.learned, reviewed.onTheWay, reviewed.nextLearnAt], [1, 2, clock + MINUTE + DAY], "the due review next day learns q001");
+    s = answer(s, "q002", clock + DAY + 2 * MINUTE, wrong("q002"));
+    const lapsed = courseView(s, clock + DAY + 3 * MINUTE);
+    assert.deepEqual([lapsed.learned, lapsed.onTheWay, lapsed.nextLearnAt], [1, 1, clock + 2 * MINUTE + DAY], "a wrong answer takes q002 off the way");
+    // Help after the success lets a review count only 24 hours after the help, later than q003's due time.
+    s = run(s, { kind: "record_help", requestId: requestId(), questionId: "q003" }, clock + DAY + 4 * MINUTE);
+    assert.equal(p(s, "q003")?.dueAt, clock + 2 * MINUTE + DAY);
+    assert.equal(courseView(s, clock + DAY + 5 * MINUTE).nextLearnAt, clock + 4 * MINUTE + 2 * DAY);
+    s = answer(s, "q003", clock + DAY + 6 * MINUTE, wrong("q003"));
+    const none = courseView(s, clock + DAY + 7 * MINUTE);
+    assert.deepEqual([none.onTheWay, none.nextLearnAt], [0, null]);
 });

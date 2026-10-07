@@ -9,10 +9,12 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { getQuestion, questionBankSummary, submitAnswer } from "../src/domain/quiz.js";
 import { startHttpServer } from "../src/server.js";
+import { courseView, createLearner, executeLearning, type LearnerState } from "../src/domain/learning.js";
+import { learningText } from "../src/learning-tools.js";
 
 test("the answer key stays on the server, and scoring is deterministic", () => {
   const first = getQuestion();
-  assert.deepEqual(questionBankSummary, { version: "2026.07.1", total: 600, available: 600, missingImages: 0, missingExplanations: 43 });
+  assert.deepEqual(questionBankSummary, { version: "2026.07.1", total: 600, available: 600, missingImages: 0, missingExplanations: 42 });
   assert.equal(first.options.length, 3);
   assert.equal("correctAnswer" in first, false);
   assert.equal(submitAnswer(first.id, "B").correct, true);
@@ -68,12 +70,12 @@ after(async () => {
 
 test("MCP get, submit, next and UI resource work over HTTP", async () => {
   const tools = await client.listTools();
-  assert.deepEqual(tools.tools.map((tool) => tool.name).sort(), ["abandon_mock_test", "finalise_mock_test", "get_course", "get_mock_test", "get_progress", "get_question", "get_study_session", "list_units", "next_study_question", "pause_study", "request_study_help", "resume_study", "save_mock_choice", "search_theory", "set_question_confusion", "skip_study_question", "start_mock_test", "start_study", "submit_answer", "submit_study_answer", "update_profile"]);
+  assert.deepEqual(tools.tools.map((tool) => tool.name).sort(), ["abandon_mock_test", "finalise_mock_test", "get_course", "get_league", "get_mock_test", "get_progress", "get_question", "get_study_session", "get_today_mistakes", "join_league", "leave_league", "list_units", "next_study_question", "pause_study", "request_study_help", "resume_study", "save_mock_choice", "search_theory", "set_league_hidden", "set_question_confusion", "skip_study_question", "start_lightning", "start_mock_test", "start_study", "submit_answer", "submit_study_answer", "update_profile"]);
   const courseTool = tools.tools.find((tool) => tool.name === "get_course");
   const learningUri = (courseTool?._meta as { ui?: { resourceUri?: string } })?.ui?.resourceUri;
   assert.match(learningUri ?? "", /^ui:\/\/ly-thuyet-lai-xe\/learning-[0-9a-f]{12}\.html$/);
   const cardTools = tools.tools.filter((tool) => (tool._meta as { ui?: { resourceUri?: string } })?.ui?.resourceUri === learningUri).map((tool) => tool.name).sort();
-  assert.deepEqual(cardTools, ["get_course", "get_mock_test", "get_question", "next_study_question", "resume_study", "skip_study_question", "start_mock_test", "start_study"], "only entry points open a new card");
+  assert.deepEqual(cardTools, ["get_course", "get_league", "get_mock_test", "get_question", "get_today_mistakes", "join_league", "leave_league", "next_study_question", "resume_study", "set_league_hidden", "skip_study_question", "start_lightning", "start_mock_test", "start_study"], "only entry points open a new card");
   const learningResource = await client.readResource({ uri: learningUri ?? "" });
   const learningHtml = learningResource.contents[0] as { mimeType: string; text: string };
   assert.equal(learningHtml.mimeType, "text/html;profile=mcp-app");
@@ -134,11 +136,31 @@ test("study tools tell ChatGPT to show the original bank question verbatim, with
   assert.doesNotMatch(text(answered), /"queue"/);
 });
 
+test("the course text gives ChatGPT the card's four labels, with the questions waiting for Đã thuộc and when they can count", () => {
+  const at = Date.parse("2026-10-05T16:55:00Z"); // 23:55 in Vietnam
+  const one = (state: LearnerState, questionId: string, answer: string, now: number) => {
+    const started = executeLearning(state, { kind: "start_study", requestId: randomUUID(), questionIds: [questionId] }, now);
+    const sessionId = started.state.sessions.at(-1)?.id ?? "";
+    return executeLearning(started.state, { kind: "answer_study", requestId: randomUUID(), sessionId, questionId, answer: answer as "A" }, now).state;
+  };
+  const key = (questionId: string) => submitAnswer(questionId, "A").correctAnswer;
+  let state = one(createLearner(at), "q001", key("q001"), at);
+  state = one(state, "q002", key("q002") === "A" ? "B" : "A", at + 60000);
+  const view = courseView(state, at + 120000);
+  const course = learningText({ ...view, historyAvailable: true, serverNow: at + 120000 }, "http://127.0.0.1");
+  assert.match(course, new RegExp(`^Khóa học bằng B: Đã gặp 2/600 · Đã thuộc 0/600 · Cần ôn hôm nay ${view.dueCount} · Sai hôm nay 1\\.$`, "m"));
+  assert.match(course, /^Đang chờ ôn lại để thuộc: 1 câu đã đúng 1 lần, chưa tính vào Đã thuộc; sớm nhất ôn lại lúc 23:55 ngày 6\/10\.$/m, "the next time comes in the learner's timezone");
+  assert.doesNotMatch(course, /đã nhớ|đã thử/, "the old unlabelled counts are gone");
+  const due = learningText({ ...courseView(state, at + 2 * 86400000), historyAvailable: true, serverNow: at + 2 * 86400000 }, "http://127.0.0.1");
+  assert.match(due, /^Đang chờ ôn lại để thuộc: 1 câu đã đúng 1 lần, chưa tính vào Đã thuộc; có câu đã đến hạn, ôn ngay để thuộc\.$/m);
+});
+
 test("text replies are readable summaries and errors are plain Vietnamese", async () => {
   const text = (result: Awaited<ReturnType<typeof client.callTool>>) => (result.content as { type: string; text: string }[])[0]?.text ?? "";
   const course = text(await client.callTool({ name: "get_course", arguments: {} }));
-  assert.match(course, /^Khóa học bằng B: đã thử \d+\/600 câu/m);
+  assert.match(course, /^Khóa học bằng B: Đã gặp \d+\/600 · Đã thuộc \d+\/600 · Cần ôn hôm nay \d+ · Sai hôm nay \d+\./m);
   assert.match(course, /Câu hỏi dễ nhầm lẫn \(de_nham_lan\)/);
+  assert.doesNotMatch(course, /nháp|draft/i, "confusing-question groups are approved, not drafts");
   assert.ok(course.length < 2000, `course summary stays short (${course.length} chars)`);
   assert.match(text(await client.callTool({ name: "get_question", arguments: { questionId: "q001" } })), /^q001: Phần của đường bộ/m);
   const lesson = await client.callTool({ name: "start_study", arguments: { questionIds: ["q002"], requestId: randomUUID() } });
@@ -169,4 +191,36 @@ test("a running mock is summarised in text and its questions cannot be looked up
   const finished = await client.callTool({ name: "finalise_mock_test", arguments: { attemptId: mock.attemptId, confirmUnanswered: true, requestId: randomUUID() } });
   assert.match(text(finished), /^Kết quả thi thử .*: 0\/30 · Chưa đạt/);
   assert.equal((finished.structuredContent as { remainingMs: number }).remainingMs, 0);
+});
+
+test("the server tells ChatGPT to turn a study-reminder request into a daily scheduled task that reports due reviews", () => {
+  const instructions = client.getInstructions() ?? "";
+  const rule = instructions.split(/(?<=\.)\s/).filter((sentence) => /reminder|scheduled task/i.test(sentence)).join(" ");
+  assert.match(rule, /Hãy tạo lời nhắc hằng ngày lúc/, "the card's reminder message is named");
+  assert.match(rule, /daily ChatGPT scheduled task/);
+  assert.match(rule, /get_course/);
+  assert.match(rule, /Học tiếp/);
+  assert.match(rule, /unavailable on their plan/);
+  assert.match(rule, /Never say a reminder exists/);
+});
+
+test("the card's own calls get short text that keeps ChatGPT silent, a replay ignores the marker, and errors carry a code", async () => {
+  const text = (result: Awaited<ReturnType<typeof client.callTool>>) => (result.content as { type: string; text: string }[])[0]?.text ?? "";
+  const started = await client.callTool({ name: "start_study", arguments: { questionIds: ["q010"], requestId: randomUUID(), caller: "card" } });
+  const session = started.structuredContent as { sessionId: string; question: { id: string; question: string } };
+  assert.match(text(started), /Stay silent/);
+  assert.equal(text(started).includes(session.question.question), false, "the card shows the question, so the text does not");
+  assert.doesNotMatch(text(started), /Show it to the learner/);
+  const args = { sessionId: session.sessionId, questionId: session.question.id, answer: "A", requestId: randomUUID() };
+  const answered = await client.callTool({ name: "submit_study_answer", arguments: { ...args, caller: "card" } });
+  assert.match(text(answered), /Stay silent/);
+  assert.doesNotMatch(text(answered), /next_study_question|Kết quả q010/, "no instruction to continue and no restated verdict");
+  const replay = await client.callTool({ name: "submit_study_answer", arguments: args });
+  assert.notEqual(replay.isError, true, "the marker is not part of the request, so the replay matches");
+  assert.match(text(replay), /Kết quả q010: (Đúng|Sai)\. Đáp án gốc/, "without the marker ChatGPT gets the full text-only reply");
+  const results = (replay.structuredContent as { sessionResults: { answered: number } }).sessionResults;
+  assert.equal(results.answered, 1, "the replay saved nothing new");
+  const mismatch = await client.callTool({ name: "submit_study_answer", arguments: { ...args, questionId: "q011", requestId: randomUUID(), caller: "card" } });
+  assert.equal(mismatch.isError, true);
+  assert.deepEqual(mismatch.structuredContent, { kind: "error", code: "QUESTION_BINDING_MISMATCH" });
 });
