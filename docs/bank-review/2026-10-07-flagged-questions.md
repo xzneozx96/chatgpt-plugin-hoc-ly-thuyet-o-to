@@ -6,6 +6,8 @@ This review checks eight reviewer findings against the official 2025 question ba
 - **(b)** Our bank differs from the official bank in its key, stem, options or image. Nothing was changed. The section gives the exact change for the owner to approve.
 - **(c)** Our bank is right and the reviewer was wrong. Nothing was changed.
 
+On 7 October 2026 the owner approved the (b) proposals for q217, q215 and q319/q320, and the optional q371 wording, and they were applied. Each section ends with an "Applied on 2026-10-07" note.
+
 ## Sources
 
 The brief named Tổng cục Đường bộ / Cục Đường bộ Việt Nam and QCVN 41:2019. The bank in force since 1 June 2025 was issued by Cục Cảnh sát giao thông (Bộ Công an), and QCVN 41:2024/BGTVT replaced QCVN 41:2019 on 1 January 2025. This review uses those two documents.
@@ -32,7 +34,7 @@ The brief named Tổng cục Đường bộ / Cục Đường bộ Việt Nam an
 | Item | Question | Verdict | Change |
 |---|---|---|---|
 | 1 | q370 | (c) | None for q370. The optional q371 wording was applied after owner approval (2026-10-07). |
-| 2 | q319, q320 | (b): image | None. Proposal: replace both images. |
+| 2 | q319, q320 | (b): image | Both images replaced with the official sign row after owner approval (2026-10-07). |
 | 3 | q406 | (a) | Explanation rewritten. |
 | 4 | q505 | (a) | Explanation rewritten. |
 | 5 | q509 | (a) | Explanation rewritten. |
@@ -88,6 +90,14 @@ All official keys (S1) match our `correctKey` for q217, q319, q320, q370, q371, 
 3. Fallback if the image cannot be replaced: use wording that is true for both images. This was not applied, because it drops the U-turn detail that the official distractor depends on.
    - q319: `Biển 1 Cấm ô tô quay đầu — đúng chữ "chỉ"; biển 2 cấm ô tô rẽ trái VÀ quay đầu; biển 3 có mũi tên rẽ phải nên cấm ô tô rẽ phải. Hai biển sau cấm thêm cả rẽ nên không thỏa đề.`
    - q320: `Biển 1 chỉ cấm ô tô quay đầu; biển 2 cấm ô tô cả rẽ trái lẫn quay đầu — đúng yêu cầu; biển 3 có mũi tên rẽ phải nên không phải biển cấm rẽ trái. Nhìn mũi tên trên biển là ra ngay.`
+
+**Applied on 2026-10-07.** The owner approved changes 1 and 2. The fallback wording was not used.
+
+- **Source.** Câu 319 and Câu 320 on S1 p75 both place the same embedded raster: a 602 × 236 px JPEG that already contains just the three signs and their "Biển 1/2/3" labels. That raster was extracted unchanged with `pdfimages -j`. A page render only resamples it, so no render was used.
+- **Processing.** The raster was scaled uniformly by 1.788 with Lanczos. It was placed on a white 1100 × 483 canvas, the size of the old image, with the content in the same position as before. Near-white pixels (every channel 240 or above) were set to pure white. The result was saved as lossy WebP at quality 90.
+- **Result.** `images/q319.webp` and `images/q320.webp` are byte-identical again, 33,770 B each (SHA-256 `b57afe82…`). The old files were 33,904 B. Biển 3 now shows a car, a right-turn arrow and a U-turn arrow, which is P.124f.
+- **Known limit.** In the official raster, the left edge of biển 1's red ring is cut off by 1 to 2 px. This was left as it is.
+- **Not changed.** The explanations were not changed. `dist/` is a build output that `scripts/copy-assets.mjs` copies from `images/`, and Vercel serves `images/**` directly, so there is no other copy to update.
 
 ## 3. q406: "Biển nào sau đây là biển Đường trơn?"
 
