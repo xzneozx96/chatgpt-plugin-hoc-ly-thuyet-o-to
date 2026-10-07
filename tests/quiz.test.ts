@@ -12,7 +12,7 @@ import { startHttpServer } from "../src/server.js";
 
 test("the answer key stays on the server, and scoring is deterministic", () => {
   const first = getQuestion();
-  assert.deepEqual(questionBankSummary, { version: "2026.07.1", total: 600, available: 600, missingImages: 0, missingExplanations: 43 });
+  assert.deepEqual(questionBankSummary, { version: "2026.07.1", total: 600, available: 600, missingImages: 0, missingExplanations: 42 });
   assert.equal(first.options.length, 3);
   assert.equal("correctAnswer" in first, false);
   assert.equal(submitAnswer(first.id, "B").correct, true);

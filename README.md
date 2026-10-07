@@ -2,7 +2,7 @@
 
 A private Vietnamese driving-theory study app with a browser preview and a streamable HTTP MCP server. It offers practice, progress, spaced reviews, and source-backed search. The answer key and scoring stay on the server.
 
-The repository's `question-bank.json` is the 600-question source of truth, version `2026.07.1`. The 318 referenced images are under `images/` from the URL pattern supplied by the project owner. The bank has 43 questions without explanations; those show a clear missing-explanation message. A separate review of image rights and publication terms remains for the public release milestone.
+The repository's `question-bank.json` is the 600-question source of truth, version `2026.07.1`. The 318 referenced images are under `images/` from the URL pattern supplied by the project owner. The bank has 42 questions without explanations; those show a clear missing-explanation message. A separate review of image rights and publication terms remains for the public release milestone.
 
 ## Run locally
 
