@@ -31,7 +31,7 @@ The brief named Tổng cục Đường bộ / Cục Đường bộ Việt Nam an
 
 | Item | Question | Verdict | Change |
 |---|---|---|---|
-| 1 | q370 | (c) | None. |
+| 1 | q370 | (c) | None for q370. The optional q371 wording was applied after owner approval (2026-10-07). |
 | 2 | q319, q320 | (b): image | None. Proposal: replace both images. |
 | 3 | q406 | (a) | Explanation rewritten. |
 | 4 | q505 | (a) | Explanation rewritten. |
@@ -57,10 +57,12 @@ All official keys (S1) match our `correctKey` for q217, q319, q320, q370, q371, 
 
 **Verdict: (c).** The inverted triangle is W.208, which is what q370's explanation says. A driver who sees W.208 must yield to the priority road, so the "nhường đường" wording in q371 and q372 describes its effect but does not give its name. The reviewer probably read q371's "Biển 2 là nhường đường" as a contradiction.
 
-**Optional follow-up (not applied).** Rename biển 2 in q371's explanation, keeping its other sentences:
+**Optional follow-up.** Rename biển 2 in q371's explanation, keeping its other sentences:
 
 - Current: `Biển 2 là nhường đường; biển 3 là giao nhau có tín hiệu đèn.`
 - Proposed: `Biển 2 (tam giác ngược) là giao nhau với đường ưu tiên (W.208); biển 3 là giao nhau có tín hiệu đèn.`
+
+**Applied on 2026-10-07.** The owner approved the wording. In q371's `explanation`, the "Current" sentence above was replaced with the "Proposed" sentence, and the first two sentences were kept. q370 and q372 are unchanged.
 
 ## 2. q319 "…chỉ cấm xe ô tô quay đầu?" and q320 "…cấm xe ô tô rẽ trái và quay đầu?"
 

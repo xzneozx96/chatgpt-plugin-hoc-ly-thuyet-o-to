@@ -14840,7 +14840,7 @@
     "B1"
    ],
    "examCategory": "bien_bao",
-   "explanation": "Biển 1 vẽ hình hàng rào = giao nhau với đường sắt CÓ rào chắn (W.210). Mẹo: thấy hàng rào là có rào. Biển 2 là nhường đường; biển 3 là giao nhau có tín hiệu đèn."
+   "explanation": "Biển 1 vẽ hình hàng rào = giao nhau với đường sắt CÓ rào chắn (W.210). Mẹo: thấy hàng rào là có rào. Biển 2 (tam giác ngược) là giao nhau với đường ưu tiên (W.208); biển 3 là giao nhau có tín hiệu đèn."
   },
   {
    "id": 372,
