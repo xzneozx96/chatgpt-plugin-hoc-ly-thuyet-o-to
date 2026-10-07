@@ -43,6 +43,7 @@ test("learning preview drives course, goal, families, lesson, confusion, help, p
     await app.locator('input[name="answer"][value="A"]').check();
     await action("answer").click();
     await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
+    await action("why").click();
     await app.getByText("Đáp án đúng: B ·").waitFor();
     await page.reload();
     await app.getByText("Theo nhịp 20 câu/ngày", { exact: false }).waitFor();
@@ -56,10 +57,9 @@ test("learning preview drives course, goal, families, lesson, confusion, help, p
     await app.locator('input[name="answer"]').first().check();
     await action("answer").click();
     await app.locator("#verdict").waitFor();
+    await action("why").click();
 
-    await app.getByRole("button", { name: "Tôi còn phân vân" }).click();
-    await app.locator('[data-action="confusion"][aria-pressed="true"]').waitFor();
-    await app.getByText("Đang phân vân").waitFor();
+    assert.equal(await app.getByRole("button", { name: "Tôi còn phân vân" }).count(), 0, "the ambiguous confusion action is removed");
     assert.equal(await app.locator("#verdict").count(), 1, "the verdict stays after flagging confusion");
 
     await action("help").click();
@@ -79,7 +79,7 @@ test("learning preview drives course, goal, families, lesson, confusion, help, p
     await app.locator("#verdict").waitFor();
     await app.getByText("2/23", { exact: true }).waitFor();
 
-    assert.equal(await app.locator("nav").count(), 0, "no global navigation during a lesson");
+    assert.equal(await app.locator("nav:not(.segs)").count(), 0, "no global navigation during a lesson, only the question stepper");
     await page.reload();
     await app.getByRole("button", { name: "Học tiếp" }).waitFor();
     // The course map shows the seven categories and the confusing-question category, which opens the family picker.

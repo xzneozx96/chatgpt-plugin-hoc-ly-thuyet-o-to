@@ -72,16 +72,16 @@ test("the widget follows the host theme at start and when the host changes it", 
     const cardColors = () => app.locator(".card").evaluate((card) => ({ background: getComputedStyle(card).backgroundColor, text: getComputedStyle(card).color }));
     await page.goto(`${origin}/preview`);
     await app.locator("#goal-form").waitFor();
-    assert.deepEqual(await cardColors(), { background: "rgb(255, 255, 255)", text: "rgb(0, 0, 0)" });
+    assert.deepEqual(await cardColors(), { background: "rgb(252, 250, 255)", text: "rgb(48, 42, 59)" });
     await page.goto(`${origin}/preview?theme=dark`);
     await app.locator("#goal-form").waitFor();
-    assert.deepEqual(await cardColors(), { background: "rgb(0, 0, 0)", text: "rgb(255, 255, 255)" });
+    assert.deepEqual(await cardColors(), { background: "rgb(21, 21, 21)", text: "rgb(243, 243, 243)" });
     await page.evaluate(() => {
       const frame = document.querySelector<HTMLIFrameElement>("#widget");
       frame?.contentWindow?.postMessage({ jsonrpc: "2.0", method: "ui/notifications/host-context-changed", params: { theme: "light" } }, location.origin);
     });
     await app.locator("html[data-theme='light']").waitFor({ state: "attached" });
-    assert.equal((await cardColors()).background, "rgb(255, 255, 255)");
+    assert.equal((await cardColors()).background, "rgb(252, 250, 255)");
   } finally {
     await browser.close();
     server.close();
@@ -239,7 +239,7 @@ test("a card opened by get_question shows the practice screen with the question 
   }
 });
 
-test("confusion keeps the chosen answer and verdict, the card shrinks after long screens, and nothing due says so", async () => {
+test("opening the explanation keeps the chosen answer and verdict, the card shrinks after long screens, and nothing due says so", async () => {
   const dir = mkdtempSync(join(tmpdir(), "driving-widget-polish-"));
   const server = startHttpServer(0, { dataPath: join(dir, "study.sqlite") });
   if (!server.listening) await once(server, "listening");
@@ -260,9 +260,9 @@ test("confusion keeps the chosen answer and verdict, the card shrinks after long
     await app.locator('input[name="answer"][value="A"]').check();
     await app.locator('[data-action="answer"]').click();
     const verdict = await app.locator("#verdict").innerText();
-    await app.getByRole("button", { name: "Tôi còn phân vân" }).click();
-    await app.locator('[data-action="confusion"][aria-pressed="true"]').waitFor();
-    assert.equal(await app.locator("#verdict").innerText(), verdict, "the verdict stays after the confusion toggle");
+    await app.locator('[data-action="why"]').click();
+    assert.equal(await app.getByRole("button", { name: "Tôi còn phân vân" }).count(), 0);
+    assert.equal(await app.locator("#verdict").innerText(), verdict, "the verdict stays after opening the explanation");
     assert.equal(await app.locator('input[name="answer"][value="A"]').isChecked(), true, "the chosen answer is kept");
 
     const frameHeight = () => page.locator("#widget").evaluate((frame: HTMLIFrameElement) => frame.getBoundingClientRect().height);
@@ -279,7 +279,10 @@ test("confusion keeps the chosen answer and verdict, the card shrinks after long
     await app.locator('[data-action="goals"]').click();
     await app.getByRole("heading", { name: "Mỗi ngày bạn muốn học bao nhiêu câu mới?" }).waitFor();
     await page.waitForTimeout(300);
-    assert.ok(await frameHeight() < tall - 300, `card shrinks after a long screen (${tall} → ${await frameHeight()})`);
+    const compact = await frameHeight();
+    const contentHeight = await app.locator(".card").evaluate((card) => Math.ceil(card.getBoundingClientRect().height));
+    assert.ok(compact < tall - 100, `card shrinks after a long screen (${tall} → ${compact})`);
+    assert.ok(Math.abs(compact - contentHeight) <= 2, "host height follows the rendered card including its illustration");
 
     await app.locator('input[name="goal"][value="10"]').check();
     await app.getByRole("button", { name: "Lưu mục tiêu" }).click();
@@ -367,7 +370,8 @@ test("Hỏi ChatGPT records help on the server before posting exactly one chat m
     await app.locator('[data-action="answer"]').click();
     await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
     const messages = await recordWidgetMessages(page);
-    await app.getByRole("button", { name: "Hỏi ChatGPT" }).click();
+    await app.locator('[data-action="why"]').click();
+    await app.getByRole("button", { name: "Hỏi ChatGPT về câu này" }).click();
     await page.locator("#host-message").getByText("Giải thích giúp mình câu 1: mình chọn A, đáp án là B. [q001 · chọn A · sai]").waitFor();
     const sent = (await messages()).filter((m) => m.method === "ui/message" || m.name === "request_study_help").map((m) => m.name ?? m.method);
     assert.deepEqual(sent, ["request_study_help", "ui/message"], "help is recorded before the one chat message");
