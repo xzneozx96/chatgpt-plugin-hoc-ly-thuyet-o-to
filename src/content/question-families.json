@@ -1463,7 +1463,6 @@
     "id": "tech-signs-surface-grip",
     "title": "Đường trơn và thao tác êm",
     "questionIds": [
-      "q215",
       "q226",
       "q237",
       "q245"
@@ -3900,7 +3899,6 @@
     "id": "wet-road-flooding",
     "title": "Đường trơn và ngập nước",
     "questionIds": [
-      "q215",
       "q224",
       "q226",
       "q237",

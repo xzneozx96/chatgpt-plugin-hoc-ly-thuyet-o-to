@@ -10,6 +10,9 @@ from pathlib import Path
 BASE_COMMIT = "f630bca"
 TARGET = Path("src/content/question-families.json")
 REVIEWED_ON = "2026-10-07"
+# Owner-approved bank fixes after the review: q215's stem became the official curve question, so it no longer
+# belongs to the slippery-road groups it was grouped into by its old wording.
+LATER_REMOVALS = {"wet-road-flooding": {"q215"}, "tech-signs-surface-grip": {"q215"}}
 
 original = json.loads(subprocess.run(["git", "show", f"{BASE_COMMIT}:{TARGET}"], capture_output=True, text=True, check=True).stdout)
 reviews = {}
@@ -24,7 +27,7 @@ for family in original:
     review = reviews[family["id"]]
     if review["verdict"] == "reject":
         continue
-    removed = set(review.get("removeMembers", []))
+    removed = set(review.get("removeMembers", [])) | LATER_REMOVALS.get(family["id"], set())
     assert removed <= set(family["questionIds"]), family["id"]
     members = [q for q in family["questionIds"] if q not in removed]
     assert len(members) >= 2, family["id"]
