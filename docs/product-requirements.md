@@ -180,7 +180,7 @@ Learners see four numbers on the home card, and the same words wherever a number
 | **Đã gặp** (Seen) | Questions answered at least once | First-pass coverage (A2a) |
 | **Đã thuộc** (Mastered) | Questions recalled correctly, unassisted, on two separate days since the last mistake | Learned status (B4) |
 | **Cần ôn hôm nay** (Due today) | Reviews due now | Due queue (B4) |
-| **Sai hôm nay** (Wrong today) | Questions answered wrong today, in the learner's timezone, each counted once however often it was missed | Today's wrong answers (B4). Read-only: they return through their scheduled review |
+| **Sai hôm nay** (Wrong today) | Questions answered wrong today, in the learner's timezone, each counted once however often it was missed | The latest wrong answer per question today, listed read-only by `get_today_mistakes`. The questions return through their scheduled review (B4) |
 
 The home card shows the goal ring, these four numbers (Đã gặp and Đã thuộc out of 600), weekly XP and league rank (if joined), and one primary "Học tiếp" button. Tapping Sai hôm nay opens a read-only list of today's wrong questions with the learner's choice, the correct answer and the bank explanation. Opening it records no attempt and no help, and nothing on it can be answered; the questions come back in their scheduled review. A course map shows the seven categories and "Câu hỏi dễ nhầm lẫn" as tiles. Each tile has a Seen / Mastered bar and a lock-free "Bắt đầu". The detailed views (needs repair, flagged confusion, next review date, family detail) are one tap deeper, and they follow appendix A1.
 
