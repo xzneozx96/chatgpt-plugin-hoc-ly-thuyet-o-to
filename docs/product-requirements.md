@@ -1,3 +1,5 @@
+> Visual brief updated on 7 October 2026. The owner requested playful color, graphics and micro-interactions. DESIGN.md supersedes monochrome palette, illustration prohibitions and old motion timings here; learning behavior remains unchanged.
+
 # Lý Thuyết Lái Xe: product requirements
 
 Version 1.0 · 6 October 2026 · Supersedes version 0.11.
@@ -117,20 +119,21 @@ All game values are computed on the server from saved learning events. The card 
 | Event | XP |
 | --- | ---: |
 | First-time answer, correct | 10 |
-| First-time answer, wrong | 3 (effort, never zero) |
+| First-time answer, wrong | -3 |
 | Due review, correct | 10 |
-| Due review, wrong | 3 |
+| Due review, wrong | -3 |
 | Qualifying delayed recall that newly makes a question Mastered (B4) | +15 bonus |
-| Repair attempt or derived interaction (INT-04, INT-05) | 2 per step |
-| Lightning round | 1 per correct, max 15 per round |
+| Repair attempt | 2 correct, -3 wrong |
+| Derived interaction (INT-04, INT-05) | 2 per step |
+| Lightning round | 1 per correct, max 15 reward XP per round; -3 per wrong |
 | Lesson finished | 10 |
 | Mock test finalised | 20, plus 30 more for a pass |
 
 Rules:
 
-- XP never decreases.
+- Every wrong study answer deducts 3 XP, including guessed, assisted, practice and repair attempts. Signed totals may be negative.
 - A replayed submission earns nothing (DAT-02).
-- Answers after a hint or explanation earn the "wrong" amount even when correct. This keeps help free but unrewarded.
+- Correct assisted answers earn 3 XP; wrong assisted answers deduct 3 XP. Penalties never refund capped reward budgets.
 - Abandoned mock tests earn nothing.
 - Practice on questions that are not due is capped at 50 XP per day, so grinding known questions cannot dominate leagues.
 

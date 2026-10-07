@@ -18,6 +18,12 @@ interface Preview { origin: string; dataPath: string; page: Page; app: FrameLoca
 const right = (q: string) => submitAnswer(q, safeQuestion(q).options[0]?.id ?? "A").correctAnswer;
 const wrong = (q: string) => safeQuestion(q).options.find(o => o.id !== right(q))?.id ?? "A";
 
+async function continueStudy(app: FrameLocator) {
+  await app.locator('[data-action="study-next"], [data-action="resume"]').first().waitFor({ state: "attached" });
+  const next = app.getByRole("button", { name: "Tiếp tục", exact: true }).last();
+  await next.click();
+}
+
 /** Runs a test against a fresh local server and the preview host, which plays ChatGPT's part. */
 async function withPreview(run: (preview: Preview) => Promise<void>, setup: (page: Page, origin: string) => Promise<void> = async () => {}) {
   const dir = mkdtempSync(join(tmpdir(), "driving-card-"));
@@ -70,7 +76,7 @@ test("✕ pauses while a lost answer waits for its resend, and the resend keeps 
     await app.getByText("Chưa gửi được — thử lại").waitFor();
     await app.getByRole("button", { name: "Tạm dừng và lưu" }).click();
     await app.getByRole("heading", { name: "Buổi học đã tạm dừng" }).waitFor();
-    await app.getByRole("button", { name: "Tiếp tục" }).click();
+    await continueStudy(app);
     await app.getByText("Chưa gửi được — thử lại").waitFor();
     assert.equal(await app.locator('input[name="answer"][value="A"]').isChecked(), true, "the choice is kept across the pause");
     await app.getByRole("button", { name: "Thử lại" }).click();
@@ -91,6 +97,108 @@ test("✕ pauses while a lost answer waits for its resend, and the resend keeps 
   });
 });
 
+test("study actions stay in one footer, inline XP accumulates, and immediate retry unlocks the same question", async () => {
+  await withPreview(async ({ origin, page, app, tool, open }) => {
+    const started = await tool("start_study", { questionIds: ["q001", "q002"], requestId: randomUUID() });
+    const sessionId = started.structuredContent.sessionId;
+    await page.goto(`${origin}/preview?theme=dark`);
+    await app.locator('[data-action="daily"], [data-action="goals"]').first().waitFor();
+    await open(started);
+    await app.getByRole("button", { name: "Bắt đầu", exact: true }).click();
+    assert.equal(await app.locator("[data-lesson-xp]").innerText(), "0");
+    assert.equal(await app.locator('[data-action="answer"]').isDisabled(), true);
+    assert.equal(await app.locator('[data-action="guess"]').isVisible(), true);
+    assert.equal(await app.locator('[data-action="skip"]').isVisible(), true);
+    assert.equal(await app.locator(".study-options").count(), 0, "secondary actions are directly visible");
+    assert.equal(await app.locator('[data-action="help"]').count(), 0);
+    await app.locator(`input[name="answer"][value="${right("q001")}"]`).check();
+    await app.locator('[data-action="answer"]').click();
+    await app.getByRole("heading", { name: "Chính xác!" }).waitFor();
+    assert.equal(await app.locator(".opt.right #verdict").count(), 1, "feedback is inside the selected answer");
+    assert.equal(await app.locator(".opt.right .answer-award").innerText(), "+10 XP");
+    assert.equal(await app.locator('[data-action="why"]').getAttribute("aria-expanded"), "false");
+    assert.equal(await app.locator(".why").count(), 0);
+    const why = await app.locator('[data-action="why"]').boundingBox();
+    const next = await app.locator('.study-footer [data-action="study-next"]').boundingBox();
+    assert.ok(why && next && why.x < next.x && Math.abs(why.y - next.y) < 4, "secondary is left of primary in one row");
+    const scored = await tool("get_study_session", { sessionId });
+    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String(scored.structuredContent.xp));
+    await continueStudy(app);
+    await app.locator(`input[name="answer"][value="${wrong("q002")}"]`).check();
+    await app.locator('[data-action="answer"]').click();
+    await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
+    assert.equal(await app.locator(".opt.wrong .answer-award").innerText(), "-3 XP");
+    assert.equal(await app.locator("[data-lesson-xp]").innerText(), "7");
+    assert.equal(await app.locator(".opt.wrong .x").count(), 0, "cross has no nested background");
+    assert.equal(await app.locator(".panel #verdict").count(), 0, "feedback is not repeated at the bottom");
+    assert.equal(await app.locator(".opt.right").count(), 0, "the solution is hidden until help is requested");
+    await app.locator('[data-action="study-retry"]').click();
+    await app.getByText("Bạn đã sai câu này lúc nãy").waitFor();
+    assert.equal(await app.locator("#verdict").count(), 0, "retry clears feedback even though the question ID is unchanged");
+    assert.equal(await app.locator('input[name="answer"]').first().isEnabled(), true);
+    assert.equal(await app.locator('input[name="answer"]:checked').count(), 0);
+    await app.getByRole("button", { name: "Tạm dừng và lưu" }).click();
+    await continueStudy(app);
+    await app.getByText("Bạn đã sai câu này lúc nãy").waitFor();
+    const repair = await tool("get_study_session", { sessionId });
+    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String(repair.structuredContent.xp));
+    await app.locator(`input[name="answer"][value="${right("q002")}"]`).check();
+    await app.locator('[data-action="answer"]').click();
+    await app.getByRole("heading", { name: "Đã sửa!" }).waitFor();
+    assert.equal(await app.locator('[data-action="study-retry"]').count(), 0);
+    const corrected = await tool("get_study_session", { sessionId });
+    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String(corrected.structuredContent.xp));
+    assert.equal(Number(corrected.structuredContent.xp) - Number(repair.structuredContent.xp), 2, "repair earns only the server's assisted credit");
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert.equal(await app.locator(".card").evaluate(el => el.scrollWidth <= el.clientWidth), true);
+    await app.locator('[data-action="why"]').click();
+    await app.locator(".why").waitFor();
+    assert.equal(await app.locator('[data-action="help"]').isVisible(), true);
+  });
+});
+
+test("direct actions remain reachable on mobile and negative XP survives feedback and completion in both themes", async () => {
+  await withPreview(async ({ origin, page, app, tool, open }) => {
+    for (const [index, theme] of ["dark", "light"].entries()) {
+      const questionId = index ? "q002" : "q001";
+      const started = await tool("start_study", { questionIds: [questionId], requestId: randomUUID() });
+      await page.setViewportSize({ width: 1000, height: 900 });
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.goto(`${origin}/preview?theme=${theme}&chat=1`);
+      await app.locator("[data-action]").first().waitFor();
+      await open(started);
+      await app.getByRole("button", { name: "Bắt đầu", exact: true }).click();
+      const body = await app.locator(".study-body").boundingBox();
+      const rail = await app.locator(".study-secondary").boundingBox();
+      assert.ok(body && rail && rail.x >= body.x && rail.x + rail.width <= body.x + body.width + 1, "secondary actions stay inside the question area");
+      const stem = await app.locator(".stem").boundingBox();
+      assert.ok(stem && rail && rail.y + rail.height <= stem.y, "compact actions sit above the question");
+      await page.setViewportSize({ width: 320, height: 844 });
+      const options = await app.locator(".opts").boundingBox();
+      const mobileRail = await app.locator(".study-secondary").boundingBox();
+      assert.ok(options && mobileRail && mobileRail.y + mobileRail.height <= options.y, "mobile actions remain in the question header");
+      await app.locator(`input[name="answer"][value="${wrong(questionId)}"]`).check();
+      await app.locator('[data-action="answer"]').click();
+      await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
+      assert.equal(await app.locator("[data-lesson-xp]").innerText(), "-3");
+      assert.equal(await app.locator(".answer-award").innerText(), "-3 XP");
+      assert.equal(await app.locator(".answer-award").evaluate(el => getComputedStyle(el).animationName), "none");
+      assert.equal(await app.locator(".opts").evaluate(el => el.ownerDocument.activeElement?.id), "verdict", "inline verdict stays focusable after grading");
+      assert.equal(await app.locator(".card").evaluate(el => el.scrollWidth <= el.clientWidth), true);
+      for (const name of ["Xem đáp án", "Thử lại", "Tiếp tục"]) assert.equal(await app.getByRole("button", { name, exact: true }).isVisible(), true, `${name} is reachable after a miss on mobile`);
+      assert.equal(await app.locator('[data-action="confusion"]').count(), 0, "the confusion toggle was removed");
+      assert.equal(await app.locator('[data-action="help"]').count(), 0, "ChatGPT help waits inside the explanation");
+      await app.getByRole("button", { name: "Xem đáp án", exact: true }).click();
+      assert.equal(await app.locator('[data-action="help"]').isVisible(), true);
+      await continueStudy(app);
+      await app.getByRole("heading", { name: "Hoàn thành bài học!" }).waitFor();
+      await app.locator(".finish-tiles .stat-tile").first().getByText("-3", { exact: true }).waitFor();
+      await page.locator("#host-message").getByText("Xong bài: 0/1 đúng, -3 XP.", { exact: false }).waitFor();
+      assert.equal(await app.getByText("+-3", { exact: false }).count(), 0);
+    }
+  });
+});
+
 test("the lesson summary counts as posted only after the host accepts it, and a failed send offers Thử lại", async () => {
   await withPreview(async ({ origin, page, app, tool, open, messages }) => {
     const started = await tool("start_study", { questionIds: ["q001"], requestId: randomUUID() });
@@ -102,7 +210,7 @@ test("the lesson summary counts as posted only after the host accepts it, and a 
     await app.locator(`input[name="answer"][value="${right("q001")}"]`).check();
     await app.locator('[data-action="answer"]').click();
     await app.getByRole("heading", { name: "Chính xác!" }).waitFor();
-    await app.getByRole("button", { name: "Tiếp tục" }).click();
+    await continueStudy(app);
     await app.getByRole("heading", { name: "Hoàn thành bài học!" }).waitFor();
     await app.getByText("Chưa gửi được tổng kết vào khung chat").waitFor();
     const sent = await messages();
@@ -151,11 +259,11 @@ test("skipping the last question ends on the finish screen with what is left, an
     await app.getByRole("button", { name: "Bắt đầu" }).click();
     await app.locator(`input[name="answer"][value="${right("q001")}"]`).check();
     await app.locator('[data-action="answer"]').click();
-    await app.getByRole("button", { name: "Tiếp tục" }).click();
+    await continueStudy(app);
     await app.getByRole("heading", { name: "Làn đường là gì?" }).waitFor();
     await app.getByRole("button", { name: "Bỏ qua" }).click();
     await app.getByText("Đã bỏ qua · vẫn cần ôn").waitFor();
-    await app.getByRole("button", { name: "Tiếp tục" }).click();
+    await continueStudy(app);
     await app.getByText("Còn 1 câu bỏ qua — vẫn cần ôn").waitFor();
     await app.getByText("Bỏ qua: 1", { exact: false }).waitFor();
     assert.equal(await app.getByRole("heading", { name: "Buổi học đã tạm dừng" }).count(), 0);
@@ -181,7 +289,7 @@ test("XP, the combo and a repair step come from the server, and a second miss of
     };
     // Waits for the next step to replace the verdict, so a choice is never made on the old question.
     const next = async () => {
-      await app.getByRole("button", { name: "Tiếp tục" }).click();
+      await continueStudy(app);
       await app.locator("#verdict").waitFor({ state: "detached" });
     };
     await answer("q001", right("q001"));
@@ -189,12 +297,12 @@ test("XP, the combo and a repair step come from the server, and a second miss of
       await next();
       await answer(q, right(q));
     }
-    await app.getByText("Combo 3 câu liên tiếp").waitFor();
-    await app.locator(".panel .xp").getByText("+10 XP").waitFor();
+    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String((await tool("get_study_session", { sessionId: started.structuredContent.sessionId })).structuredContent.xp));
+    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String((await tool("get_study_session", { sessionId: started.structuredContent.sessionId })).structuredContent.xp));
     await next();
     await app.locator(".combo-pill").getByText("×3").waitFor();
     await answer("q004", wrong("q004"));
-    await app.locator(".panel .xp").getByText("+3 XP").waitFor();
+    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String((await tool("get_study_session", { sessionId: started.structuredContent.sessionId })).structuredContent.xp));
     for (const q of ["q005", "q006"]) {
       await next();
       await answer(q, right(q));
@@ -205,7 +313,8 @@ test("XP, the combo and a repair step come from the server, and a second miss of
     const sent = await messages();
     await answer("q004", wrong("q004"));
     await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
-    await app.locator(".panel .xp").getByText("+2 XP").waitFor();
+    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String((await tool("get_study_session", { sessionId: started.structuredContent.sessionId })).structuredContent.xp));
+    await app.getByRole("button", { name: "Xem đáp án" }).click();
     await app.getByRole("button", { name: "ChatGPT có thể giải thích kỹ hơn" }).click();
     await page.locator("#host-message").getByText("Mình vẫn nhầm câu 4, giải thích kỹ hơn nhé. [q004 · lần 2 · sai]").waitFor();
     const order = (await sent()).filter((m) => m.method === "ui/message" || m.name === "request_study_help" || m.name === "submit_study_answer").map((m) => m.name ?? m.method);
@@ -311,7 +420,7 @@ test("when the lightning countdown reaches zero the card fetches the round once 
     await app.locator(`input[name="answer"][value="${wrong(first)}"]`).check();
     await app.locator('[data-action="lt-check"]').click();
     // The next question is already showing, so the flash names the question it judged.
-    await app.locator(".flash").getByText(`Câu ${Number(first.slice(1))}: chưa đúng — sẽ quay lại trong lịch ôn`).waitFor();
+    await app.locator(".flash").getByText(`Câu ${Number(first.slice(1))}: chưa đúng -3 XP — sẽ quay lại trong lịch ôn`).waitFor();
     const before = fetches.filter((name) => name === "get_study_session").length;
     await app.getByRole("heading", { name: "Hết giờ!" }).waitFor({ timeout: 15000 });
     await page.waitForTimeout(600);
@@ -420,7 +529,7 @@ test("the mock result groups wrong and blank questions by category, and Ôn các
     assert.ok(new Set(topics).size > 1, "a random test spans several categories");
     const entry = app.locator(`details.acc:has-text("Câu ${Number(b.id.slice(1))} · sai")`).first();
     if (!(await entry.evaluate((element: HTMLDetailsElement) => element.open))) await entry.locator("summary").click();
-    await app.getByText(`Bạn chọn: ${wrong(b.id)} ·`, { exact: false }).first().waitFor();
+    await entry.getByText(`Bạn chọn: ${wrong(b.id)} ·`, { exact: false }).waitFor();
     await app.getByText("Các câu sai và câu bỏ trống đã vào lịch ôn ngày mai.").waitFor();
     const sent = await messages();
     await app.getByRole("button", { name: "Ôn các câu sai" }).click();
@@ -500,7 +609,7 @@ test("a failed progress load offers Thử lại and shows no numbers, and a host
   });
 });
 
-test("the verdict's pop, bounce, sparks and shake start after Kiểm tra", async () => {
+test("answer feedback starts its brief celebration only after Kiểm tra", async () => {
   await withPreview(async ({ origin, page, app, tool, open }) => {
     const started = await tool("start_study", { questionIds: ["q001", "q002"], requestId: randomUUID() });
     await page.goto(`${origin}/preview`);
@@ -518,12 +627,13 @@ test("the verdict's pop, bounce, sparks and shake start after Kiểm tra", async
     const startsAll = (names: string[]) => frame.waitForFunction((wanted) => wanted.every((name) => (window as unknown as { started: string[] }).started.includes(name)), names, { timeout: 5000 });
     await app.locator(`input[name="answer"][value="${right("q001")}"]`).check();
     await app.locator('[data-action="answer"]').click();
-    await startsAll(["rise", "pop", "bounce", "spark", "xp"]);
-    await app.getByRole("button", { name: "Tiếp tục" }).click();
+    await startsAll(["pop", "confetti"]);
+    await continueStudy(app);
     await app.locator("#verdict").waitFor({ state: "detached" });
     await app.locator(`input[name="answer"][value="${wrong("q002")}"]`).check();
     await app.locator('[data-action="answer"]').click();
-    await startsAll(["shake"]);
+    await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
+    assert.equal(await app.locator(".opt.wrong .key").evaluate((el) => getComputedStyle(el).animationName), "none");
   });
 });
 
@@ -651,7 +761,7 @@ test("a family search that failed runs again when the learner retypes the same t
 test("the family picker lists every matching group in one list that scrolls inside the card, about seven rows tall, with Học nhóm này right below it", async () => {
   await withPreview(async ({ origin, page, app, tool }) => {
     await tool("start_study", { requestId: randomUUID() });
-    await page.setViewportSize({ width: 390, height: 900 });
+    await page.setViewportSize({ width: 390, height: 1400 });
     await page.goto(`${origin}/preview`);
     await openFamilies(app);
     const total = (await tool("list_units", { kind: "family", limit: 300 })).structuredContent.totalMatches as number;
@@ -676,7 +786,9 @@ test("the family picker lists every matching group in one list that scrolls insi
     await page.mouse.wheel(0, 500);
     await page.waitForFunction(() => (document.querySelector<HTMLIFrameElement>("#widget")?.contentDocument?.querySelector(".fam-scroll")?.scrollTop ?? 0) > 0);
     const scrolled = (await measure()).scrollTop;
-    await app.locator(".frow").nth(9).click();
+    const visibleRow = await app.locator(".frow").nth(9).boundingBox();
+    assert.ok(visibleRow && visibleRow.y >= 0 && visibleRow.y + visibleRow.height <= 1400, "the chosen row is visible before the click");
+    await page.mouse.click(visibleRow.x + visibleRow.width / 2, visibleRow.y + visibleRow.height / 2);
     const picked = await measure();
     assert.equal(picked.scrollTop, scrolled, "choosing a row keeps the list where it was");
     assert.equal(picked.checkedInside, true);
@@ -720,9 +832,10 @@ test("a question without bank text says so and offers Hỏi ChatGPT inside the v
     await page.goto(`${origin}/preview`);
     await app.locator("[data-action]").first().waitFor();
     await open(await tool("get_study_session", { sessionId }));
+    await app.getByRole("button", { name: "Vì sao?" }).click();
     await app.locator(".panel").getByText("Chưa có giải thích được duyệt cho câu này.").waitFor();
-    assert.equal(await app.locator('.panel [data-action="help"]').count(), 1, "Hỏi ChatGPT is the panel's suggestion");
-    assert.equal(await app.getByRole("button", { name: "Hỏi ChatGPT" }).count(), 1, "and it is offered once");
+    assert.equal(await app.locator('.why-wrap [data-action="help"]').count(), 1, "Hỏi ChatGPT is inside the explanation block");
+    assert.equal(await app.getByRole("button", { name: "Hỏi ChatGPT về câu này" }).count(), 1, "and it is offered once");
     assert.equal(await app.getByText("Ngân hàng câu hỏi chưa có", { exact: false }).count(), 0, "no fallback sentence stands in for an explanation");
   });
 });
@@ -754,7 +867,7 @@ async function learnFirstTime(tool: Preview["tool"], ids: string[]) {
     await tool("submit_study_answer", { sessionId, questionId: current.id, answer: right(current.id), requestId: randomUUID() });
     current = (await tool("next_study_question", { sessionId, requestId: randomUUID() })).structuredContent.question as { id: string } | null;
   }
-  return { sessionId, course: (await tool("get_course", {})).structuredContent as { learned: number; onTheWay: number; nextLearnAt: number | null } };
+  return { sessionId, course: (await tool("get_course", {})).structuredContent as { covered: number; learned: number; onTheWay: number; nextLearnAt: number | null } };
 }
 
 test("the Đã thuộc tile keeps its number and names the questions waiting for their review, on home and the course map", async () => {
@@ -768,7 +881,9 @@ test("the Đã thuộc tile keeps its number and names the questions waiting for
     assert.equal((await learned.locator(".nwait").innerText()).trim(), `+${course.onTheWay} đang chờ ôn lại`);
     assert.equal(await app.locator(".nums .nwait").count(), 1, "only the Đã thuộc tile has the line");
     await app.getByRole("button", { name: "Chọn chủ đề" }).click();
-    await app.locator(".nums.sm .ntile.mid .nwait").getByText(`+${course.onTheWay}`).waitFor();
+    await app.locator(".course-summary .course-pending").getByText(`+${course.onTheWay}`).waitFor();
+    assert.equal(await app.locator('.course-summary [data-metric="learned"] b').innerText(), String(course.learned));
+    assert.equal(await app.locator('.coverage-track').getAttribute('aria-valuenow'), String(course.covered));
   });
 });
 
@@ -829,7 +944,7 @@ test("the home card's fourth tile counts today's mistakes and opens a read-only 
     assert.equal((await tiles.nth(3).innerText()).replace(/\s+/g, " ").trim(), "3 câu Sai hôm nay Xem lại");
     const tops = () => tiles.evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
     const [a, b, c, d] = await tops();
-    assert.ok(a === b && c === d && c! > a!, "two by two on a phone");
+    assert.ok(a! < b! && b! < c! && c! < d!, "Đã gặp leads, the other three stack beneath it");
     const open = app.getByRole("button", { name: "Sai hôm nay: 3 câu, xem lại" });
     assert.equal(await open.locator(".info-btn").count(), 0, "the ⓘ is not inside the tile's button");
     await app.getByRole("button", { name: "Giải thích: Sai hôm nay", exact: true }).click();
@@ -865,7 +980,7 @@ test("the home card's fourth tile counts today's mistakes and opens a read-only 
 
     await page.setViewportSize({ width: 900, height: 900 });
     const [w, x, y, z] = await tops();
-    assert.ok(w === x && x === y && y === z, "one row when the card is wide");
+    assert.ok(w! < x! && x! < y! && y! < z!, "the same stacked order in the desktop progress sidebar");
   });
 });
 
@@ -995,7 +1110,7 @@ test("the ⓘ beside Tôi đoán, THỬ LẠI, the combo, XP, the goal, the mock
       await app.locator("#verdict").waitFor();
     };
     const next = async () => {
-      await app.getByRole("button", { name: "Tiếp tục" }).click();
+      await continueStudy(app);
       await app.locator("#verdict").waitFor({ state: "detached" });
     };
     await app.getByRole("button", { name: "Bắt đầu" }).click();
@@ -1009,7 +1124,8 @@ test("the ⓘ beside Tôi đoán, THỬ LẠI, the combo, XP, the goal, the mock
     await app.getByText("THỬ LẠI", { exact: true }).waitFor();
     await explains("Thử lại", "Thử lại");
     await answer(right("q001"));
-    await app.getByText("Combo 3 câu liên tiếp").waitFor();
+    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String((await tool("get_study_session", { sessionId: started.structuredContent.sessionId })).structuredContent.xp));
+    await app.getByRole("button", { name: "Vì sao?" }).click();
     await explains("Combo", "Combo");
     await next();
     await answer(right("q004"));
@@ -1055,7 +1171,7 @@ test("with nothing newly mastered, the finish screen counts first-time correct a
   });
 });
 
-test("the card sets its words in Nunito one weight step lighter, loads the Vietnamese faces at every weight, and keeps numbers in JetBrains Mono 700", async () => {
+test("the card uses Nunito with prominent question headings, Vietnamese faces at every weight, and JetBrains Mono numbers", async () => {
   await withPreview(async ({ origin, page, app, tool, open }) => {
     const started = await tool("start_study", { questionIds: ["q001"], requestId: randomUUID() });
     await page.goto(`${origin}/preview`);
@@ -1063,12 +1179,12 @@ test("the card sets its words in Nunito one weight step lighter, loads the Vietn
     await open(started);
     await app.getByRole("button", { name: "Bắt đầu" }).click();
     await app.locator(".stem").waitFor();
-    const roles = { body: "body", stem: ".stem", option: ".opt .txt", button: '[data-action="answer"]', chip: ".chip.step", number: ".chip.num.mono", pos: ".pos" };
+    const roles = { body: "body", stem: ".stem", option: ".opt .txt", button: '[data-action="answer"]', chip: ".chip.step", number: ".chip.num.mono", pos: ".lesson-xp" };
     const styles = await app.locator("main").evaluate((main, selectors) => Object.fromEntries(Object.entries(selectors).map(([role, selector]) => {
       const style = getComputedStyle(document.querySelector(selector) ?? main);
       return [role, `${style.fontFamily.split(",")[0]?.replace(/["']/g, "")} ${style.fontWeight}`];
     })), roles);
-    assert.deepEqual(styles, { body: "Nunito 400", stem: "Nunito 600", option: "Nunito 500", button: "Nunito 700", chip: "Nunito 700", number: "JetBrains Mono 700", pos: "JetBrains Mono 700" });
+    assert.deepEqual(styles, { body: "Nunito 400", stem: "Nunito 700", option: "Nunito 500", button: "Nunito 700", chip: "Nunito 700", number: "JetBrains Mono 700", pos: "JetBrains Mono 700" });
     const heavy = await app.locator("main").evaluate((main) => [...main.querySelectorAll("*")].filter((el) => Number(getComputedStyle(el).fontWeight) > 700).map((el) => el.className || el.tagName));
     assert.deepEqual(heavy, [], "nothing is heavier than 700");
     const faces = await app.locator("main").evaluate(async () => {
@@ -1079,5 +1195,72 @@ test("the card sets its words in Nunito one weight step lighter, loads the Vietn
     const font = await fetch(`${origin}/ui/assets/nunito-vietnamese-600-normal.woff2`);
     assert.deepEqual([font.status, font.headers.get("content-type")], [200, "font/woff2"]);
     assert.equal((await fetch(`${origin}/ui/assets/BeVietnamPro-Regular.ttf`)).status, 404, "the old text font is no longer shipped");
+  });
+});
+
+test("the colorful card loads its artwork and keeps feedback still for keyboard and reduced motion", async () => {
+  await withPreview(async ({ origin, page, app, tool, open }) => {
+    await page.setViewportSize({ width: 360, height: 900 });
+    await page.goto(`${origin}/preview`);
+    await app.locator(".journey-art").waitFor();
+    const art = await fetch(`${origin}/ui/assets/learning-journey.webp`);
+    assert.equal(art.status, 200);
+    assert.equal(art.headers.get("content-type"), "image/webp");
+    assert.equal(await app.locator(".journey-art").evaluate((img) => (img as HTMLImageElement).naturalWidth > 0), true);
+    assert.equal(await app.locator(".card").evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    const started = await tool("start_study", { questionIds: ["q001"], requestId: randomUUID() });
+    await open(started);
+    await app.getByRole("button", { name: "Bắt đầu" }).click();
+    await app.locator(`input[name="answer"][value="${right("q001")}"]`).check();
+    await app.locator('[data-action="answer"]').press("Enter");
+    await app.locator("#verdict").waitFor();
+    assert.equal(await app.locator(".panel").evaluate((el) => getComputedStyle(el).animationName), "none");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await continueStudy(app);
+    await app.locator(".finish-title").waitFor();
+    assert.equal(await app.locator(".trophy").evaluate((el) => getComputedStyle(el).animationName), "none");
+    assert.equal(await app.locator(".btn").first().evaluate((el) => getComputedStyle(el).transitionDuration), "0s");
+  });
+});
+
+test("the course path keeps every topic reachable across themes and widths and returns keyboard focus", async () => {
+  await withPreview(async ({ origin, page, app, tool }) => {
+    await tool("start_study", { requestId: randomUUID() });
+    for (const theme of ["light", "dark"]) {
+      for (const width of [900, 390, 320]) {
+        await page.setViewportSize({ width, height: 1000 });
+        await page.goto(`${origin}/preview?theme=${theme}`);
+        await app.getByRole("button", { name: "Chọn chủ đề", exact: true }).click();
+        const layout = await app.locator(".path").evaluate((list) => ({
+          height: list.getBoundingClientRect().height,
+          topics: list.querySelectorAll('[data-action="map-node"]').length,
+          scrollable: list.scrollHeight > list.clientHeight,
+          overflow: document.documentElement.scrollWidth > innerWidth,
+        }));
+        assert.equal(layout.topics, 8);
+        assert.equal(layout.scrollable, true, "all eight topics can be reached in the path viewport");
+        assert.equal(layout.overflow, false);
+        assert.ok(layout.height <= 400, `path leaves room for its action dock at ${width}px in ${theme}: ${layout.height}px`);
+        assert.equal(await app.locator('.path [data-action="map-node"]:disabled').count(), 0, "visual future states do not invent locked topics");
+        const topic = app.getByRole("button", { name: /^Biển báo, đã gặp/ });
+        await topic.scrollIntoViewIfNeeded();
+        const pathTop = await app.locator('.path').evaluate(el => el.scrollTop);
+        assert.ok(pathTop > 0, "lower topics are inside the scrolling path");
+        await topic.press("Enter");
+        await app.getByRole("heading", { name: "Biển báo", exact: true }).waitFor();
+        assert.equal(await topic.getAttribute("aria-expanded"), "true");
+        assert.equal(await app.locator(".path-dock#topic-details").count(), 1);
+        assert.equal(await app.locator('.path-dock#topic-details').isVisible(), true);
+        assert.equal(await app.locator('.path').evaluate(el => el.scrollTop), pathTop, "opening details preserves the path position");
+        await app.getByRole("button", { name: "Thu gọn", exact: true }).press("Enter");
+        await app.locator("#topic-details").waitFor({ state: "detached" });
+        assert.equal(await topic.evaluate((button) => button === document.activeElement), true);
+        await topic.press("Enter");
+        await app.locator("#topic-details").waitFor();
+        await topic.press("Enter");
+        await app.locator("#topic-details").waitFor({ state: "detached" });
+        assert.equal(await topic.evaluate((button) => button === document.activeElement), true, "collapsing from the trigger keeps keyboard position");
+      }
+    }
   });
 });

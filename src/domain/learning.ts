@@ -168,6 +168,11 @@ export const LearningCommandSchema = z.discriminatedUnion("kind", [
     }),
     z.object({
         ...sessionInput,
+        kind: z.literal("retry_study"),
+        questionId: qid
+    }),
+    z.object({
+        ...sessionInput,
         kind: z.literal("skip_study")
     }),
     z.object({
@@ -180,7 +185,9 @@ export const LearningCommandSchema = z.discriminatedUnion("kind", [
     }),
     z.object({
         ...sessionInput,
-        kind: z.literal("next_study")
+        kind: z.literal("next_study"),
+        questionId: qid.optional(),
+        repair: z.boolean().optional()
     }),
     z.object({
         ...base,
@@ -566,6 +573,10 @@ function findSession(state: LearnerState, id: string) {
 function activeItem(s: Session) {
     return s.items.find(i => i.questionId === s.activeQuestionId && (i.repairOf !== undefined) === s.activeRepair);
 }
+function canRetryStudy(state: LearnerState, s: Session) {
+    const i = activeItem(s);
+    return s.status === "active" && s.mode === "lesson" && i?.status === "answered" && i.group === undefined && i.repairOf === undefined && state.evidence.some(e => e.id === i.answerId && e.kind === "answer" && !e.correct);
+}
 function activate(s: Session, i: Item | undefined) {
     s.activeQuestionId = i?.questionId ?? null;
     s.activeRepair = i?.repairOf !== undefined;
@@ -625,6 +636,7 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
         questionStatus: active?.status ?? null,
         queue: s.items,
         currentFeedback: activeAnswer ? feedbackOf(activeAnswer) : null,
+        canRetry: canRetryStudy(state, s),
         // A waiting repair step shows help only when asked for again, not because the wrong answer's feedback was shown.
         help: q && state.evidence.some(e => e.kind === "help" && e.questionId === q && (repairStep ? !e.feedback && e.at >= repairStep.bindingAt : e.at >= s.createdAt)) ? helpView(q) : null,
         sessionResults: {
@@ -834,8 +846,14 @@ function reopen(state: LearnerState, s: z.infer<typeof session>, now: number) {
         return;
     if (activeItem(s)?.status === "answered")
         s.status = "active";
-    else
+    else {
+        const repair = activeItem(s);
         reconcile(state, s, now);
+        if (repair?.repairOf !== undefined && repair.status === "pending" && !runningMockQuestions(state).has(repair.questionId)) {
+            activate(s, repair);
+            s.status = "active";
+        }
+    }
 }
 /** A lightning round ends at its deadline. Its unanswered questions stay unanswered and unscored. */
 export function closeExpiredLightning(state: LearnerState, now: number) {
@@ -1041,7 +1059,7 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
             assertNotInRunningMock(state, command.questionId);
             const scored = submitAnswer(command.questionId, command.answer);
             const latestAnswer = [...state.evidence].reverse().find(e => e.kind === "answer" && e.questionId === command.questionId);
-            const assisted = state.evidence.some(e => e.kind === "help" && e.questionId === command.questionId && e.at >= i.bindingAt && (latestAnswer === undefined || e.sequence > latestAnswer.sequence));
+            const assisted = i.repairOf !== undefined || state.evidence.some(e => e.kind === "help" && e.questionId === command.questionId && e.at >= i.bindingAt && (latestAnswer === undefined || e.sequence > latestAnswer.sequence));
             append(state, command.questionId, now, {
                 kind: "answer",
                 answer: command.answer,
@@ -1064,6 +1082,22 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
                 activate(s, s.items.find(x => x.group === i.group && x.status === "pending") ?? i);
             break;
         }
+        case "retry_study": {
+            const s = findSession(state, command.sessionId);
+            activityId = s.id;
+            viewKind = "study";
+            if (s.activeQuestionId !== command.questionId || !canRetryStudy(state, s))
+                throw new Error("RETRY_NOT_AVAILABLE");
+            let repair = s.items.find(i => i.repairOf === command.questionId && i.status === "pending");
+            if (!repair) {
+                const original = activeItem(s)!;
+                const answer = state.evidence.find(e => e.id === original.answerId)!;
+                repair = { questionId: command.questionId, kind: "practice", status: "pending", bindingAt: answer.at, repairOf: command.questionId };
+                s.items.push(repair);
+            }
+            activate(s, repair);
+            break;
+        }
         case "next_study": {
             const s = findSession(state, command.sessionId);
             activityId = s.id;
@@ -1071,6 +1105,19 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
             if (s.status !== "active")
                 throw new Error("SESSION_NOT_ACTIVE");
             const active = activeItem(s);
+            if (command.questionId !== undefined) {
+                if (s.mode !== "lesson")
+                    throw new Error("QUESTION_NAVIGATION_NOT_AVAILABLE");
+                if (active?.status === "pending")
+                    throw new Error("ANSWER_OR_SKIP_FIRST");
+                const target = s.items.find(i => i.questionId === command.questionId && (i.repairOf !== undefined) === (command.repair === true));
+                if (!target)
+                    throw new Error("QUESTION_NOT_IN_SESSION");
+                if (target.group !== undefined && s.items.some(i => i.group === target.group && i.status === "pending"))
+                    throw new Error("PAIR_INCOMPLETE");
+                activate(s, target);
+                break;
+            }
             if (active?.status === "pending" || (active?.group !== undefined && s.items.some(i => i.group === active.group && i.status === "pending")))
                 throw new Error("ANSWER_OR_SKIP_FIRST");
             reconcile(state, s, now);

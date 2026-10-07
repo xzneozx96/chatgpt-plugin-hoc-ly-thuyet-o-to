@@ -1,3 +1,5 @@
+> Visual brief updated on 7 October 2026. The owner requested playful color, graphics and micro-interactions. DESIGN.md supersedes monochrome palette, illustration prohibitions and old motion timings here; learning behavior remains unchanged.
+
 # ChatGPT learning experience design
 
 ## 1. Status
@@ -105,20 +107,22 @@ Câu ôn tập được tính riêng và luôn làm trước.
 ### 4.2 Home card
 
 ```text
+TUẦN NÀY                         ╭───╮
+240 XP                           │ 4 │
+Hạng 4 trong nhóm · Xem bảng ›   ╰───╯
+
      ╭───╮
     │ 7/12 │   Mục tiêu hôm nay ⓘ
      ╰───╯   7/12 câu mới
 
-╭ 120 /600      ⓘ ╮  ╭ 84 /600        ⓘ ╮
-│ Đã gặp           │  │ Đã thuộc          │
-╰──────────────────╯  │ +13 đang chờ ôn lại│
-                      ╰───────────────────╯
-▓ 6 câu         ⓘ ▓  ╭ 3 câu          ⓘ ╮
-▓ Cần ôn hôm nay   ▓  │ Sai hôm nay       │
-                      │ Xem lại ›         │
-                      ╰═══════════════════╯
-
-Tuần này: 240 XP · Hạng 4 trong nhóm        (Xem bảng)
+120 /600                               ⓘ
+Đã gặp
+▓▓▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+Đã thuộc                    84 /600    ⓘ
++13 đang chờ ôn lại
+Cần ôn hôm nay               6 câu     ⓘ
+Sai hôm nay                  3 câu     ⓘ
+Xem lại ›
 Theo nhịp 12 câu/ngày: xong lượt đầu ngày 25/11
 
 [ Học tiếp ]
@@ -128,9 +132,9 @@ Theo nhịp 12 câu/ngày: xong lượt đầu ngày 25/11
 ```
 
 - The ring has 12 segments, one per new question today. Its centre shows a small check when due reviews are done.
-- The four numbers always appear together, with these labels. They sit two by two on a phone and in one row when the card is at least 560 px wide.
+- The four numbers always appear together, with these labels. Đã gặp leads with a large number and a bar out of 600; the other three follow as one-line rows, each with its own ⓘ.
 - Sai hôm nay counts the questions answered wrong today, each once. Its tile is a pressable button with the ⓘ in its corner, outside the button. It opens today's mistakes through `get_today_mistakes`. With no mistakes today, the tile takes the disabled look and reads "Chưa có câu sai hôm nay".
-- The league line appears only for members. Non-members see one invitation line after their first finished lesson: "Tham gia nhóm thi đua tuần".
+- For members, the weekly XP and rank block leads the progress column. The league block appears only for members. Non-members see one invitation line after their first finished lesson: "Tham gia nhóm thi đua tuần".
 - "Học tiếp" starts the review queue when anything is due, otherwise the next new skill.
 - "Nhắc tôi học mỗi ngày" is a quiet row with an ⓘ, below the secondary actions here and on the finish screen. It opens an inline chooser:
 
@@ -208,11 +212,11 @@ Câu 145
 
 ### 4.5 Feedback sheet
 
-The sheet slides up from the action area. The question stays visible above it, with the options locked.
+Feedback and the signed XP change appear inside the selected answer row. Confetti briefly marks a correct answer. Individual radios are disabled while the inline feedback remains keyboard-focusable. Available secondary actions sit as compact buttons at the top-right of the question area and wrap within its header on mobile. The explanation opens on demand; bottom controls contain no repeated verdict.
 
 ```text
 Correct                                  Wrong
-◉✓ Chính xác!            +10 XP          ⊗ Chưa đúng                 +3 XP
+🎉 Chính xác!     +10 XP               ⊗ Chưa đúng       -3 XP
 Combo 3 câu liên tiếp                    Đáp án đúng: A · 60 km/h
 Khu đông dân cư, đường đôi hoặc         Khu đông dân cư, đường đôi hoặc
 một chiều từ 2 làn: 60 km/h. (Xem thêm)  một chiều từ 2 làn: 60 km/h.
@@ -224,6 +228,9 @@ một chiều từ 2 làn: 60 km/h. (Xem thêm)  một chiều từ 2 làn: 60 k
 - The reason is approved text in at most two lines. "Xem thêm" expands the full approved explanation in place.
 - "Video" appears only when a verified segment exists. It opens YouTube externally, and the card keeps the step.
 - If no approved text exists: "Chưa có giải thích được duyệt cho câu này." Then "Hỏi ChatGPT" becomes the visible suggestion.
+- The XP rises from the verdict and fades; it is not a resting chip. Keyboard and reduced motion show it as a static chip instead. A correct verdict adds a short confetti burst.
+- A correct verdict turns the card border green with a green glow from the bottom.
+- A wrong verdict's "Tiếp tục" is a light grey pill with dark text, not the accent.
 - A newly Mastered question adds a "Đã thuộc!" line to the sheet.
 - Section 5 lists the other verdict variants.
 

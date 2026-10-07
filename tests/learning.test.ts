@@ -29,6 +29,43 @@ function answer(state: LearnerState, q: string, now: number, selected: AnswerId 
     }, now);
 }
 const p = (s: LearnerState, q = "q001") => questionProgress(s).get(q);
+test("immediate retry preserves the original mistake, reuses one repair and cannot earn mastery", () => {
+    for (const ids of [["q001", "q002", "q003"], ["q001"]]) {
+        let state = run(createLearner(clock), { kind: "start_study", requestId: requestId(), questionIds: ids }, clock);
+        const sessionId = state.sessions.at(-1)!.id;
+        state = run(state, { kind: "answer_study", requestId: requestId(), sessionId, questionId: "q001", answer: wrong("q001") }, clock + 1000);
+        const evidence = structuredClone(state.evidence);
+        const command: LearningCommand = { kind: "retry_study", requestId: requestId(), sessionId, questionId: "q001" };
+        const retried = executeLearning(state, command, clock + 2000);
+        assert.equal(retried.view.kind, "study");
+        if (retried.view.kind !== "study") assert.fail("expected study view");
+        assert.equal(retried.view.repairOf, "q001");
+        assert.equal(retried.view.currentFeedback, null);
+        assert.equal(retried.view.canRetry, false);
+        assert.deepEqual(retried.state.evidence, evidence, "retry navigation does not record another attempt");
+        assert.equal(retried.state.sessions.at(-1)!.items.filter(i => i.repairOf === "q001").length, 1);
+        assert.deepEqual(executeLearning(retried.state, command, clock + 3000).state, retried.state, "replayed navigation is idempotent");
+        const paused = run(retried.state, { kind: "pause_study", requestId: requestId(), sessionId }, clock + 4000);
+        const resumed = executeLearning(paused, { kind: "resume_study", requestId: requestId(), sessionId }, clock + 5000);
+        if (resumed.view.kind !== "study") assert.fail("expected study view");
+        assert.equal(resumed.view.repairOf, "q001", "resume preserves an unfinished immediate repair");
+        const corrected = executeLearning(resumed.state, { kind: "answer_study", requestId: requestId(), sessionId, questionId: "q001", answer: right("q001") }, clock + DAY);
+        if (corrected.view.kind !== "study") assert.fail("expected study view");
+        assert.equal(corrected.view.currentFeedback?.assisted, true);
+        assert.equal(corrected.view.lastAward?.baseXp, 2);
+        assert.equal(corrected.view.canRetry, false);
+        assert.equal(p(corrected.state)?.successes, 0);
+        assert.throws(() => executeLearning(corrected.state, { ...command, requestId: requestId() }, clock + DAY + 1), /RETRY_NOT_AVAILABLE/);
+        state = run(corrected.state, { kind: "next_study", requestId: requestId(), sessionId }, clock + DAY + 2);
+        assert.equal(state.sessions.at(-1)!.activeQuestionId, ids.length > 1 ? "q002" : null);
+    }
+});
+
+test("immediate retry rejects correct feedback and an unrelated question", () => {
+    const state = answer(createLearner(clock), "q001", clock);
+    const sessionId = state.sessions.at(-1)!.id;
+    for (const questionId of ["q001", "q002"]) assert.throws(() => executeLearning(state, { kind: "retry_study", requestId: requestId(), sessionId, questionId }, clock + 1000), /RETRY_NOT_AVAILABLE/);
+});
 test("coverage forecast begins empty and keeps custom eight incompatible", () => {
     let s = createLearner(clock);
     assert.equal(courseView(s, clock).covered, 0);

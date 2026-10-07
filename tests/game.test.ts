@@ -70,26 +70,26 @@ test("a learner stored before the game layer still parses and keeps studying", (
     assert.equal(view.currentFeedback?.questionId, "q001", "an old answered item still shows its feedback");
     const next = executeLearning(state, { kind: "next_study", requestId: requestId(), sessionId }, clock + 2000);
     assert.equal(next.state.sessions[0]?.activeQuestionId, "q002");
-    assert.equal(xpSummary(next.state, clock + 3000).total, 3, "its earlier wrong first answer earns 3");
+    assert.equal(xpSummary(next.state, clock + 3000).total, -3, "its earlier wrong first answer deducts 3");
 });
 
-test("first answers and due reviews earn 10 when right and 3 when wrong, and mastering adds 15", () => {
+test("first answers and due reviews earn 10 when right and deduct 3 when wrong, and mastering adds 15", () => {
     let r = answer(createLearner(morning), "q001", morning);
     assert.deepEqual(r.award, { xp: 10, reason: "first_correct", masteredNow: false });
     r = answer(r.state, "q002", morning, wrong("q002"));
-    assert.deepEqual(r.award, { xp: 3, reason: "first_wrong", masteredNow: false });
+    assert.deepEqual(r.award, { xp: -3, reason: "first_wrong", masteredNow: false });
     r = answer(r.state, "q001", morning + DAY);
     assert.deepEqual(r.award, { xp: 25, reason: "review_correct", masteredNow: true }, "a second qualifying recall masters q001");
     r = answer(r.state, "q002", morning + DAY, wrong("q002"));
-    assert.deepEqual(r.award, { xp: 3, reason: "review_wrong", masteredNow: false });
-    assert.equal(xpSummary(r.state, morning + DAY).total, 10 + 3 + 25 + 3);
+    assert.deepEqual(r.award, { xp: -3, reason: "review_wrong", masteredNow: false });
+    assert.equal(xpSummary(r.state, morning + DAY).total, 10 - 3 + 25 - 3);
 });
 
-test("an answer after help earns 3 whether right or wrong", () => {
+test("an answer after help earns 3 when right and deducts 3 when wrong", () => {
     let r = answer(createLearner(morning), "q001", morning, right("q001"), true);
     assert.deepEqual(r.award, { xp: 3, reason: "assisted", masteredNow: false });
     r = answer(r.state, "q002", morning + MINUTE, wrong("q002"), true);
-    assert.deepEqual(r.award, { xp: 3, reason: "assisted", masteredNow: false });
+    assert.deepEqual(r.award, { xp: -3, reason: "assisted", masteredNow: false });
     r = answer(r.state, "q001", morning + DAY, right("q001"), true);
     assert.deepEqual(r.award, { xp: 3, reason: "assisted", masteredNow: false }, "help before a due review earns 3, not 10");
 });
@@ -103,6 +103,10 @@ test("practice on questions that are not due earns 2, capped at 50 XP per learne
         practice.push(r.award?.xp ?? -1);
     }
     assert.deepEqual(practice, [...Array<number>(25).fill(2), 0, 0]);
+    r = answer(r.state, "q001", morning + 28 * MINUTE, wrong("q001"));
+    assert.deepEqual(r.award, { xp: -3, reason: "practice", masteredNow: false }, "wrong practice still deducts after the cap");
+    r = answer(r.state, "q001", morning + 29 * MINUTE);
+    assert.equal(r.award?.xp, 0, "a penalty does not refund reward budget");
     r = answer(r.state, "q001", morning + 31 * MINUTE, right("q001"), true);
     assert.deepEqual(r.award, { xp: 0, reason: "assisted", masteredNow: false }, "assisted practice shares the daily cap");
     r = answer(r.state, "q001", morning + 14 * 3600000);
@@ -128,6 +132,35 @@ test("mock answers earn nothing each; a finalised mock earns 20, a pass 30 more,
     assert.ok(left);
     s = run(s, { kind: "abandon_mock", requestId: requestId(), attemptId: left.id }, morning + 8 * MINUTE);
     assert.equal(xpSummary(s, morning + 9 * MINUTE).total, 70);
+});
+
+test("wrong repair and lightning deduct XP once without restoring reward caps", () => {
+    let s = answer(createLearner(morning), "q001", morning, wrong("q001")).state;
+    const sessionId = s.sessions.at(-1)!.id;
+    s = run(s, { kind: "retry_study", requestId: requestId(), sessionId, questionId: "q001" }, morning + 1000);
+    const command: LearningCommand = { kind: "answer_study", requestId: requestId(), sessionId, questionId: "q001", answer: wrong("q001") };
+    const scored = executeLearning(s, command, morning + 2000);
+    assert.ok(scored.view.kind === "study");
+    assert.equal(scored.view.lastAward?.baseXp, -3);
+    const replayed = executeLearning(scored.state, command, morning + 3000);
+    assert.deepEqual(xpSummary(replayed.state, morning + 3000), xpSummary(scored.state, morning + 3000));
+    const negative = xpSummary(scored.state, morning + 3000);
+    assert.deepEqual([negative.total, negative.today, negative.week], [-6, -6, -6]);
+
+    s = createLearner(morning);
+    for (const q of bankQuestions.slice(0, 18))
+        s = run(s, { kind: "answer_question", requestId: requestId(), questionId: q.questionId, answer: right(q.questionId) }, morning);
+    s = run(s, { kind: "start_lightning", requestId: requestId() }, morning + MINUTE);
+    const lightningId = s.sessions.at(-1)!.id;
+    for (let i = 0; i < 18; i++) {
+        const item = s.sessions.at(-1)!;
+        const questionId = item.activeQuestionId!;
+        const correct = i !== 15;
+        s = answerIn(s, lightningId, questionId, morning + MINUTE + i * 1000, correct ? right(questionId) : wrong(questionId));
+        const fact = s.evidence.filter(e => e.kind === "answer").at(-1)!;
+        assert.equal(answerAwards(s).get(fact.id)?.xp, i < 15 ? 1 : i === 15 ? -3 : 0);
+        s = next(s, lightningId, morning + MINUTE + i * 1000 + 1);
+    }
 });
 
 test("replaying the same answer request adds no XP", () => {
@@ -200,10 +233,10 @@ test("a finished daily lesson keeps its bonus when it reopens for newly due revi
     s = next(answerIn(s, review.id, "q001", reviewAt), review.id, reviewAt);
     assert.equal(s.sessions.at(-1)?.status, "complete");
     const finished = xpSummary(s, reviewAt);
-    assert.equal(finished.total, 3 + 3 + 10 + 10);
+    assert.equal(finished.total, -3 - 3 + 10 + 10);
     s = run(s, { kind: "resume_study", requestId: requestId(), sessionId: review.id }, morning + DAY + 3 * 3600000);
     assert.equal(s.sessions.at(-1)?.status, "active", "q002 is now due and joins the reopened lesson");
-    assert.deepEqual(xpSummary(s, morning + DAY + 3 * 3600000), finished, "XP never decreases");
+    assert.deepEqual(xpSummary(s, morning + DAY + 3 * 3600000), finished, "reopening adds no score event");
 });
 
 test("today follows the learner's timezone, the week runs Monday to Sunday in Vietnam time, and over 500 XP in a day is flagged", () => {
@@ -230,7 +263,7 @@ test("the course view carries the XP summary and what comes back tomorrow", () =
     let s = answer(createLearner(evening), "q001", evening, wrong("q001")).state;
     s = answer(s, "q002", evening).state;
     const course = courseView(s, evening + MINUTE);
-    assert.equal(course.xp.total, 3 + 10);
+    assert.equal(course.xp.total, -3 + 10);
     assert.equal(course.tomorrowDue, 2, "both answers come back tomorrow evening");
     assert.equal(courseView(s, evening + DAY).tomorrowDue, 0, "once due they count as due now, not tomorrow");
     assert.equal(courseView(s, evening + DAY).dueCount, 2);
