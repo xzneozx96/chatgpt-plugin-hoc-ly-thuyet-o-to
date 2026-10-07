@@ -257,7 +257,12 @@ Khóa học bằng B
 ```
 
 - Tiles are never locked. "Học" starts a lesson from that pool. If reviews are due, the intro notes "Còn 6 câu ôn đến hạn", and they stay due.
-- "Câu hỏi dễ nhầm lẫn" opens the family picker. It shows three personalised suggestions with reasons, then a search field that accepts unaccented Vietnamese or a question number. Rows show title, member count and an image marker. They carry no status badge, because every group has been reviewed and approved. One selection and "Học nhóm này".
+- "Câu hỏi dễ nhầm lẫn" opens the family picker. It shows three personalised suggestions with reasons, then a search field that accepts unaccented Vietnamese or a question number.
+  - The suggestions come from the opening list and stay above the field while the learner searches.
+  - Search runs 350 ms after typing stops. Results replace only the count and the list, so the field keeps its focus, caret and IME composition. An answer to an earlier, slower search is dropped.
+  - All matching groups load at once, with no pages. They sit in a list that scrolls inside the card: about seven rows tall, with a peek of the eighth under a fade that disappears at the end. Touch, wheel and keyboard scroll it, and a focused row scrolls wholly into view.
+  - Rows show title, member count and an image marker. They carry no status badge, because every group has been reviewed and approved.
+  - One selection. A chosen suggestion gets "Học nhóm này" right below it. Otherwise "Học nhóm này" sits directly below the list, outside the scroll area, and stays disabled until a row is chosen.
 - Detail views (needs repair, flagged confusion, next review date) are one tap deeper on each tile and follow PRD appendix A1.
 
 ### 4.11 League board

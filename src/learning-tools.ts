@@ -49,7 +49,7 @@ export function createLearningTools(runtime: LearningRuntime | null, persistence
   }, {
     name: "list_units", title: "Find a course category or confusing group",
     description: "Browse the seven bank categories and the eighth custom category, Câu hỏi dễ nhầm lẫn. Search the approved confusing-question groups by title or original question ID. Request a bounded page. Each group names the conditions that tell its questions apart; teach from the bank explanations of its questions.",
-    inputSchema: { query: z.string().max(200).optional(), kind: z.enum(["category", "family"]).optional(), offset: z.number().int().min(0).optional(), limit: z.number().int().min(1).max(30).optional() }, readOnly: true, card: false,
+    inputSchema: { query: z.string().max(200).optional(), kind: z.enum(["category", "family"]).optional(), offset: z.number().int().min(0).optional(), limit: z.number().int().min(1).max(300).optional() }, readOnly: true, card: false,
     async run(raw) {
       const input = z.object(this.inputSchema).parse(raw);
       const query = typeof input.query === "string" ? input.query : "";

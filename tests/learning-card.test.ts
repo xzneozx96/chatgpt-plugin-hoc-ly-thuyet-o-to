@@ -567,6 +567,104 @@ test("tapping a suggested group selects that suggestion and offers Học nhóm n
   });
 });
 
+/** Opens the confusing-question family picker from the home card. */
+async function openFamilies(app: FrameLocator) {
+  await app.getByRole("button", { name: "Chọn chủ đề" }).click();
+  await app.getByRole("button", { name: /^Câu hỏi dễ nhầm lẫn/ }).click();
+  await app.getByRole("button", { name: "Chọn nhóm" }).click();
+  await app.locator(".frow").first().waitFor();
+}
+
+test("typing in the family search keeps the same field focused, with its text and caret, while results arrive", async () => {
+  await withPreview(async ({ origin, page, app, tool }) => {
+    await tool("start_study", { requestId: randomUUID() });
+    await page.goto(`${origin}/preview`);
+    await openFamilies(app);
+    const field = app.locator("#search");
+    await field.click();
+    await field.evaluate((el) => { (window as unknown as { searchField: Element }).searchField = el; });
+    const state = () => field.evaluate((el: HTMLInputElement) => ({ same: (window as unknown as { searchField: Element }).searchField === el, focused: document.activeElement === el, value: el.value, caret: el.selectionStart }));
+    const counted = async (query: string) => ((await tool("list_units", { kind: "family", query, limit: 300 })).structuredContent.totalMatches as number);
+    // Each pause is longer than the 350 ms debounce, so every prefix is searched while the learner keeps typing.
+    for (const [index, key] of [..."tocdo"].entries()) {
+      await page.keyboard.type(key);
+      await page.waitForTimeout(600);
+      assert.deepEqual(await state(), { same: true, focused: true, value: "tocdo".slice(0, index + 1), caret: index + 1 });
+    }
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.type(" ");
+    await app.locator("#fam-count").getByText(`${await counted("toc do")} kết quả`, { exact: true }).waitFor();
+    assert.deepEqual(await state(), { same: true, focused: true, value: "toc do", caret: 4 }, "the caret stays where the learner put it");
+    assert.equal(await app.locator(".frow").count(), await counted("toc do"), "the list shows the new results");
+  });
+});
+
+test("a slow answer to an earlier search never replaces the results for what the learner typed last", async () => {
+  await withPreview(async ({ origin, page, app, tool }) => {
+    await tool("start_study", { requestId: randomUUID() });
+    await page.goto(`${origin}/preview`);
+    await openFamilies(app);
+    const counted = async (query: string) => ((await tool("list_units", { kind: "family", query, limit: 300 })).structuredContent.totalMatches as number);
+    const [slow, last] = [await counted("bien"), await counted("bien bao")];
+    assert.notEqual(slow, last);
+    await app.locator("#search").click();
+    await page.keyboard.type("bien");
+    await page.waitForTimeout(450);
+    await page.keyboard.type(" bao");
+    await app.locator("#fam-count").getByText(`${last} kết quả`, { exact: true }).waitFor();
+    await page.waitForTimeout(1200);
+    assert.equal(await app.locator("#fam-count").innerText(), `${last} kết quả`, "the late answer for “bien” is dropped");
+    assert.equal(await app.locator(".frow").count(), last);
+  }, async (page, origin) => {
+    await page.route(`${origin}/preview/tool`, async (route) => {
+      const body = JSON.parse(route.request().postData() ?? "{}") as { name?: string; arguments?: { query?: string } };
+      if (body.name === "list_units" && body.arguments?.query === "bien") await new Promise((resolve) => setTimeout(resolve, 900));
+      return route.continue();
+    });
+  });
+});
+
+test("the family picker lists every matching group in one list that scrolls inside the card, about seven rows tall, with Học nhóm này right below it", async () => {
+  await withPreview(async ({ origin, page, app, tool }) => {
+    await tool("start_study", { requestId: randomUUID() });
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.goto(`${origin}/preview`);
+    await openFamilies(app);
+    const total = (await tool("list_units", { kind: "family", limit: 300 })).structuredContent.totalMatches as number;
+    assert.ok(total > 7);
+    assert.equal(await app.locator(".frow").count(), total, "every group is loaded at once");
+    assert.equal(await app.getByRole("button", { name: /Trang (trước|tiếp)/ }).count(), 0, "there are no pages");
+    const box = app.locator(".fam-scroll");
+    // Rows wholly inside the box, and whether the box scrolls.
+    const measure = () => box.evaluate((el) => {
+      const b = el.getBoundingClientRect();
+      const inside = [...el.querySelectorAll(".frow")].filter((row) => { const r = row.getBoundingClientRect(); return r.top >= b.top && r.bottom <= b.bottom; });
+      const checked = el.querySelector(".frow:has(input:checked)")?.getBoundingClientRect();
+      return { visible: inside.length, scrolls: el.scrollHeight > el.clientHeight + 50, scrollTop: el.scrollTop, checkedInside: checked ? checked.top >= b.top && checked.bottom <= b.bottom : null };
+    });
+    assert.deepEqual(await measure(), { visible: 7, scrolls: true, scrollTop: 0, checkedInside: null });
+    const cta = app.getByRole("button", { name: "Học nhóm này" });
+    assert.equal(await cta.isDisabled(), true, "Học nhóm này waits for a choice");
+    const gap = await cta.evaluate((button) => { const list = document.querySelector(".fam-scroll")!; return list.contains(button) ? -1 : button.getBoundingClientRect().top - list.getBoundingClientRect().bottom; });
+    assert.ok(gap >= 0 && gap < 32, `Học nhóm này sits right below the list, outside it (${gap}px)`);
+
+    await box.hover();
+    await page.mouse.wheel(0, 500);
+    await page.waitForFunction(() => (document.querySelector<HTMLIFrameElement>("#widget")?.contentDocument?.querySelector(".fam-scroll")?.scrollTop ?? 0) > 0);
+    const scrolled = (await measure()).scrollTop;
+    await app.locator(".frow").nth(9).click();
+    const picked = await measure();
+    assert.equal(picked.scrollTop, scrolled, "choosing a row keeps the list where it was");
+    assert.equal(picked.checkedInside, true);
+    assert.equal(await cta.isEnabled(), true);
+
+    for (let i = 0; i < 12; i++) await page.keyboard.press("ArrowDown");
+    assert.equal((await measure()).checkedInside, true, "the row chosen with the keyboard scrolls into view");
+    assert.equal(await app.locator(".frow:has(input:checked) input").evaluate((input) => input === document.activeElement), true);
+  });
+});
+
 test("a confusing-question group with images carries an image marker in the list", async () => {
   await withPreview(async ({ origin, page, app, tool }) => {
     await tool("start_study", { requestId: randomUUID() });
