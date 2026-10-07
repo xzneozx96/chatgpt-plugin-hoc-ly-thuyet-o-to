@@ -70,7 +70,8 @@ Before posting "Hỏi ChatGPT", the card calls `request_study_help`, so assistan
 | Ask while playing | Typed question or "Hỏi ChatGPT" | Card unchanged | ChatGPT explains, and the learner taps "Tiếp tục" |
 | Confusion | "Tôi còn phân vân" on the feedback sheet, or typed | Flag saved and chip shown on the step | Review within 24 hours. Cleared only on learner confirmation. |
 | Video | "Xem video" (only when a verified segment exists) | External YouTube link | The card stays on the same step |
-| Progress | "Tiến độ của tôi?" or the home card | Home card with three numbers, ring and league | One "Học tiếp" button |
+| Progress | "Tiến độ của tôi?" or the home card | Home card with four numbers, ring and league | One "Học tiếp" button |
+| Today's mistakes | The Sai hôm nay tile, or "Hôm nay mình sai câu nào?" | Read-only list of today's wrong questions | "Về trang chính" |
 | League | League row on the home card | League board | Back to the home card |
 | Thi thử | "Thi thử" or "Tạo đề ngẫu nhiên" | Profile → timer start → 30 questions → submit | Result screen → "Ôn các câu sai" |
 | Resume | "Tiếp tục bài hôm qua" | Same step in a fresh card | Continues the lesson. An expired test shows its result. |
@@ -102,22 +103,54 @@ Câu ôn tập được tính riêng và luôn làm trước.
 ### 4.2 Home card
 
 ```text
-     ╭───╮      Đã gặp      Đã thuộc     Cần ôn hôm nay
-    │ 7/12 │      120         84            6
-     ╰───╯      /600        /600
-   Mục tiêu hôm nay
+     ╭───╮
+    │ 7/12 │   Mục tiêu hôm nay ⓘ
+     ╰───╯   7/12 câu mới
+
+╭ 120 /600      ⓘ ╮  ╭ 84 /600        ⓘ ╮
+│ Đã gặp           │  │ Đã thuộc          │
+╰──────────────────╯  │ +13 đang chờ ôn lại│
+                      ╰───────────────────╯
+▓ 6 câu         ⓘ ▓  ╭ 3 câu          ⓘ ╮
+▓ Cần ôn hôm nay   ▓  │ Sai hôm nay       │
+                      │ Xem lại ›         │
+                      ╰═══════════════════╯
 
 Tuần này: 240 XP · Hạng 4 trong nhóm        (Xem bảng)
 Theo nhịp 12 câu/ngày: xong lượt đầu ngày 25/11
 
 [ Học tiếp ]
 (Chọn chủ đề)   (Thi thử)
+(Chớp nhoáng 60 giây)  (Đổi mục tiêu)
 ```
 
 - The ring has 12 segments, one per new question today. Its centre shows a small check when due reviews are done.
-- The three numbers always appear together, with these labels.
+- The four numbers always appear together, with these labels. They sit two by two on a phone and in one row when the card is at least 560 px wide.
+- Sai hôm nay counts the questions answered wrong today, each once. Its tile is a pressable button with the ⓘ in its corner, outside the button. It opens today's mistakes through `get_today_mistakes`. With no mistakes today, the tile takes the disabled look and reads "Chưa có câu sai hôm nay".
 - The league line appears only for members. Non-members see one invitation line after their first finished lesson: "Tham gia nhóm thi đua tuần".
 - "Học tiếp" starts the review queue when anything is due, otherwise the next new skill.
+
+**Today's mistakes.** This view is read-only, and nothing on it can be answered.
+
+```text
+←  ✕ Câu sai hôm nay                       3 câu
+
+╭ CÂU 301 ─────────────────────────────────────╮
+│ [Original stem]                               │
+│ [Original image]                   (Phóng to) │
+│ ▨✕ Bạn chọn: B · [option text]                │
+│ ▓✓ Đáp án đúng: A · [option text]            ▓│
+│ [Bank explanation]                            │
+╰───────────────────────────────────────────────╯
+…newest first
+
+Các câu này sẽ quay lại trong lượt ôn của bạn.
+[ Về trang chính ]
+```
+
+- Each wrong question appears once, with the learner's latest wrong choice: a "Bạn chọn" row with a striped letter box, an inverted "Đáp án đúng" row, then the bank explanation or "Ngân hàng chưa có giải thích cho câu này."
+- Images zoom as everywhere else. There is no "Hỏi ChatGPT" here, and opening the view records no help or attempt.
+- With no mistakes (ChatGPT can open the view directly), it shows a dashed "Chưa có câu sai hôm nay" panel and "Về trang chính".
 
 ### 4.3 Lesson intro
 
@@ -331,7 +364,7 @@ None of these states uses colour. Each verdict is announced through an `aria-liv
 | --- | --- |
 | Primary action | Exactly one per screen, with task-specific wording ("Kiểm tra", "Tiếp tục", "Bài tiếp theo"). It sits in the sticky bottom area. |
 | Secondary actions | Text buttons in one quiet row, only on the feedback sheet, home card and finish screen. No menus or global navigation during a lesson. |
-| Progress | The top bar shows lesson position. Coverage, Mastered and Due appear only on the home card, finish screen and course map, with the same three labels. |
+| Progress | The top bar shows lesson position. Coverage, Mastered and Due appear only on the home card, finish screen and course map, with the same three labels. Sai hôm nay appears only on the home card. |
 | Theme | Follows the host. Black and white only, with tokens from DESIGN.md. |
 | Motion | Per the DESIGN.md motion table. Reduced motion uses fades. Nothing loops or plays sound. |
 | Focus | New step: focus moves to the question heading. Verdict: focus moves to the verdict heading. Visible 2 px focus ring. |

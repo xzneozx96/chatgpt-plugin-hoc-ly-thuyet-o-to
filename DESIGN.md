@@ -229,9 +229,15 @@ A ring of segments, one per new question in today's goal. Filled segments fade i
 
 ### Progress numbers
 
-The three labels Đã gặp, Đã thuộc and Cần ôn hôm nay always appear together in this order, as mono hero numbers with labels underneath. Overlapping detail counts are never shown as if they add up.
+The three labels Đã gặp, Đã thuộc and Cần ôn hôm nay always appear together in this order, as mono hero numbers with labels underneath. The home card adds a fourth tile, Sai hôm nay, after Cần ôn hôm nay. The four tiles sit two by two, and in one row when the card is at least 560 px wide. Overlapping detail counts are never shown as if they add up.
 
 When the server reports questions with one qualifying answer (`onTheWay`), the Đã thuộc tile adds a small `--mute` line under its label, "+13 đang chờ ôn lại", with the number in mono. The main number never includes them.
+
+The Sai hôm nay tile is the only pressable progress tile. It is an idle tile with its bottom edge, and a `--mute` line "Xem lại ›" under its label. The whole tile is one button, with its ⓘ in the corner outside it. With no mistakes today, it takes the disabled look (`--soft2` fill, `--mute` text, no edge) and the line reads "Chưa có câu sai hôm nay".
+
+### Mistakes review
+
+The read-only view behind Sai hôm nay shows each question in a `--soft` card: the mono question chip, the stem, the image, then two answer rows. The "Bạn chọn" row has a 2 px `--fg` border and a letter box filled with diagonal stripes, carrying an ✕, like a wrong option. The "Đáp án đúng" row is inverted, with a check in its letter box. The bank explanation follows in body text, or a `--mute` line when the bank has none.
 
 ### Info popover
 
@@ -259,7 +265,7 @@ There is no verdict motion, XP or help during the test. The Result screen has a 
 
 - **Do** keep exactly one primary action per screen.
 - **Do** let the card show every verdict instantly, from the server's result. ChatGPT never repeats it.
-- **Do** use the same three progress labels in the card and in ChatGPT.
+- **Do** use the same progress labels in the card and in ChatGPT.
 - **Do** show XP, combos, mastery and league data only when the server provides them.
 - **Do** preserve original question images and their proportions, with zoom.
 - **Do** keep native form semantics (radio inputs, buttons) behind the pressable styling.

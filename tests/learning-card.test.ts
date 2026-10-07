@@ -322,7 +322,7 @@ test("when the lightning countdown reaches zero the card fetches the round once 
   });
 });
 
-test("the home card draws the goal ring and the three numbers from the course view, and the course map starts a category", async () => {
+test("the home card draws the goal ring and the four numbers from the course view, and the course map starts a category", async () => {
   await withPreview(async ({ origin, page, app, tool, messages }) => {
     const started = await tool("start_study", { questionIds: ["q001", "q002", "q003", "q004", "q005"], requestId: randomUUID() });
     const sessionId = started.structuredContent.sessionId as string;
@@ -342,7 +342,7 @@ test("the home card draws the goal ring and the three numbers from the course vi
     assert.equal(await app.locator(".ring .seg.on").count(), course.newToday);
     const tiles = await app.locator(".nums .ntile").allInnerTexts();
     assert.ok(course.onTheWay > 0, "the lesson's first-time right answers wait for their review");
-    assert.deepEqual(tiles.map((t) => t.replace(/\s+/g, " ").trim()), [`${course.covered} /600 Đã gặp`, `${course.learned} /600 Đã thuộc +${course.onTheWay} đang chờ ôn lại`, `${course.dueCount} câu Cần ôn hôm nay`]);
+    assert.deepEqual(tiles.map((t) => t.replace(/\s+/g, " ").trim()), [`${course.covered} /600 Đã gặp`, `${course.learned} /600 Đã thuộc +${course.onTheWay} đang chờ ôn lại`, `${course.dueCount} câu Cần ôn hôm nay`, "1 câu Sai hôm nay Xem lại"], "q002's miss is today's one mistake");
     const weekXp = ((await tool("get_course", {})).structuredContent as { leagueSummary: { weekXp: number } }).leagueSummary.weekXp;
     await app.getByRole("button", { name: `Tham gia nhóm thi đua tuần Tuần này bạn có ${weekXp} XP` }).waitFor();
     assert.equal(await app.locator(".row-btn").count(), 0, "a learner outside the league sees only the invitation");
@@ -781,6 +781,85 @@ test("an ⓘ opens one explanation at a time: the keyboard moves focus in and Es
   });
 });
 
+/** Answers each question in its own one-question lesson, right or wrong as given, in order. */
+async function answerEach(tool: Preview["tool"], answers: [string, "right" | "wrong"][]) {
+  for (const [questionId, how] of answers) {
+    const sessionId = (await tool("start_study", { questionIds: [questionId], requestId: randomUUID() })).structuredContent.sessionId as string;
+    await tool("submit_study_answer", { sessionId, questionId, answer: how === "right" ? right(questionId) : wrong(questionId), requestId: randomUUID() });
+  }
+}
+
+test("the home card's fourth tile counts today's mistakes and opens a read-only review of each one, newest first", async () => {
+  await withPreview(async ({ origin, page, app, tool, messages }) => {
+    // q301 has an image and q010 has no bank explanation.
+    await answerEach(tool, [["q001", "wrong"], ["q002", "right"], ["q301", "wrong"], ["q010", "wrong"]]);
+    const before = (await tool("get_course", {})).structuredContent as { wrongToday: number; results: { totalAttempts: number } };
+    assert.equal(before.wrongToday, 3);
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.goto(`${origin}/preview`);
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    const tiles = app.locator(".nums .ntile");
+    assert.equal(await tiles.count(), 4);
+    assert.equal((await tiles.nth(3).innerText()).replace(/\s+/g, " ").trim(), "3 câu Sai hôm nay Xem lại");
+    const tops = () => tiles.evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
+    const [a, b, c, d] = await tops();
+    assert.ok(a === b && c === d && c! > a!, "two by two on a phone");
+    const open = app.getByRole("button", { name: "Sai hôm nay: 3 câu, xem lại" });
+    assert.equal(await open.locator(".info-btn").count(), 0, "the ⓘ is not inside the tile's button");
+    await app.getByRole("button", { name: "Giải thích: Sai hôm nay", exact: true }).click();
+    const pop = app.getByRole("dialog");
+    await pop.getByRole("heading", { name: "Sai hôm nay" }).waitFor();
+    await pop.getByText("không cần làm lại ngay", { exact: false }).waitFor();
+    await page.keyboard.press("Escape");
+
+    const sent = await messages();
+    await open.click();
+    await app.getByRole("heading", { name: "Câu sai hôm nay" }).waitFor();
+    assert.deepEqual((await sent()).filter((m) => m.method === "tools/call").map((m) => m.name), ["get_today_mistakes"]);
+    await app.locator(".sub-head").getByText("3 câu", { exact: true }).waitFor();
+    const items = app.locator(".mk-item");
+    assert.deepEqual(await items.locator(".qchip").allInnerTexts(), ["CÂU 10", "CÂU 301", "CÂU 1"], "newest first");
+    const option = (q: string, key: string) => (safeQuestion(q).options.find((o) => o.id === key)?.text ?? "");
+    for (const [i, q] of ["q010", "q301", "q001"].entries()) {
+      const item = items.nth(i);
+      await item.getByText(`Bạn chọn: ${wrong(q)} · ${option(q, wrong(q))}`, { exact: true }).waitFor();
+      await item.getByText(`Đáp án đúng: ${right(q)} · ${option(q, right(q))}`, { exact: true }).waitFor();
+    }
+    await items.nth(0).getByText("Ngân hàng chưa có giải thích cho câu này.", { exact: true }).waitFor();
+    assert.equal(await items.nth(1).locator("img.question-image").count(), 1, "the image question shows its image");
+    await items.nth(1).getByRole("button", { name: "Phóng to hình câu hỏi" }).click();
+    await app.locator("#zoom[open]").waitFor();
+    await app.getByRole("button", { name: "Đóng" }).click();
+    assert.equal(await app.locator('#content input, #content [data-action="answer"]').count(), 0, "nothing here can be answered");
+    await app.getByText("Các câu này sẽ quay lại trong lượt ôn của bạn.").waitFor();
+    await app.getByRole("button", { name: "Về trang chính" }).click();
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    const after = (await tool("get_course", {})).structuredContent as { results: { totalAttempts: number } };
+    assert.equal(after.results.totalAttempts, before.results.totalAttempts, "reviewing records nothing");
+
+    await page.setViewportSize({ width: 900, height: 900 });
+    const [w, x, y, z] = await tops();
+    assert.ok(w === x && x === y && y === z, "one row when the card is wide");
+  });
+});
+
+test("with no mistakes today the tile is disabled and says so, and a mistakes card opened by ChatGPT shows an empty state", async () => {
+  await withPreview(async ({ origin, page, app, tool, open }) => {
+    await answerEach(tool, [["q001", "right"]]);
+    await page.goto(`${origin}/preview`);
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    const tile = app.locator(".nums .ntile").nth(3);
+    assert.equal((await tile.innerText()).replace(/\s+/g, " ").trim(), "0 câu Sai hôm nay Chưa có câu sai hôm nay");
+    assert.equal(await tile.getByRole("button", { name: "Sai hôm nay: chưa có câu sai hôm nay" }).isDisabled(), true);
+    await open(await tool("get_today_mistakes", {}));
+    await app.getByRole("heading", { name: "Câu sai hôm nay" }).waitFor();
+    await app.locator(".dashed").getByText("Chưa có câu sai hôm nay").waitFor();
+    assert.equal(await app.locator(".mk-item").count(), 0);
+    await app.getByRole("button", { name: "Về trang chính" }).click();
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+  });
+});
+
 test("a popover fits inside the card at 360 px and narrower, with no sideways scroll", async () => {
   await withPreview(async ({ origin, page, app, tool }) => {
     await learnFirstTime(tool, ["q001", "q002", "q003"]);
@@ -789,7 +868,7 @@ test("a popover fits inside the card at 360 px and narrower, with no sideways sc
       await page.setViewportSize({ width, height: 900 });
       await page.goto(`${origin}/preview`);
       await app.getByRole("button", { name: "Học tiếp" }).waitFor();
-      for (const label of ["Đã gặp", "Cần ôn hôm nay"]) {
+      for (const label of ["Đã gặp", "Cần ôn hôm nay", "Sai hôm nay"]) {
         await app.getByRole("button", { name: `Giải thích: ${label}`, exact: true }).click();
         await app.getByRole("dialog").getByRole("heading", { name: label }).waitFor();
         const fit = await app.locator("main").evaluate((main) => {

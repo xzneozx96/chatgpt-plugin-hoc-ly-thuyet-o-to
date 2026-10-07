@@ -172,19 +172,20 @@ This section fixes the confusion in the v0.11 build.
 
 ## 8. Progress as learners see it
 
-Learners see three numbers, everywhere, with the same words:
+Learners see four numbers on the home card, and the same words wherever a number appears:
 
 | Label | Meaning | Rule |
 | --- | --- | --- |
 | **Đã gặp** (Seen) | Questions answered at least once | First-pass coverage (A2a) |
 | **Đã thuộc** (Mastered) | Questions recalled correctly, unassisted, on two separate days since the last mistake | Learned status (B4) |
 | **Cần ôn hôm nay** (Due today) | Reviews due now | Due queue (B4) |
+| **Sai hôm nay** (Wrong today) | Questions answered wrong today, in the learner's timezone, each counted once however often it was missed | Today's wrong answers (B4). Read-only: they return through their scheduled review |
 
-The home card shows the goal ring, these three numbers out of 600, weekly XP and league rank (if joined), and one primary "Học tiếp" button. A course map shows the seven categories and "Câu hỏi dễ nhầm lẫn" as tiles. Each tile has a Seen / Mastered bar and a lock-free "Bắt đầu". The detailed views (needs repair, flagged confusion, next review date, family detail) are one tap deeper, and they follow appendix A1.
+The home card shows the goal ring, these four numbers (Đã gặp and Đã thuộc out of 600), weekly XP and league rank (if joined), and one primary "Học tiếp" button. Tapping Sai hôm nay opens a read-only list of today's wrong questions with the learner's choice, the correct answer and the bank explanation. Opening it records no attempt and no help, and nothing on it can be answered; the questions come back in their scheduled review. A course map shows the seven categories and "Câu hỏi dễ nhầm lẫn" as tiles. Each tile has a Seen / Mastered bar and a lock-free "Bắt đầu". The detailed views (needs repair, flagged confusion, next review date, family detail) are one tap deeper, and they follow appendix A1.
 
 | ID | Priority | Requirement | Acceptance criteria |
 | --- | --- | --- | --- |
-| PRG-01 | P0 | Three-number model | The home card, finish screen, course map and ChatGPT answers use exactly these three labels and definitions. Overlapping detail counts are never shown as if they add up. |
+| PRG-01 | P0 | Progress labels | The home card and ChatGPT's progress answers use exactly these four labels and definitions. The finish screen and course map use the first three. Overlapping detail counts are never shown as if they add up. |
 | PRG-02 | P0 | Mastery moments | When a question becomes Mastered, the card shows a short "Đã thuộc!" moment on that step and lists it on the finish screen. A later wrong answer quietly moves it back with the copy "Cần ôn lại". |
 | PRG-03 | P0 | Honest forecast | The home card shows the 60-day plan forecast from A2a in one line ("Theo nhịp 12 câu/ngày: xong lượt đầu ngày 25/11"). Missed days re-forecast without blame. |
 

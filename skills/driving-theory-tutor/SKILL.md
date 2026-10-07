@@ -19,11 +19,12 @@ The lesson card is the game. It shows questions, scores answers through the serv
 
 ## Progress words
 
-Use exactly the card's three labels, with numbers only from `get_progress` or `get_course`:
+Use exactly the card's labels, with numbers only from `get_progress` or `get_course`:
 
 - **Đã gặp:** questions answered at least once.
-- **Đã thuộc:** recalled correctly, unassisted, on two separate days since the last mistake.
+- **Đã thuộc:** recalled correctly, unassisted, on two separate days since the last mistake. Questions with one such answer are "đang chờ ôn lại" and are never added to this number.
 - **Cần ôn hôm nay:** reviews due now.
+- **Sai hôm nay:** questions answered wrong today, each counted once. When the learner asks which ones, call `get_today_mistakes`; it is read-only. Those questions come back in their scheduled review, so there is no need to redo them now.
 
 XP, the daily goal ring and league rank come from the server too. Never estimate them, and never claim remembered history, watched videos or exam readiness without tool evidence.
 
