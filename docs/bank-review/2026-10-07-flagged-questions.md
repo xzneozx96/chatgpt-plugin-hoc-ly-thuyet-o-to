@@ -278,3 +278,15 @@ A text comparison of all 600 stems against S1 found two further differences. In 
 
 - A script parsed `git show HEAD:question-bank.json` and the edited file and compared every field. Only the `explanation` of q217, q406, q505, q509 and q521 changed. Every `correctKey`, `text`, `options`, `imagePath` and every other field is unchanged, and the question order is the same.
 - `npm test` passes 118 of 118 tests. `npm run typecheck` and `npm run lint` are clean.
+
+**Applied changes, 2026-10-07.**
+
+- A script compared `question-bank.json` at commit `5f99938` with the edited file, field by field. It also compared the bytes of all 318 images. Only these differ:
+  - q215 `text` and `explanation`;
+  - q217 `text`;
+  - q371 `explanation`;
+  - `images/q319.webp` and `images/q320.webp`.
+
+  Question order, top-level fields and every other image are unchanged. The `question-bank.json` diff is 4 lines.
+- `npm test` passes 130 of 130 tests, the same count as before the changes. No test pins the changed text. `npm run typecheck` and `npm run lint` are clean.
+- In the local widget preview at 390 px wide, `start_study` with `questionIds: ["q319"]` shows the new sign row at 1100 × 483 px, uncropped.
