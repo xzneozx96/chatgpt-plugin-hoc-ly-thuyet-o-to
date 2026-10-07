@@ -97,7 +97,7 @@ All official keys (S1) match our `correctKey` for q217, q319, q320, q370, q371, 
 - **Processing.** The raster was scaled uniformly by 1.788 with Lanczos. It was placed on a white 1100 × 483 canvas, the size of the old image, with the content in the same position as before. Near-white pixels (every channel 240 or above) were set to pure white. The result was saved as lossy WebP at quality 90.
 - **Result.** `images/q319.webp` and `images/q320.webp` are byte-identical again, 33,770 B each (SHA-256 `b57afe82…`). The old files were 33,904 B. Biển 3 now shows a car, a right-turn arrow and a U-turn arrow, which is P.124f.
 - **Known limit.** In the official raster, the left edge of biển 1's red ring is cut off by 1 to 2 px. This was left as it is.
-- **Not changed.** The explanations were not changed. `dist/` is a build output that `scripts/copy-assets.mjs` copies from `images/`, and Vercel serves `images/**` directly, so there is no other copy to update.
+- **Not changed.** The explanations were not changed. `dist/` is a build output that `scripts/copy-assets.mjs` copies from `images/`. On Vercel, `vercel.json` bundles `images/**` into the API function and serves it through the `/images/:file` rewrite. There is no other copy to update.
 
 ## 3. q406: "Biển nào sau đây là biển Đường trơn?"
 
