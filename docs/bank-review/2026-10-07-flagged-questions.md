@@ -39,7 +39,7 @@ The brief named Tổng cục Đường bộ / Cục Đường bộ Việt Nam an
 | 6 | q521 | (a) | Explanation rewritten. |
 | 7 | q217 | (b): stem | Stem corrected after owner approval (2026-10-07). An explanation was added because the official content is now established. |
 | 8 | q586 and family `signs_scenarios_narrow_priority_sign` | (c) | None. |
-| Extra | q215 | (b): stem | Proposal: correct the stem. Found while checking q217. |
+| Extra | q215 | (b): stem | Stem and explanation corrected after owner approval (2026-10-07). Found while checking q217. |
 
 All official keys (S1) match our `correctKey` for q217, q319, q320, q370, q371, q372, q406, q505, q509, q516, q521 and q586.
 
@@ -250,6 +250,10 @@ The 1968 Vienna Convention text on the UNECE site could not be fetched (the serv
    ```
    Qua đường vòng phải quan sát, báo hiệu bằng còi, đèn, giảm tốc tới mức cần thiết và về số thấp TRƯỚC khi vào cua, rồi ôm cua với tốc độ phù hợp bán kính cong. Tăng tốc qua đường vòng là dễ mất lái, văng xe.
    ```
+
+**Applied on 2026-10-07.** The owner approved both changes. Before applying them, S1 p49 was checked again: Câu 215 has two options, both match ours word for word (including the source's "coi" for "còi" in option 1, which was kept), and option 1 is underlined. q215 `text` and `explanation` are now the two strings above. The options and key are unchanged.
+
+Not changed: q215 is still in the families `wet-road-flooding` ("Đường trơn và ngập nước") and `tech-signs-surface-grip` ("Đường trơn và thao tác êm") in `src/content/question-families.json`. Those memberships were based on the old "đường trơn" stem. The owner should review them.
 
 ## Other differences found, not reviewed in depth
 
