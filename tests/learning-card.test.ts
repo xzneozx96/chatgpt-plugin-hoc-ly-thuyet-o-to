@@ -698,7 +698,10 @@ test("a confusing-question group with images carries an image marker in the list
     const marked = async (query: string) => {
       await app.locator("#search").fill(query);
       await app.getByRole("button", { name: "Tìm kiếm" }).click();
-      await app.locator(`.frow input[value="${query}"]`).waitFor({ state: "attached" });
+      // The full list already contains every group, so wait for the search to narrow it, not for the row.
+      const narrowed = async () => await app.locator(".frow").count() === 1 && await app.locator(`.frow input[value="${query}"]`).count() === 1;
+      for (let i = 0; i < 200 && !await narrowed(); i++) await page.waitForTimeout(50);
+      assert.equal(await app.locator(`.frow input[value="${query}"]`).count(), 1, `the search narrows the list to ${query}`);
       return app.locator(".frow").getByText("có hình").count();
     };
     assert.equal(await marked("rules-officer-gestures"), 1, "a group of image questions is marked");
