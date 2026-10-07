@@ -9,6 +9,8 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { getQuestion, questionBankSummary, submitAnswer } from "../src/domain/quiz.js";
 import { startHttpServer } from "../src/server.js";
+import { courseView, createLearner, executeLearning, type LearnerState } from "../src/domain/learning.js";
+import { learningText } from "../src/learning-tools.js";
 
 test("the answer key stays on the server, and scoring is deterministic", () => {
   const first = getQuestion();
@@ -134,11 +136,31 @@ test("study tools tell ChatGPT to show the original bank question verbatim, with
   assert.doesNotMatch(text(answered), /"queue"/);
 });
 
+test("the course text gives ChatGPT the card's four labels, with the questions waiting for Đã thuộc and when they can count", () => {
+  const at = Date.parse("2026-10-05T16:55:00Z"); // 23:55 in Vietnam
+  const one = (state: LearnerState, questionId: string, answer: string, now: number) => {
+    const started = executeLearning(state, { kind: "start_study", requestId: randomUUID(), questionIds: [questionId] }, now);
+    const sessionId = started.state.sessions.at(-1)?.id ?? "";
+    return executeLearning(started.state, { kind: "answer_study", requestId: randomUUID(), sessionId, questionId, answer: answer as "A" }, now).state;
+  };
+  const key = (questionId: string) => submitAnswer(questionId, "A").correctAnswer;
+  let state = one(createLearner(at), "q001", key("q001"), at);
+  state = one(state, "q002", key("q002") === "A" ? "B" : "A", at + 60000);
+  const view = courseView(state, at + 120000);
+  const course = learningText({ ...view, historyAvailable: true, serverNow: at + 120000 }, "http://127.0.0.1");
+  assert.match(course, new RegExp(`^Khóa học bằng B: Đã gặp 2/600 · Đã thuộc 0/600 · Cần ôn hôm nay ${view.dueCount} · Sai hôm nay 1\\.$`, "m"));
+  assert.match(course, /^Đang chờ ôn lại để thuộc: 1 câu đã đúng 1 lần, chưa tính vào Đã thuộc; sớm nhất ôn lại lúc 23:55 ngày 6\/10\.$/m, "the next time comes in the learner's timezone");
+  assert.doesNotMatch(course, /đã nhớ|đã thử/, "the old unlabelled counts are gone");
+  const due = learningText({ ...courseView(state, at + 2 * 86400000), historyAvailable: true, serverNow: at + 2 * 86400000 }, "http://127.0.0.1");
+  assert.match(due, /^Đang chờ ôn lại để thuộc: 1 câu đã đúng 1 lần, chưa tính vào Đã thuộc; có câu đã đến hạn, ôn ngay để thuộc\.$/m);
+});
+
 test("text replies are readable summaries and errors are plain Vietnamese", async () => {
   const text = (result: Awaited<ReturnType<typeof client.callTool>>) => (result.content as { type: string; text: string }[])[0]?.text ?? "";
   const course = text(await client.callTool({ name: "get_course", arguments: {} }));
-  assert.match(course, /^Khóa học bằng B: đã thử \d+\/600 câu/m);
+  assert.match(course, /^Khóa học bằng B: Đã gặp \d+\/600 · Đã thuộc \d+\/600 · Cần ôn hôm nay \d+ · Sai hôm nay \d+\./m);
   assert.match(course, /Câu hỏi dễ nhầm lẫn \(de_nham_lan\)/);
+  assert.doesNotMatch(course, /nháp|draft/i, "confusing-question groups are approved, not drafts");
   assert.ok(course.length < 2000, `course summary stays short (${course.length} chars)`);
   assert.match(text(await client.callTool({ name: "get_question", arguments: { questionId: "q001" } })), /^q001: Phần của đường bộ/m);
   const lesson = await client.callTool({ name: "start_study", arguments: { questionIds: ["q002"], requestId: randomUUID() } });
@@ -169,6 +191,17 @@ test("a running mock is summarised in text and its questions cannot be looked up
   const finished = await client.callTool({ name: "finalise_mock_test", arguments: { attemptId: mock.attemptId, confirmUnanswered: true, requestId: randomUUID() } });
   assert.match(text(finished), /^Kết quả thi thử .*: 0\/30 · Chưa đạt/);
   assert.equal((finished.structuredContent as { remainingMs: number }).remainingMs, 0);
+});
+
+test("the server tells ChatGPT to turn a study-reminder request into a daily scheduled task that reports due reviews", () => {
+  const instructions = client.getInstructions() ?? "";
+  const rule = instructions.split(/(?<=\.)\s/).filter((sentence) => /reminder|scheduled task/i.test(sentence)).join(" ");
+  assert.match(rule, /Hãy tạo lời nhắc hằng ngày lúc/, "the card's reminder message is named");
+  assert.match(rule, /daily ChatGPT scheduled task/);
+  assert.match(rule, /get_course/);
+  assert.match(rule, /Học tiếp/);
+  assert.match(rule, /unavailable on their plan/);
+  assert.match(rule, /Never say a reminder exists/);
 });
 
 test("the card's own calls get short text that keeps ChatGPT silent, a replay ignores the marker, and errors carry a code", async () => {

@@ -49,7 +49,7 @@ export function createLearningTools(runtime: LearningRuntime | null, persistence
   }, {
     name: "list_units", title: "Find a course category or confusing group",
     description: "Browse the seven bank categories and the eighth custom category, Câu hỏi dễ nhầm lẫn. Search the approved confusing-question groups by title or original question ID. Request a bounded page. Each group names the conditions that tell its questions apart; teach from the bank explanations of its questions.",
-    inputSchema: { query: z.string().max(200).optional(), kind: z.enum(["category", "family"]).optional(), offset: z.number().int().min(0).optional(), limit: z.number().int().min(1).max(30).optional() }, readOnly: true, card: false,
+    inputSchema: { query: z.string().max(200).optional(), kind: z.enum(["category", "family"]).optional(), offset: z.number().int().min(0).optional(), limit: z.number().int().min(1).max(300).optional() }, readOnly: true, card: false,
     async run(raw) {
       const input = z.object(this.inputSchema).parse(raw);
       const query = typeof input.query === "string" ? input.query : "";
@@ -128,15 +128,25 @@ function questionBlock(question: ShownQuestion, origin: string) {
   ].join("\n");
 }
 
-function courseText(course: ReturnType<typeof courseView> & { historyAvailable?: boolean }) {
+// The learner's local clock time and date, for "23:55 ngày 6/10".
+function localTime(at: number, timeZone: string) {
+  const format = (options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("vi-VN", { ...options, timeZone }).format(at);
+  return `${format({ hour: "2-digit", minute: "2-digit", hourCycle: "h23" })} ngày ${format({ day: "numeric", month: "numeric" })}`;
+}
+
+// The same labels as the card: Đã gặp, Đã thuộc (never including the questions waiting for their review), Cần ôn hôm nay, Sai hôm nay.
+function courseText(course: ReturnType<typeof courseView> & { historyAvailable?: boolean; serverNow?: number }) {
+  const now = course.serverNow ?? Date.now();
+  const nextLearn = course.nextLearnAt === null ? "ôn lại khi đến hạn để thuộc" : course.nextLearnAt <= now ? "có câu đã đến hạn, ôn ngay để thuộc" : `sớm nhất ôn lại lúc ${localTime(course.nextLearnAt, course.profile.timezone)}`;
   const lines = [
     ...(course.historyAvailable === false ? ["Lịch sử học chưa khả dụng trên kết nối này; không có tiến độ nào được lưu."] : []),
     ...(course.nothingToStudy ? ["Không có buổi học mới: chưa có câu đến hạn ôn và đã đạt mục tiêu câu mới hôm nay. Gợi ý luyện theo chủ đề (start_study với unitId và count) hoặc thi thử."] : []),
-    `Khóa học bằng B: đã thử ${course.covered}/${course.total} câu, đã nhớ ${course.learned}, đến hạn ôn ${course.dueCount}.`,
+    `Khóa học bằng B: Đã gặp ${course.covered}/${course.total} · Đã thuộc ${course.learned}/${course.total} · Cần ôn hôm nay ${course.dueCount} · Sai hôm nay ${course.wrongToday}.`,
+    ...(course.onTheWay > 0 ? [`Đang chờ ôn lại để thuộc: ${course.onTheWay} câu đã đúng 1 lần, chưa tính vào Đã thuộc; ${nextLearn}.`] : []),
     `Mục tiêu ${course.dailyGoal} câu mới mỗi ngày; hôm nay đã học ${course.newToday} câu mới.`,
     `Kết quả: ${course.results.correctAttempts}/${course.results.totalAttempts} lượt đúng (${course.results.accuracyPercent}%).`,
-    ...course.units.map(unit => `- ${unit.title} (${unit.id}): ${unit.covered}/${unit.questionCount} đã thử, ${unit.learned} đã nhớ`),
-    `- ${course.customCategory.title} (${course.customCategory.id}): ${course.customCategory.covered}/${course.customCategory.total} đã thử, ${course.customCategory.familyCount} nhóm nháp`
+    ...course.units.map(unit => `- ${unit.title} (${unit.id}): Đã gặp ${unit.covered}/${unit.questionCount}, Đã thuộc ${unit.learned}`),
+    `- ${course.customCategory.title} (${course.customCategory.id}): Đã gặp ${course.customCategory.covered}/${course.customCategory.total}, Đã thuộc ${course.customCategory.learned}, ${course.customCategory.familyCount} nhóm`
   ];
   const open = course.sessions.filter(session => session.status !== "complete");
   if (open.length) lines.push(`Buổi học đang mở: ${open.map(session => `${session.id} (${session.status})`).join(", ")}.`);
@@ -180,7 +190,7 @@ function pairLines(study: ReturnType<typeof studyView>, pair: NonNullable<Return
   const verdicts = pair.feedback.flatMap(feedback => feedback ? [feedback] : []);
   if (verdicts.length === pair.questions.length) return [
     ...verdicts.flatMap(feedback => [`Kết quả ${feedback.questionId}: ${feedback.correct ? "Đúng" : "Sai"}. Đáp án gốc: ${feedback.correctAnswer}.`, `Giải thích từ ngân hàng: ${feedback.explanation}`]),
-    `Hai câu dễ nhầm thuộc nhóm nháp chưa duyệt "${pair.title}". Khía cạnh so sánh của nhóm: ${pair.axes.join("; ")}.`,
+    `Hai câu dễ nhầm thuộc nhóm "${pair.title}". Khía cạnh so sánh của nhóm: ${pair.axes.join("; ")}.`,
     "Call next_study_question for the next original question. Do not write a question yourself."
   ];
   const answered = new Set(study.queue.filter(item => item.group === pair.group && item.status === "answered").map(item => item.questionId));

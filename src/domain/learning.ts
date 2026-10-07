@@ -670,7 +670,7 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
             familyId: active.group,
             title: family?.title ?? active.group,
             axes: family?.comparisonAxes ?? [],
-            status: familyStatus(family?.status ?? "approved"),
+            status: "approved" as const,
             questions: pairItems.map(i => safeQuestion(i.questionId)),
             feedback: pairItems.map(i => {
                 const e = answerOf(i);
@@ -678,10 +678,6 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
             })
         }
     };
-}
-// Only approved family comparisons may teach (CON-06); the bank analysis has not approved any yet.
-function familyStatus(status: string) {
-    return status === "approved" ? "approved" as const : "draft" as const;
 }
 export function mockView(state: LearnerState, attemptId: string, now: number, resumed = false) {
     const m = findMock(state, attemptId);

@@ -16,29 +16,29 @@ colors:
   dark-soft2: "#1f1f1f"
 typography:
   text:
-    fontFamily: "'Be Vietnam Pro', system-ui, sans-serif"
-    weights: [400, 600, 700, 800]
+    fontFamily: "'Nunito', system-ui, sans-serif"
+    weights: [400, 500, 600, 700]
   mono:
     fontFamily: "'JetBrains Mono', ui-monospace, monospace"
     weights: [700]
   question:
     fontSize: "18px"
-    fontWeight: 700
+    fontWeight: 600
     lineHeight: 1.4
   option:
     fontSize: "15px"
-    fontWeight: 600
+    fontWeight: 500
     lineHeight: 1.35
   headline:
     fontSize: "21-24px"
-    fontWeight: 800
+    fontWeight: 700
   hero-number:
     fontFamily: mono
     fontSize: "26-64px"
     fontWeight: 700
   chip:
     fontSize: "11px"
-    fontWeight: 800
+    fontWeight: 700
     textTransform: uppercase
 rounded:
   card: "22px"
@@ -108,7 +108,7 @@ The owner chose this style on 6 October 2026, over the flat "Monochrome Play" dr
 - Strict black and white in both themes. The theme follows the ChatGPT host, and there is no in-card toggle.
 - Pressable tiles and buttons: a 2 px border plus a solid bottom edge that collapses on press.
 - One primary action per screen.
-- Be Vietnam Pro for words. JetBrains Mono for numbers, timers, answer letters and question numbers.
+- Nunito for words. JetBrains Mono for numbers, timers, answer letters and question numbers.
 - Every verdict is shown through shape, icon, motion and words, never colour.
 
 ## Colors
@@ -135,19 +135,20 @@ Idle tiles use the light `--line` border on purpose. The tile's own text and let
 
 ## Typography
 
-- **Text:** Be Vietnam Pro, weights 400, 600, 700 and 800. Full Vietnamese diacritics.
+- **Text:** Nunito, weights 400, 500, 600 and 700, with full Vietnamese diacritics. The owner chose it on 7 October 2026 to replace Be Vietnam Pro, one weight step lighter: what was 800 is now 700, 700 is 600, and 600 is 500. Body text stays 400.
 - **Numbers:** JetBrains Mono 700 for counts, XP, timers, answer letters and "Câu 145".
-- Both fonts are bundled in `src/ui/assets`. Each mixes latin and vietnamese subsets, so every `@font-face` must declare its `unicode-range`. The widget's resource policy forbids external font hosts.
+- Both fonts are bundled in `src/ui/assets`: `nunito-{latin,vietnamese}-{400,500,600,700}-normal.woff2` with `OFL-Nunito.txt`, and `jetbrains-mono-{latin,vietnamese}-700-normal.woff2` with `OFL-JetBrainsMono.txt`. Each weight is split into a latin and a vietnamese file, so every `@font-face` must declare its `unicode-range`. The widget's resource policy forbids external font hosts.
+- The stylesheet sets text weights through three tokens on `:root`: `--fw-head` (700: headlines, verdicts, titles, buttons, chips, eyebrows), `--fw-strong` (600: question stems, row titles, labels, `<b>`) and `--fw-medium` (500: options and other emphasis-only text). Mono rules keep a literal 700, the only JetBrains Mono weight bundled.
 
 | Role | Size / weight | Use |
 | --- | --- | --- |
-| Question | 18 px / 700, line height 1.4 | Question stem |
-| Option | 15 px / 600 | Answer text |
-| Headline | 21–24 px / 800 | Screen titles, verdict ("Chính xác!" 19 px / 800 in the feedback panel) |
+| Question | 18 px / 600, line height 1.4 | Question stem |
+| Option | 15 px / 500 | Answer text |
+| Headline | 21–24 px / 700 | Screen titles, verdict ("Chính xác!" 19 px / 700 in the feedback panel) |
 | Hero number | 26–64 px mono / 700 | Ring centre, finish counts, test score |
-| Body | 14–15 px / 400–600 | Explanations, coach copy |
-| Chip | 11 px / 800, uppercase | Step chips (ÔN LẠI, MỚI), status tags |
-| Small | 12–13 px / 600–700 | Metadata, secondary text buttons |
+| Body | 14–15 px / 400–500 | Explanations, coach copy |
+| Chip | 11 px / 700, uppercase | Step chips (ÔN LẠI, MỚI, THỬ LẠI, THỬ THÁCH) |
+| Small | 12–13 px / 500–600 | Metadata, secondary text buttons |
 
 ## Layout
 
@@ -218,7 +219,7 @@ Every verdict goes to an `aria-live` region. Options are native radio inputs ins
 
 ### Chips
 
-- Step chip: filled `--fg` pill, 11 px / 800 uppercase (ÔN LẠI, MỚI, THỬ LẠI, THỬ THÁCH).
+- Step chip: filled `--fg` pill, 11 px / 700 uppercase (ÔN LẠI, MỚI, THỬ LẠI, THỬ THÁCH).
 - Question number chip: outlined with a 1.5 px `--line` border, mono ("Câu 145").
 - "Đang phân vân": dashed `--fg` border, pops in.
 
@@ -228,9 +229,15 @@ A ring of segments, one per new question in today's goal. Filled segments fade i
 
 ### Progress numbers
 
-The three labels Đã gặp, Đã thuộc and Cần ôn hôm nay always appear together in this order, as mono hero numbers with labels underneath. Overlapping detail counts are never shown as if they add up.
+The three labels Đã gặp, Đã thuộc and Cần ôn hôm nay always appear together in this order, as mono hero numbers with labels underneath. The home card adds a fourth tile, Sai hôm nay, after Cần ôn hôm nay. The four tiles sit two by two, and in one row when the card is at least 560 px wide. Overlapping detail counts are never shown as if they add up.
 
 When the server reports questions with one qualifying answer (`onTheWay`), the Đã thuộc tile adds a small `--mute` line under its label, "+13 đang chờ ôn lại", with the number in mono. The main number never includes them.
+
+The Sai hôm nay tile is the only pressable progress tile. It is an idle tile with its bottom edge, and a `--mute` line "Xem lại ›" under its label. The whole tile is one button, with its ⓘ in the corner outside it. With no mistakes today, it takes the disabled look (`--soft2` fill, `--mute` text, no edge) and the line reads "Chưa có câu sai hôm nay".
+
+### Mistakes review
+
+The read-only view behind Sai hôm nay shows each question in a `--soft` card: the mono question chip, the stem, the image, then two answer rows. The "Bạn chọn" row has a 2 px `--fg` border and a letter box filled with diagonal stripes, carrying an ✕, like a wrong option. The "Đáp án đúng" row is inverted, with a check in its letter box. The bank explanation follows in body text, or a `--mute` line when the bank has none.
 
 ### Info popover
 
@@ -241,6 +248,10 @@ A learner who wonders why a number or rule is what it is taps the ⓘ beside it.
 - It opens below its button, above when only that fits, and otherwise below with the card grown to hold it. It never leaves the card. It is at most 320 px wide and spans the card on narrow screens.
 - It opens with `rise` and closes on a second tap, Esc, a tap outside or a new screen. A keyboard open moves focus to its title; Esc and Tab return focus to the button.
 - The copy is short Vietnamese that matches the server's rules. Live values, such as the next review time, come from the server's view.
+
+### Daily reminder
+
+A quiet `--mute` text row with a bell icon, "Nhắc tôi học mỗi ngày", and an ⓘ sits below the secondary actions on the home card and the finish screen. It opens an inline panel with a 2 px `--line` border: three time chips in mono (07:00, 12:00, 20:00), pressable like small tiles and inverted when chosen, and a fourth, dashed field for a custom HH:MM that turns solid when used. A secondary pressable button, "Nhờ ChatGPT nhắc tôi", sends the request. It is never a primary action.
 
 ### Mock test
 
@@ -258,7 +269,7 @@ There is no verdict motion, XP or help during the test. The Result screen has a 
 
 - **Do** keep exactly one primary action per screen.
 - **Do** let the card show every verdict instantly, from the server's result. ChatGPT never repeats it.
-- **Do** use the same three progress labels in the card and in ChatGPT.
+- **Do** use the same progress labels in the card and in ChatGPT.
 - **Do** show XP, combos, mastery and league data only when the server provides them.
 - **Do** preserve original question images and their proportions, with zoom.
 - **Do** keep native form semantics (radio inputs, buttons) behind the pressable styling.

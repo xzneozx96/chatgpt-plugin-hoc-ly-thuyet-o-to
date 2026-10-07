@@ -162,6 +162,7 @@ This section fixes the confusion in the v0.11 build.
 | Learner types an answer ("B") while a card is live | Unchanged | Does not submit or judge it. Replies in one line asking them to tap their choice on the card. Typed answering stays available in text-only use (TUT-05). |
 | A question is wrong again on its repair step, or 3 answers are wrong in one lesson | Shows "ChatGPT có thể giải thích kỹ hơn" with a button | Coaches only if the learner taps it |
 | Lesson finished | Shows the finish screen, then posts one message with the lesson summary | Writes a 2–3 sentence coach note: one strength, one thing to watch, and tomorrow's review. No new verdicts. |
+| Learner taps "Nhờ ChatGPT nhắc tôi" | Posts one message asking for a daily reminder at the chosen time. Saves nothing. | Creates a daily ChatGPT scheduled task that opens the course, calls `get_course` and reports the due reviews. Says so plainly if scheduled tasks are unavailable on the learner's plan, and never claims a reminder exists without the task. |
 | Text-only use (card fails) | — | Falls back to the v0.11 conversational flow (TUT-05) |
 
 | ID | Priority | Requirement | Acceptance criteria |
@@ -172,19 +173,20 @@ This section fixes the confusion in the v0.11 build.
 
 ## 8. Progress as learners see it
 
-Learners see three numbers, everywhere, with the same words:
+Learners see four numbers on the home card, and the same words wherever a number appears:
 
 | Label | Meaning | Rule |
 | --- | --- | --- |
 | **Đã gặp** (Seen) | Questions answered at least once | First-pass coverage (A2a) |
 | **Đã thuộc** (Mastered) | Questions recalled correctly, unassisted, on two separate days since the last mistake | Learned status (B4) |
 | **Cần ôn hôm nay** (Due today) | Reviews due now | Due queue (B4) |
+| **Sai hôm nay** (Wrong today) | Questions answered wrong today, in the learner's timezone, each counted once however often it was missed | The latest wrong answer per question today, listed read-only by `get_today_mistakes`. The questions return through their scheduled review (B4) |
 
-The home card shows the goal ring, these three numbers out of 600, weekly XP and league rank (if joined), and one primary "Học tiếp" button. A course map shows the seven categories and "Câu hỏi dễ nhầm lẫn" as tiles. Each tile has a Seen / Mastered bar and a lock-free "Bắt đầu". The detailed views (needs repair, flagged confusion, next review date, family detail) are one tap deeper, and they follow appendix A1.
+The home card shows the goal ring, these four numbers (Đã gặp and Đã thuộc out of 600), weekly XP and league rank (if joined), and one primary "Học tiếp" button. Tapping Sai hôm nay opens a read-only list of today's wrong questions with the learner's choice, the correct answer and the bank explanation. Opening it records no attempt and no help, and nothing on it can be answered; the questions come back in their scheduled review. A course map shows the seven categories and "Câu hỏi dễ nhầm lẫn" as tiles. Each tile has a Seen / Mastered bar and a lock-free "Bắt đầu". The detailed views (needs repair, flagged confusion, next review date, family detail) are one tap deeper, and they follow appendix A1.
 
 | ID | Priority | Requirement | Acceptance criteria |
 | --- | --- | --- | --- |
-| PRG-01 | P0 | Three-number model | The home card, finish screen, course map and ChatGPT answers use exactly these three labels and definitions. Overlapping detail counts are never shown as if they add up. |
+| PRG-01 | P0 | Progress labels | The home card and ChatGPT's progress answers use exactly these four labels and definitions. The finish screen and course map use the first three. Overlapping detail counts are never shown as if they add up. |
 | PRG-02 | P0 | Mastery moments | When a question becomes Mastered, the card shows a short "Đã thuộc!" moment on that step and lists it on the finish screen. A later wrong answer quietly moves it back with the copy "Cần ôn lại". |
 | PRG-03 | P0 | Honest forecast | The home card shows the 60-day plan forecast from A2a in one line ("Theo nhịp 12 câu/ngày: xong lượt đầu ngày 25/11"). Missed days re-forecast without blame. |
 
@@ -205,7 +207,7 @@ This section supersedes direction B (navy and blue). The owner chose the origina
 - Tiles and buttons are pressable. Each has a 2 px border plus a solid bottom edge that collapses 3 px on press.
 - Correct inverts the option and pops a check. Wrong strikes the chosen option with diagonal stripes and an ✕, shakes it, and inverts the correct option with "Đáp án đúng". Feedback never relies on colour.
 - Every state indicator has at least 3:1 contrast. Idle tiles may use the light `--line` border because their text identifies them.
-- Typography: Be Vietnam Pro for text and JetBrains Mono for numbers, both bundled with the widget. Question 18 px / 700, options 15 px / 600, headlines 21–24 px / 800.
+- Typography: Nunito for text and JetBrains Mono for numbers, both bundled with the widget. Question 18 px / 600, options 15 px / 500, headlines, buttons and chips 700, body 400. Numbers stay mono 700.
 - Shapes: card 22 px radius, tiles and buttons 16 px, chips are pills. Minimum tap target is 44 px, and primary buttons are 52–54 px high.
 - Motion: pop, rise, shake, bounce, sparks, XP float, count-up and stamp, per `DESIGN.md`. All motion respects `prefers-reduced-motion`.
 - No emoji, mascots or decorative illustrations in the chrome.

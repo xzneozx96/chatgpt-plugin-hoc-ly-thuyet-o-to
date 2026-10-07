@@ -43,15 +43,18 @@ The card never posts an answer as a chat message and never waits for ChatGPT to 
 
 ChatGPT can then answer a typed question about the current step without asking for the question number. Updating context produces no chat message.
 
-**Messages the card posts.** The card posts a chat message in only three cases. Each message is short, human-readable Vietnamese with a machine-readable tail:
+**Messages the card posts.** The card posts a chat message in only four cases. Each message is short, human-readable Vietnamese with a machine-readable tail:
 
 | Trigger | Message shown in chat |
 | --- | --- |
 | "Hỏi ChatGPT" on the feedback sheet | `Giải thích giúp mình câu 145: mình chọn B, đáp án là A. [q145 · chọn B · sai]` |
 | "ChatGPT giải thích kỹ hơn" after a repeated mistake | `Mình vẫn nhầm câu 145, giải thích kỹ hơn nhé. [q145 · lần 2 · sai]` |
 | Lesson finished | `Xong bài: 8/10 đúng, +95 XP, 2 câu mới thuộc. [session s_… · tổng kết]` |
+| "Nhờ ChatGPT nhắc tôi" in the reminder chooser | `Hãy tạo lời nhắc hằng ngày lúc 20:00 để mình học lý thuyết lái xe. [nhắc học · 20:00 hằng ngày]` |
 
 Before posting "Hỏi ChatGPT", the card calls `request_study_help`, so assistance is recorded before any explanation (TUT-04).
+
+The reminder request calls no tool and saves nothing. An MCP app cannot send notifications, so ChatGPT creates a daily scheduled task that the learner confirms in the chat. The task opens the course, reads `get_course` and reports the due reviews. If the host cannot post messages, the card shows its usual "Host này không gửi được yêu cầu vào ChatGPT" notice instead.
 
 **Typed input while a card is live.** If the learner types a letter or an option, ChatGPT replies in one line asking them to tap it on the card. It does not submit or judge. The card does not change.
 
@@ -70,7 +73,8 @@ Before posting "Hỏi ChatGPT", the card calls `request_study_help`, so assistan
 | Ask while playing | Typed question or "Hỏi ChatGPT" | Card unchanged | ChatGPT explains, and the learner taps "Tiếp tục" |
 | Confusion | "Tôi còn phân vân" on the feedback sheet, or typed | Flag saved and chip shown on the step | Review within 24 hours. Cleared only on learner confirmation. |
 | Video | "Xem video" (only when a verified segment exists) | External YouTube link | The card stays on the same step |
-| Progress | "Tiến độ của tôi?" or the home card | Home card with three numbers, ring and league | One "Học tiếp" button |
+| Progress | "Tiến độ của tôi?" or the home card | Home card with four numbers, ring and league | One "Học tiếp" button |
+| Today's mistakes | The Sai hôm nay tile, or "Hôm nay mình sai câu nào?" | Read-only list of today's wrong questions | "Về trang chính" |
 | League | League row on the home card | League board | Back to the home card |
 | Thi thử | "Thi thử" or "Tạo đề ngẫu nhiên" | Profile → timer start → 30 questions → submit | Result screen → "Ôn các câu sai" |
 | Resume | "Tiếp tục bài hôm qua" | Same step in a fresh card | Continues the lesson. An expired test shows its result. |
@@ -102,22 +106,65 @@ Câu ôn tập được tính riêng và luôn làm trước.
 ### 4.2 Home card
 
 ```text
-     ╭───╮      Đã gặp      Đã thuộc     Cần ôn hôm nay
-    │ 7/12 │      120         84            6
-     ╰───╯      /600        /600
-   Mục tiêu hôm nay
+     ╭───╮
+    │ 7/12 │   Mục tiêu hôm nay ⓘ
+     ╰───╯   7/12 câu mới
+
+╭ 120 /600      ⓘ ╮  ╭ 84 /600        ⓘ ╮
+│ Đã gặp           │  │ Đã thuộc          │
+╰──────────────────╯  │ +13 đang chờ ôn lại│
+                      ╰───────────────────╯
+▓ 6 câu         ⓘ ▓  ╭ 3 câu          ⓘ ╮
+▓ Cần ôn hôm nay   ▓  │ Sai hôm nay       │
+                      │ Xem lại ›         │
+                      ╰═══════════════════╯
 
 Tuần này: 240 XP · Hạng 4 trong nhóm        (Xem bảng)
 Theo nhịp 12 câu/ngày: xong lượt đầu ngày 25/11
 
 [ Học tiếp ]
 (Chọn chủ đề)   (Thi thử)
+(Chớp nhoáng 60 giây)  (Đổi mục tiêu)
+      (Nhắc tôi học mỗi ngày) ⓘ
 ```
 
 - The ring has 12 segments, one per new question today. Its centre shows a small check when due reviews are done.
-- The three numbers always appear together, with these labels.
+- The four numbers always appear together, with these labels. They sit two by two on a phone and in one row when the card is at least 560 px wide.
+- Sai hôm nay counts the questions answered wrong today, each once. Its tile is a pressable button with the ⓘ in its corner, outside the button. It opens today's mistakes through `get_today_mistakes`. With no mistakes today, the tile takes the disabled look and reads "Chưa có câu sai hôm nay".
 - The league line appears only for members. Non-members see one invitation line after their first finished lesson: "Tham gia nhóm thi đua tuần".
 - "Học tiếp" starts the review queue when anything is due, otherwise the next new skill.
+- "Nhắc tôi học mỗi ngày" is a quiet row with an ⓘ, below the secondary actions here and on the finish screen. It opens an inline chooser:
+
+  ```text
+  GIỜ NHẮC MỖI NGÀY
+  [07:00] [12:00] [▓20:00▓] [HH:MM]
+  [ Nhờ ChatGPT nhắc tôi ]
+  ```
+
+  - 20:00 is chosen to start with. Typing a time in the last field (21:30, 2130 or 21h30) replaces the chip's choice. An impossible time shows "Nhập giờ dạng HH:MM, ví dụ 21:30." and sends nothing.
+  - The button posts the one reminder message from section 2. The chooser then closes to "Đã gửi yêu cầu. Xác nhận trong khung chat nhé." If the host refuses the message, the chooser stays open with "Chưa gửi được vào khung chat. Thử lại nhé."
+
+**Today's mistakes.** This view is read-only, and nothing on it can be answered.
+
+```text
+←  ✕ Câu sai hôm nay                       3 câu
+
+╭ CÂU 301 ─────────────────────────────────────╮
+│ [Original stem]                               │
+│ [Original image]                   (Phóng to) │
+│ ▨✕ Bạn chọn: B · [option text]                │
+│ ▓✓ Đáp án đúng: A · [option text]            ▓│
+│ [Bank explanation]                            │
+╰───────────────────────────────────────────────╯
+…newest first
+
+Các câu này sẽ quay lại trong lượt ôn của bạn.
+[ Về trang chính ]
+```
+
+- Each wrong question appears once, with the learner's latest wrong choice: a "Bạn chọn" row with a striped letter box, an inverted "Đáp án đúng" row, then the bank explanation or "Ngân hàng chưa có giải thích cho câu này."
+- Images zoom as everywhere else. There is no "Hỏi ChatGPT" here, and opening the view records no help or attempt.
+- With no mistakes (ChatGPT can open the view directly), it shows a dashed "Chưa có câu sai hôm nay" panel and "Về trang chính".
 
 ### 4.3 Lesson intro
 
@@ -237,7 +284,8 @@ Hoàn thành bài học!
 Ngày mai ôn lại: 3 câu
 
 [ Bài tiếp theo ]
-(Xong hôm nay)
+(Chớp nhoáng 60 giây)  (Xong hôm nay)
+      (Nhắc tôi học mỗi ngày) ⓘ
 ```
 
 - When the ring closes, it plays its one-time celebration and the primary button changes to "Học thêm" with a tertiary "Xong hôm nay".
@@ -257,7 +305,12 @@ Khóa học bằng B
 ```
 
 - Tiles are never locked. "Học" starts a lesson from that pool. If reviews are due, the intro notes "Còn 6 câu ôn đến hạn", and they stay due.
-- "Câu hỏi dễ nhầm lẫn" opens the family picker. It shows three personalised suggestions with reasons, then a search field that accepts unaccented Vietnamese or a question number. Rows show title, member count, an image marker and draft/approved status. One selection and "Học nhóm này".
+- "Câu hỏi dễ nhầm lẫn" opens the family picker. It shows three personalised suggestions with reasons, then a search field that accepts unaccented Vietnamese or a question number.
+  - The suggestions come from the opening list and stay above the field while the learner searches.
+  - Search runs 350 ms after typing stops. Results replace only the count and the list, so the field keeps its focus, caret and IME composition. An answer to an earlier, slower search is dropped.
+  - All matching groups load at once, with no pages. They sit in a list that scrolls inside the card: about seven rows tall, with a peek of the eighth under a fade that disappears at the end. Touch, wheel and keyboard scroll it, and a focused row scrolls wholly into view.
+  - Rows show title, member count and an image marker. They carry no status badge, because every group has been reviewed and approved.
+  - One selection. A chosen suggestion gets "Học nhóm này" right below it. Otherwise "Học nhóm này" sits directly below the list, outside the scroll area, and stays disabled until a row is chosen.
 - Detail views (needs repair, flagged confusion, next review date) are one tap deeper on each tile and follow PRD appendix A1.
 
 ### 4.11 League board
@@ -326,7 +379,7 @@ None of these states uses colour. Each verdict is announced through an `aria-liv
 | --- | --- |
 | Primary action | Exactly one per screen, with task-specific wording ("Kiểm tra", "Tiếp tục", "Bài tiếp theo"). It sits in the sticky bottom area. |
 | Secondary actions | Text buttons in one quiet row, only on the feedback sheet, home card and finish screen. No menus or global navigation during a lesson. |
-| Progress | The top bar shows lesson position. Coverage, Mastered and Due appear only on the home card, finish screen and course map, with the same three labels. |
+| Progress | The top bar shows lesson position. Coverage, Mastered and Due appear only on the home card, finish screen and course map, with the same three labels. Sai hôm nay appears only on the home card. |
 | Theme | Follows the host. Black and white only, with tokens from DESIGN.md. |
 | Motion | Per the DESIGN.md motion table. Reduced motion uses fades. Nothing loops or plays sound. |
 | Focus | New step: focus moves to the question heading. Verdict: focus moves to the verdict heading. Visible 2 px focus ring. |
@@ -346,7 +399,6 @@ None of these states uses colour. Each verdict is announced through an `aria-liv
 | Missing approved explanation | "Chưa có giải thích được duyệt cho câu này" with "Hỏi ChatGPT" | Bank verdict and saved review |
 | Teaching MCP unavailable | Retained approved text with an optional retry | Lesson continues without invented sources |
 | No or removed video | The "Video" button is hidden. If a link fails: "Video không còn khả dụng". | Active step |
-| Draft family | Picker row marked "Bản nháp". Questions are playable, with no approved comparison line. | Original content |
 | Stale card | "Bài học đang tiếp tục ở thẻ mới nhất" | Historic answers |
 | Library not supplied | "Chưa có bộ đề gốc" with "Tạo đề ngẫu nhiên" | No substituted test |
 | Test expired while away | The result screen on return | Original deadline and final choices, finalised once |

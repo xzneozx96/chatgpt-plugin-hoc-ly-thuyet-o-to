@@ -240,6 +240,10 @@ test("a compare-the-pair step submits both answers, shows both verdicts and the 
     await app.locator(".vchip").getByText("Chính xác!").waitFor();
     await app.locator(".vchip").getByText("Chưa đúng").waitFor();
     assert.equal(await app.locator(".diff .axes li").count() > 0, true, "the family's aspects are named");
+    assert.doesNotMatch(await app.locator(".diff").innerText(), /NHÁP|duyệt/i, "the difference panel says nothing about drafts");
+    const pairText = ((await tool("get_study_session", { sessionId })) as unknown as { content: { text: string }[] }).content[0]?.text ?? "";
+    assert.match(pairText, /Khía cạnh so sánh/);
+    assert.doesNotMatch(pairText, /nháp|draft/i, "ChatGPT is not told the family is a draft");
     const calls = () => sent().then((log) => log.filter((m) => m.method === "tools/call" && m.name !== "get_study_session").map((m) => [m.name, m.arguments?.questionId ?? null]));
     assert.deepEqual(await calls(), [["submit_study_answer", a], ["submit_study_answer", b]], "two answers, no next yet");
     await app.locator(".diff").getByRole("button", { name: "Tiếp tục" }).click();
@@ -318,7 +322,7 @@ test("when the lightning countdown reaches zero the card fetches the round once 
   });
 });
 
-test("the home card draws the goal ring and the three numbers from the course view, and the course map starts a category", async () => {
+test("the home card draws the goal ring and the four numbers from the course view, and the course map starts a category", async () => {
   await withPreview(async ({ origin, page, app, tool, messages }) => {
     const started = await tool("start_study", { questionIds: ["q001", "q002", "q003", "q004", "q005"], requestId: randomUUID() });
     const sessionId = started.structuredContent.sessionId as string;
@@ -338,7 +342,7 @@ test("the home card draws the goal ring and the three numbers from the course vi
     assert.equal(await app.locator(".ring .seg.on").count(), course.newToday);
     const tiles = await app.locator(".nums .ntile").allInnerTexts();
     assert.ok(course.onTheWay > 0, "the lesson's first-time right answers wait for their review");
-    assert.deepEqual(tiles.map((t) => t.replace(/\s+/g, " ").trim()), [`${course.covered} /600 Đã gặp`, `${course.learned} /600 Đã thuộc +${course.onTheWay} đang chờ ôn lại`, `${course.dueCount} câu Cần ôn hôm nay`]);
+    assert.deepEqual(tiles.map((t) => t.replace(/\s+/g, " ").trim()), [`${course.covered} /600 Đã gặp`, `${course.learned} /600 Đã thuộc +${course.onTheWay} đang chờ ôn lại`, `${course.dueCount} câu Cần ôn hôm nay`, "1 câu Sai hôm nay Xem lại"], "q002's miss is today's one mistake");
     const weekXp = ((await tool("get_course", {})).structuredContent as { leagueSummary: { weekXp: number } }).leagueSummary.weekXp;
     await app.getByRole("button", { name: `Tham gia nhóm thi đua tuần Tuần này bạn có ${weekXp} XP` }).waitFor();
     assert.equal(await app.locator(".row-btn").count(), 0, "a learner outside the league sees only the invitation");
@@ -563,6 +567,127 @@ test("tapping a suggested group selects that suggestion and offers Học nhóm n
   });
 });
 
+/** Opens the confusing-question family picker from the home card. */
+async function openFamilies(app: FrameLocator) {
+  await app.getByRole("button", { name: "Chọn chủ đề" }).click();
+  await app.getByRole("button", { name: /^Câu hỏi dễ nhầm lẫn/ }).click();
+  await app.getByRole("button", { name: "Chọn nhóm" }).click();
+  await app.locator(".frow").first().waitFor();
+}
+
+test("typing in the family search keeps the same field focused, with its text and caret, while results arrive", async () => {
+  await withPreview(async ({ origin, page, app, tool }) => {
+    await tool("start_study", { requestId: randomUUID() });
+    await page.goto(`${origin}/preview`);
+    await openFamilies(app);
+    const field = app.locator("#search");
+    await field.click();
+    await field.evaluate((el) => { (window as unknown as { searchField: Element }).searchField = el; });
+    const state = () => field.evaluate((el: HTMLInputElement) => ({ same: (window as unknown as { searchField: Element }).searchField === el, focused: document.activeElement === el, value: el.value, caret: el.selectionStart }));
+    const counted = async (query: string) => ((await tool("list_units", { kind: "family", query, limit: 300 })).structuredContent.totalMatches as number);
+    // Each pause is longer than the 350 ms debounce, so every prefix is searched while the learner keeps typing.
+    for (const [index, key] of [..."tocdo"].entries()) {
+      await page.keyboard.type(key);
+      await page.waitForTimeout(600);
+      assert.deepEqual(await state(), { same: true, focused: true, value: "tocdo".slice(0, index + 1), caret: index + 1 });
+    }
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.type(" ");
+    await app.locator("#fam-count").getByText(`${await counted("toc do")} kết quả`, { exact: true }).waitFor();
+    assert.deepEqual(await state(), { same: true, focused: true, value: "toc do", caret: 4 }, "the caret stays where the learner put it");
+    assert.equal(await app.locator(".frow").count(), await counted("toc do"), "the list shows the new results");
+  });
+});
+
+test("a slow answer to an earlier search never replaces the results for what the learner typed last", async () => {
+  await withPreview(async ({ origin, page, app, tool }) => {
+    await tool("start_study", { requestId: randomUUID() });
+    await page.goto(`${origin}/preview`);
+    await openFamilies(app);
+    const counted = async (query: string) => ((await tool("list_units", { kind: "family", query, limit: 300 })).structuredContent.totalMatches as number);
+    const [slow, last] = [await counted("bien"), await counted("bien bao")];
+    assert.notEqual(slow, last);
+    await app.locator("#search").click();
+    await page.keyboard.type("bien");
+    await page.waitForTimeout(450);
+    await page.keyboard.type(" bao");
+    await app.locator("#fam-count").getByText(`${last} kết quả`, { exact: true }).waitFor();
+    await page.waitForTimeout(1200);
+    assert.equal(await app.locator("#fam-count").innerText(), `${last} kết quả`, "the late answer for “bien” is dropped");
+    assert.equal(await app.locator(".frow").count(), last);
+  }, async (page, origin) => {
+    await page.route(`${origin}/preview/tool`, async (route) => {
+      const body = JSON.parse(route.request().postData() ?? "{}") as { name?: string; arguments?: { query?: string } };
+      if (body.name === "list_units" && body.arguments?.query === "bien") await new Promise((resolve) => setTimeout(resolve, 900));
+      return route.continue();
+    });
+  });
+});
+
+test("a family search that failed runs again when the learner retypes the same text", async () => {
+  let failed = false;
+  await withPreview(async ({ origin, page, app, tool }) => {
+    await tool("start_study", { requestId: randomUUID() });
+    await page.goto(`${origin}/preview`);
+    await openFamilies(app);
+    const matches = (await tool("list_units", { kind: "family", query: "bien", limit: 300 })).structuredContent.totalMatches as number;
+    await app.locator("#search").click();
+    await page.keyboard.type("bien");
+    await app.locator("#status.error").waitFor();
+    assert.equal(failed, true);
+    await page.keyboard.press("Backspace");
+    await page.keyboard.type("n");
+    await app.locator("#fam-count").getByText(`${matches} kết quả`, { exact: true }).waitFor({ timeout: 5000 });
+  }, async (page, origin) => {
+    await page.route(`${origin}/preview/tool`, async (route) => {
+      const body = JSON.parse(route.request().postData() ?? "{}") as { name?: string; arguments?: { query?: string } };
+      if (body.name === "list_units" && body.arguments?.query === "bien" && !failed) { failed = true; return route.fulfill({ status: 502, body: "" }); }
+      return route.continue();
+    });
+  });
+});
+
+test("the family picker lists every matching group in one list that scrolls inside the card, about seven rows tall, with Học nhóm này right below it", async () => {
+  await withPreview(async ({ origin, page, app, tool }) => {
+    await tool("start_study", { requestId: randomUUID() });
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.goto(`${origin}/preview`);
+    await openFamilies(app);
+    const total = (await tool("list_units", { kind: "family", limit: 300 })).structuredContent.totalMatches as number;
+    assert.ok(total > 7);
+    assert.equal(await app.locator(".frow").count(), total, "every group is loaded at once");
+    assert.equal(await app.getByRole("button", { name: /Trang (trước|tiếp)/ }).count(), 0, "there are no pages");
+    const box = app.locator(".fam-scroll");
+    // Rows wholly inside the box, and whether the box scrolls.
+    const measure = () => box.evaluate((el) => {
+      const b = el.getBoundingClientRect();
+      const inside = [...el.querySelectorAll(".frow")].filter((row) => { const r = row.getBoundingClientRect(); return r.top >= b.top && r.bottom <= b.bottom; });
+      const checked = el.querySelector(".frow:has(input:checked)")?.getBoundingClientRect();
+      return { visible: inside.length, scrolls: el.scrollHeight > el.clientHeight + 50, scrollTop: el.scrollTop, checkedInside: checked ? checked.top >= b.top && checked.bottom <= b.bottom : null };
+    });
+    assert.deepEqual(await measure(), { visible: 7, scrolls: true, scrollTop: 0, checkedInside: null });
+    const cta = app.getByRole("button", { name: "Học nhóm này" });
+    assert.equal(await cta.isDisabled(), true, "Học nhóm này waits for a choice");
+    const gap = await cta.evaluate((button) => { const list = document.querySelector(".fam-scroll")!; return list.contains(button) ? -1 : button.getBoundingClientRect().top - list.getBoundingClientRect().bottom; });
+    assert.ok(gap >= 0 && gap < 32, `Học nhóm này sits right below the list, outside it (${gap}px)`);
+
+    await box.hover();
+    await page.mouse.wheel(0, 500);
+    await page.waitForFunction(() => (document.querySelector<HTMLIFrameElement>("#widget")?.contentDocument?.querySelector(".fam-scroll")?.scrollTop ?? 0) > 0);
+    const scrolled = (await measure()).scrollTop;
+    await app.locator(".frow").nth(9).click();
+    const picked = await measure();
+    assert.equal(picked.scrollTop, scrolled, "choosing a row keeps the list where it was");
+    assert.equal(picked.checkedInside, true);
+    assert.equal(await cta.isEnabled(), true);
+
+    for (let i = 0; i < 12; i++) await page.keyboard.press("ArrowDown");
+    assert.equal((await measure()).checkedInside, true, "the row chosen with the keyboard scrolls into view");
+    assert.equal(await app.locator(".frow:has(input:checked) input").evaluate((input) => input === document.activeElement), true);
+  });
+});
+
 test("a confusing-question group with images carries an image marker in the list", async () => {
   await withPreview(async ({ origin, page, app, tool }) => {
     await tool("start_study", { requestId: randomUUID() });
@@ -573,11 +698,16 @@ test("a confusing-question group with images carries an image marker in the list
     const marked = async (query: string) => {
       await app.locator("#search").fill(query);
       await app.getByRole("button", { name: "Tìm kiếm" }).click();
-      await app.locator(`.frow input[value="${query}"]`).waitFor({ state: "attached" });
+      // The full list already contains every group, so wait for the search to narrow it, not for the row.
+      const narrowed = async () => await app.locator(".frow").count() === 1 && await app.locator(`.frow input[value="${query}"]`).count() === 1;
+      for (let i = 0; i < 200 && !await narrowed(); i++) await page.waitForTimeout(50);
+      assert.equal(await app.locator(`.frow input[value="${query}"]`).count(), 1, `the search narrows the list to ${query}`);
       return app.locator(".frow").getByText("có hình").count();
     };
     assert.equal(await marked("rules-officer-gestures"), 1, "a group of image questions is marked");
     assert.equal(await marked("rules-road-components"), 0, "a text-only group is not");
+    assert.equal(await app.locator(".frow").filter({ hasText: /ĐÃ DUYỆT|BẢN NHÁP/ }).count(), 0, "family rows carry no status badge");
+    assert.equal(await app.getByRole("button", { name: "Giải thích: Bản nháp" }).count(), 0);
   });
 });
 
@@ -677,6 +807,155 @@ test("an ⓘ opens one explanation at a time: the keyboard moves focus in and Es
   });
 });
 
+/** Answers each question in its own one-question lesson, right or wrong as given, in order. */
+async function answerEach(tool: Preview["tool"], answers: [string, "right" | "wrong"][]) {
+  for (const [questionId, how] of answers) {
+    const sessionId = (await tool("start_study", { questionIds: [questionId], requestId: randomUUID() })).structuredContent.sessionId as string;
+    await tool("submit_study_answer", { sessionId, questionId, answer: how === "right" ? right(questionId) : wrong(questionId), requestId: randomUUID() });
+  }
+}
+
+test("the home card's fourth tile counts today's mistakes and opens a read-only review of each one, newest first", async () => {
+  await withPreview(async ({ origin, page, app, tool, messages }) => {
+    // q301 has an image and q010 has no bank explanation.
+    await answerEach(tool, [["q001", "wrong"], ["q002", "right"], ["q301", "wrong"], ["q010", "wrong"]]);
+    const before = (await tool("get_course", {})).structuredContent as { wrongToday: number; results: { totalAttempts: number } };
+    assert.equal(before.wrongToday, 3);
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.goto(`${origin}/preview`);
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    const tiles = app.locator(".nums .ntile");
+    assert.equal(await tiles.count(), 4);
+    assert.equal((await tiles.nth(3).innerText()).replace(/\s+/g, " ").trim(), "3 câu Sai hôm nay Xem lại");
+    const tops = () => tiles.evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
+    const [a, b, c, d] = await tops();
+    assert.ok(a === b && c === d && c! > a!, "two by two on a phone");
+    const open = app.getByRole("button", { name: "Sai hôm nay: 3 câu, xem lại" });
+    assert.equal(await open.locator(".info-btn").count(), 0, "the ⓘ is not inside the tile's button");
+    await app.getByRole("button", { name: "Giải thích: Sai hôm nay", exact: true }).click();
+    const pop = app.getByRole("dialog");
+    await pop.getByRole("heading", { name: "Sai hôm nay" }).waitFor();
+    await pop.getByText("không cần làm lại ngay", { exact: false }).waitFor();
+    await page.keyboard.press("Escape");
+
+    const sent = await messages();
+    await open.click();
+    await app.getByRole("heading", { name: "Câu sai hôm nay" }).waitFor();
+    assert.deepEqual((await sent()).filter((m) => m.method === "tools/call").map((m) => m.name), ["get_today_mistakes"]);
+    await app.locator(".sub-head").getByText("3 câu", { exact: true }).waitFor();
+    const items = app.locator(".mk-item");
+    assert.deepEqual(await items.locator(".qchip").allInnerTexts(), ["CÂU 10", "CÂU 301", "CÂU 1"], "newest first");
+    const option = (q: string, key: string) => (safeQuestion(q).options.find((o) => o.id === key)?.text ?? "");
+    for (const [i, q] of ["q010", "q301", "q001"].entries()) {
+      const item = items.nth(i);
+      await item.getByText(`Bạn chọn: ${wrong(q)} · ${option(q, wrong(q))}`, { exact: true }).waitFor();
+      await item.getByText(`Đáp án đúng: ${right(q)} · ${option(q, right(q))}`, { exact: true }).waitFor();
+    }
+    await items.nth(0).getByText("Ngân hàng chưa có giải thích cho câu này.", { exact: true }).waitFor();
+    assert.equal(await items.nth(1).locator("img.question-image").count(), 1, "the image question shows its image");
+    await items.nth(1).getByRole("button", { name: "Phóng to hình câu hỏi" }).click();
+    await app.locator("#zoom[open]").waitFor();
+    await app.getByRole("button", { name: "Đóng" }).click();
+    assert.equal(await app.locator('#content input, #content [data-action="answer"]').count(), 0, "nothing here can be answered");
+    await app.getByText("Các câu này sẽ quay lại trong lượt ôn của bạn.").waitFor();
+    await app.getByRole("button", { name: "Về trang chính" }).click();
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    const after = (await tool("get_course", {})).structuredContent as { results: { totalAttempts: number } };
+    assert.equal(after.results.totalAttempts, before.results.totalAttempts, "reviewing records nothing");
+
+    await page.setViewportSize({ width: 900, height: 900 });
+    const [w, x, y, z] = await tops();
+    assert.ok(w === x && x === y && y === z, "one row when the card is wide");
+  });
+});
+
+test("with no mistakes today the tile is disabled and says so, and a mistakes card opened by ChatGPT shows an empty state", async () => {
+  await withPreview(async ({ origin, page, app, tool, open }) => {
+    await answerEach(tool, [["q001", "right"]]);
+    await page.goto(`${origin}/preview`);
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    const tile = app.locator(".nums .ntile").nth(3);
+    assert.equal((await tile.innerText()).replace(/\s+/g, " ").trim(), "0 câu Sai hôm nay Chưa có câu sai hôm nay");
+    assert.equal(await tile.getByRole("button", { name: "Sai hôm nay: chưa có câu sai hôm nay" }).isDisabled(), true);
+    await open(await tool("get_today_mistakes", {}));
+    await app.getByRole("heading", { name: "Câu sai hôm nay" }).waitFor();
+    await app.locator(".dashed").getByText("Chưa có câu sai hôm nay").waitFor();
+    assert.equal(await app.locator(".mk-item").count(), 0);
+    await app.getByRole("button", { name: "Về trang chính" }).click();
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+  });
+});
+
+test("Nhắc tôi học mỗi ngày asks ChatGPT for a daily reminder in one chat message, at 20:00 or the learner's own time, from home and the finish screen", async () => {
+  await withPreview(async ({ origin, page, app, tool, open, messages }) => {
+    const { sessionId } = await learnFirstTime(tool, ["q001"]);
+    await page.goto(`${origin}/preview?chat=1`);
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    const toggle = app.getByRole("button", { name: "Nhắc tôi học mỗi ngày", exact: true });
+    await app.getByRole("button", { name: "Giải thích: Nhắc tôi học mỗi ngày", exact: true }).click();
+    await app.getByRole("dialog").getByText("Đã lên lịch", { exact: false }).waitFor();
+    await page.keyboard.press("Escape");
+    await toggle.click();
+    assert.equal(await toggle.getAttribute("aria-expanded"), "true");
+    assert.deepEqual(await app.locator('input[name="remind"]').evaluateAll((inputs) => inputs.map((i) => `${(i as HTMLInputElement).value}${(i as HTMLInputElement).checked ? "*" : ""}`)), ["07:00", "12:00", "20:00*"], "20:00 is chosen to start with");
+    const sent = await messages();
+    await app.getByRole("button", { name: "Nhờ ChatGPT nhắc tôi" }).click();
+    await page.locator("#host-message").getByText("Hãy tạo lời nhắc hằng ngày lúc 20:00 để mình học lý thuyết lái xe. [nhắc học · 20:00 hằng ngày]").waitFor();
+    await app.getByText("Đã gửi yêu cầu. Xác nhận trong khung chat nhé.").waitFor();
+    assert.deepEqual((await sent()).filter((m) => m.method === "ui/message" || m.method === "tools/call").map((m) => m.method), ["ui/message"], "one chat message and nothing stored on the server");
+
+    await toggle.click();
+    const custom = app.getByRole("textbox", { name: "Giờ khác (HH:MM)" });
+    await custom.fill("25:00");
+    assert.equal(await app.locator('input[name="remind"]:checked').count(), 0, "typing a time replaces the chips' choice");
+    await app.getByRole("button", { name: "Nhờ ChatGPT nhắc tôi" }).click();
+    await app.getByText("Nhập giờ dạng HH:MM, ví dụ 21:30.").waitFor();
+    assert.equal((await sent()).filter((m) => m.method === "ui/message").length, 1, "an impossible time sends nothing");
+    await custom.fill("2130");
+    await app.getByRole("button", { name: "Nhờ ChatGPT nhắc tôi" }).click();
+    await page.locator("#host-message").getByText("Hãy tạo lời nhắc hằng ngày lúc 21:30 để mình học lý thuyết lái xe. [nhắc học · 21:30 hằng ngày]").waitFor();
+
+    await open(await tool("get_study_session", { sessionId }));
+    await app.getByRole("heading", { name: "Hoàn thành bài học!" }).waitFor();
+    await app.getByRole("button", { name: "Nhắc tôi học mỗi ngày", exact: true }).waitFor();
+  });
+});
+
+test("a reminder request the host refuses shows no sent state and can be sent again", async () => {
+  await withPreview(async ({ origin, page, app, tool }) => {
+    await learnFirstTime(tool, ["q001"]);
+    await page.goto(`${origin}/preview?chat=1`);
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    await app.getByRole("button", { name: "Nhắc tôi học mỗi ngày", exact: true }).click();
+    const send = app.getByRole("button", { name: "Nhờ ChatGPT nhắc tôi" });
+    await send.click();
+    await app.getByText("Chưa gửi được vào khung chat. Thử lại nhé.").waitFor();
+    assert.equal(await app.getByText("Đã gửi yêu cầu.", { exact: false }).count(), 0);
+    await send.click();
+    await page.locator("#host-message").getByText("[nhắc học · 20:00 hằng ngày]", { exact: false }).waitFor();
+    await app.getByText("Đã gửi yêu cầu. Xác nhận trong khung chat nhé.").waitFor();
+  }, async (page, origin) => {
+    await page.route(`${origin}/preview?chat=1`, async (route) => {
+      const html = await (await route.fetch()).text();
+      await route.fulfill({ contentType: "text/html", body: html.replace("else if(m.method==='ui/message'){", "else if(m.method==='ui/message'){if(!window.refusedOnce){window.refusedOnce=true;throw new Error('Host offline');}") });
+    });
+  });
+});
+
+test("a host that cannot post chat messages says so instead of a sent reminder", async () => {
+  await withPreview(async ({ origin, page, app, tool, messages }) => {
+    await learnFirstTime(tool, ["q001"]);
+    await page.goto(`${origin}/preview`);
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    await app.getByRole("button", { name: "Nhắc tôi học mỗi ngày", exact: true }).click();
+    const sent = await messages();
+    await app.getByRole("button", { name: "Nhờ ChatGPT nhắc tôi" }).click();
+    await app.locator("#status").getByText(/Host này không gửi được yêu cầu vào ChatGPT/).waitFor();
+    assert.equal(await app.getByText("Đã gửi yêu cầu.", { exact: false }).count(), 0);
+    assert.equal((await sent()).filter((m) => m.method === "ui/message").length, 0);
+  });
+});
+
 test("a popover fits inside the card at 360 px and narrower, with no sideways scroll", async () => {
   await withPreview(async ({ origin, page, app, tool }) => {
     await learnFirstTime(tool, ["q001", "q002", "q003"]);
@@ -685,7 +964,7 @@ test("a popover fits inside the card at 360 px and narrower, with no sideways sc
       await page.setViewportSize({ width, height: 900 });
       await page.goto(`${origin}/preview`);
       await app.getByRole("button", { name: "Học tiếp" }).waitFor();
-      for (const label of ["Đã gặp", "Cần ôn hôm nay"]) {
+      for (const label of ["Đã gặp", "Cần ôn hôm nay", "Sai hôm nay"]) {
         await app.getByRole("button", { name: `Giải thích: ${label}`, exact: true }).click();
         await app.getByRole("dialog").getByRole("heading", { name: label }).waitFor();
         const fit = await app.locator("main").evaluate((main) => {
@@ -773,5 +1052,32 @@ test("with nothing newly mastered, the finish screen counts first-time correct a
     await app.getByText("câu mới thuộc").waitFor();
     assert.equal(await app.locator(".tiles .stat-tile").nth(2).locator("[data-count]").getAttribute("data-count"), "1");
     assert.equal(await app.locator("#content").getByText("ôn lại để thuộc").count(), 0, "the first-step line is only for lessons with nothing mastered");
+  });
+});
+
+test("the card sets its words in Nunito one weight step lighter, loads the Vietnamese faces at every weight, and keeps numbers in JetBrains Mono 700", async () => {
+  await withPreview(async ({ origin, page, app, tool, open }) => {
+    const started = await tool("start_study", { questionIds: ["q001"], requestId: randomUUID() });
+    await page.goto(`${origin}/preview`);
+    await app.locator("[data-action]").first().waitFor();
+    await open(started);
+    await app.getByRole("button", { name: "Bắt đầu" }).click();
+    await app.locator(".stem").waitFor();
+    const roles = { body: "body", stem: ".stem", option: ".opt .txt", button: '[data-action="answer"]', chip: ".chip.step", number: ".chip.num.mono", pos: ".pos" };
+    const styles = await app.locator("main").evaluate((main, selectors) => Object.fromEntries(Object.entries(selectors).map(([role, selector]) => {
+      const style = getComputedStyle(document.querySelector(selector) ?? main);
+      return [role, `${style.fontFamily.split(",")[0]?.replace(/["']/g, "")} ${style.fontWeight}`];
+    })), roles);
+    assert.deepEqual(styles, { body: "Nunito 400", stem: "Nunito 600", option: "Nunito 500", button: "Nunito 700", chip: "Nunito 700", number: "JetBrains Mono 700", pos: "JetBrains Mono 700" });
+    const heavy = await app.locator("main").evaluate((main) => [...main.querySelectorAll("*")].filter((el) => Number(getComputedStyle(el).fontWeight) > 700).map((el) => el.className || el.tagName));
+    assert.deepEqual(heavy, [], "nothing is heavier than 700");
+    const faces = await app.locator("main").evaluate(async () => {
+      for (const weight of [400, 500, 600, 700]) await document.fonts.load(`${weight} 16px Nunito`, "Đường Ệ ỗ ư ơ ă");
+      return [...document.fonts].filter((f) => f.family.replace(/["']/g, "") === "Nunito" && f.status === "loaded").map((f) => `${f.weight} ${f.unicodeRange.includes("U+1EA0") ? "vietnamese" : "latin"}`).sort();
+    });
+    assert.deepEqual(faces, ["400 latin", "400 vietnamese", "500 latin", "500 vietnamese", "600 latin", "600 vietnamese", "700 latin", "700 vietnamese"]);
+    const font = await fetch(`${origin}/ui/assets/nunito-vietnamese-600-normal.woff2`);
+    assert.deepEqual([font.status, font.headers.get("content-type")], [200, "font/woff2"]);
+    assert.equal((await fetch(`${origin}/ui/assets/BeVietnamPro-Regular.ttf`)).status, 404, "the old text font is no longer shipped");
   });
 });
