@@ -46,7 +46,7 @@ test("a wrong lesson answer schedules one repair step after the next two steps, 
     assert.deepEqual(queue(t, three.sessionId), ["q001"], "with no other step left there is nothing to separate a repair from the feedback");
 });
 
-test("the repair step plays as its own step, earns 2 XP, and is never repaired again", () => {
+test("a wrong repair deducts 3 XP and is never repaired again", () => {
     const { state, sessionId } = lesson(["q001", "q002", "q003"]);
     let s = answerIn(state, sessionId, "q001", morning, wrong("q001"));
     assert.throws(() => answerIn(s, sessionId, "q001", morning), /QUESTION_NOT_PENDING/, "the repair cannot be answered while the first answer's feedback shows");
@@ -62,7 +62,7 @@ test("the repair step plays as its own step, earns 2 XP, and is never repaired a
     assert.equal(repair.lastAward, null);
     const answered = executeLearning(s, { kind: "answer_study", requestId: requestId(), sessionId, questionId: "q001", answer: wrong("q001") }, morning + 3 * MINUTE);
     assert.ok(answered.view.kind === "study");
-    assert.deepEqual(answered.view.lastAward, { xp: 2, reason: "repair", masteredNow: false, baseXp: 2, bonusXp: 0 });
+    assert.deepEqual(answered.view.lastAward, { xp: -3, reason: "repair", masteredNow: false, baseXp: -3, bonusXp: 0 });
     assert.equal(answered.view.currentFeedback?.correct, false);
     assert.deepEqual(queue(answered.state, sessionId), ["q001", "q002", "q003", "repair:q001"], "a wrong repair adds no second repair");
     const done = next(answered.state, sessionId, morning + 3 * MINUTE);
@@ -248,10 +248,10 @@ test("lightning answers are scored attempts worth 1 XP each up to 15 a round, wi
     const facts = s.evidence.filter(e => e.kind === "answer" && e.activityId === sessionId);
     assert.ok(facts.every(e => e.kind === "answer" && e.origin === "study"));
     const awards = facts.map(e => answerAwards(s).get(e.id));
-    assert.deepEqual(awards[0], { xp: 0, reason: "lightning", masteredNow: false });
+    assert.deepEqual(awards[0], { xp: -3, reason: "lightning", masteredNow: false });
     assert.equal(questionProgress(s).get(order[0] ?? "")?.successes, 0, "the wrong answer lapses the question as usual");
     assert.ok(awards.slice(1).every(a => a?.reason === "lightning" && a.masteredNow), "due recalls master the other 19");
-    assert.equal(awards.reduce((sum, a) => sum + (a?.xp ?? 0) - (a?.masteredNow ? 15 : 0), 0), 15, "1 XP per correct answer, at most 15 a round");
+    assert.equal(awards.reduce((sum, a) => sum + (a?.xp ?? 0) - (a?.masteredNow ? 15 : 0), 0), 12, "15 reward XP minus the wrong-answer penalty");
     const view = study(s, { kind: "resume_study", requestId: requestId(), sessionId }, morning + DAY + 30000);
     assert.deepEqual([view.correctCount, view.wrongItems], [19, [order[0]]]);
 });

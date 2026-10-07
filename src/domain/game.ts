@@ -13,9 +13,9 @@ const HOUR = 3600000;
 const DAY_MS = 24 * HOUR;
 const BASE_XP: Record<Exclude<AwardReason, "lightning">, number> = {
     first_correct: 10,
-    first_wrong: 3,
+    first_wrong: -3,
     review_correct: 10,
-    review_wrong: 3,
+    review_wrong: -3,
     assisted: 3,
     repair: 2,
     practice: 2
@@ -46,6 +46,11 @@ export function answerAwards(state: LearnerState) {
     questionProgress(state, (e, step) => {
         if (e.origin === "mock")
             return;
+        if (!e.correct) {
+            const reason: AwardReason = lightning.has(e.activityId) ? "lightning" : repairs.has(e.id) ? "repair" : e.assisted ? "assisted" : step.first ? "first_wrong" : step.due ? "review_wrong" : "practice";
+            awards.set(e.id, { xp: -3, reason, masteredNow: false });
+            return;
+        }
         const masteredNow = !step.learnedBefore && step.learnedAfter;
         let reason: AwardReason;
         let xp: number;

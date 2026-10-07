@@ -15,13 +15,14 @@ export interface LearningTool {
   run(input: unknown): Promise<object>;
 }
 
-const cardCommands = new Set(["start_study", "resume_study", "next_study", "skip_study", "start_mock", "view_mock", "start_lightning", "join_league", "leave_league", "set_league_hidden"]);
+const cardCommands = new Set(["start_study", "resume_study", "next_study", "retry_study", "skip_study", "start_mock", "view_mock", "start_lightning", "join_league", "leave_league", "set_league_hidden"]);
 const leagueCommands = new Set(["join_league", "leave_league", "set_league_hidden"]);
 
 const commands: Record<string, { name: string; title: string; description: string }> = {
   start_study: { name: "start_study", title: "Start a study session", description: "Use whenever the learner wants to study, learn, review or continue. Reopens the open daily session or starts one: all due reviews, then new questions within the daily goal. Explicit category or family requests may override review ordering while retaining due work. unitId accepts a bank category, a confusing-question group, or de_nham_lan for all confusing-question groups. Pass count for a specific number of questions, such as 5. Supply selected original question IDs to assemble a focused source-supported lesson." },
   answer_study: { name: "submit_study_answer", title: "Submit a learning answer", description: "Score the learner's actual choice against the bank, save it once, and return feedback. Bind session and question IDs to the current card. Missing confidence stays unknown. Never submit a guess for the learner. The study card calls this itself and shows the only verdict: while a card is live, never call it for a typed answer and never restate, confirm or contradict its verdict; ask the learner in one line to tap their choice on the card. Call it yourself only in text-only use (no card), then show the verdict and call next_study_question." },
-  next_study: { name: "next_study_question", title: "Continue the study session", description: "Continue after the current question's feedback. The saved queue determines the next question. The study card calls this itself from its Tiếp tục button, so never call it while a card is live. In text-only use (no card), call it after showing the verdict." },
+  next_study: { name: "next_study_question", title: "Continue or revisit a study question", description: "Continue after the current question's feedback. The saved queue determines the next question. The study card calls this itself from its Tiếp tục button, so never call it while a card is live. Header progress buttons may pass questionId and repair=true for an already answered lesson item; this revisits saved feedback without scoring it again. In text-only use (no card), call it after showing the verdict." },
+  retry_study: { name: "retry_study_question", title: "Retry the current mistake", description: "Open the current wrong original lesson question's correction immediately, only when the learner asks to try again. Requires canRetry=true in the saved study view. Keeps the original mistake and XP; correction is assisted practice, never new mastery credit. Does not apply to compare-the-pair, lightning, or another correction." },
   skip_study: { name: "skip_study_question", title: "Skip a study question", description: "Skip without scoring or covering the question. A skipped due review remains unresolved." },
   pause_study: { name: "pause_study", title: "Pause a study session", description: "Save a paused session without clearing its remaining reviews or recording answers." },
   resume_study: { name: "resume_study", title: "Resume a study session", description: "Resume a saved session and reconcile reviews now due. An explicit other activity may retain this paused session." },
@@ -264,7 +265,11 @@ const errorMessages: Record<string, string> = {
   SESSION_NOT_ACTIVE: "Buổi học đang tạm dừng hoặc đã xong. Tiếp tục bằng resume_study hoặc bắt đầu buổi mới.",
   QUESTION_BINDING_MISMATCH: "Câu này không phải câu đang mở trong buổi học. Hãy trả lời câu hiện tại.",
   QUESTION_NOT_PENDING: "Câu này đã được trả lời trong buổi học. Chuyển sang câu tiếp theo bằng next_study_question.",
+  RETRY_NOT_AVAILABLE: "Chỉ có thể thử lại ngay câu vừa trả lời sai trong bài học. Câu này không còn lượt sửa ngay; hãy tiếp tục bài học.",
   ANSWER_OR_SKIP_FIRST: "Hãy trả lời hoặc bỏ qua câu hiện tại trước khi sang câu tiếp theo.",
+  QUESTION_NOT_IN_SESSION: "Câu này không nằm trong buổi học hiện tại.",
+  PAIR_INCOMPLETE: "Hãy hoàn thành cả hai câu trong thử thách so sánh trước khi xem lại câu này.",
+  QUESTION_NAVIGATION_NOT_AVAILABLE: "Có thể xem lại câu bằng thanh tiến độ trong bài học thường; lượt chớp nhoáng cần đi theo thứ tự.",
   INVALID_ANSWER: "Đáp án không hợp lệ cho câu này. Chọn một chữ cái có trong các lựa chọn.",
   REQUEST_CONFLICT: "Mã yêu cầu này đã dùng cho một thao tác khác. Hãy gửi lại với requestId mới.",
   MOCK_IN_PROGRESS: "Câu này đang nằm trong bài thi thử chưa nộp. Hãy nộp hoặc dừng bài thi trước.",
