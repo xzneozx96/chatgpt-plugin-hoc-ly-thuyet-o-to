@@ -625,6 +625,29 @@ test("a slow answer to an earlier search never replaces the results for what the
   });
 });
 
+test("a family search that failed runs again when the learner retypes the same text", async () => {
+  let failed = false;
+  await withPreview(async ({ origin, page, app, tool }) => {
+    await tool("start_study", { requestId: randomUUID() });
+    await page.goto(`${origin}/preview`);
+    await openFamilies(app);
+    const matches = (await tool("list_units", { kind: "family", query: "bien", limit: 300 })).structuredContent.totalMatches as number;
+    await app.locator("#search").click();
+    await page.keyboard.type("bien");
+    await app.locator("#status.error").waitFor();
+    assert.equal(failed, true);
+    await page.keyboard.press("Backspace");
+    await page.keyboard.type("n");
+    await app.locator("#fam-count").getByText(`${matches} kết quả`, { exact: true }).waitFor({ timeout: 5000 });
+  }, async (page, origin) => {
+    await page.route(`${origin}/preview/tool`, async (route) => {
+      const body = JSON.parse(route.request().postData() ?? "{}") as { name?: string; arguments?: { query?: string } };
+      if (body.name === "list_units" && body.arguments?.query === "bien" && !failed) { failed = true; return route.fulfill({ status: 502, body: "" }); }
+      return route.continue();
+    });
+  });
+});
+
 test("the family picker lists every matching group in one list that scrolls inside the card, about seven rows tall, with Học nhóm này right below it", async () => {
   await withPreview(async ({ origin, page, app, tool }) => {
     await tool("start_study", { requestId: randomUUID() });
