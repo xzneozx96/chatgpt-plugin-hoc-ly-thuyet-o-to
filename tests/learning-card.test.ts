@@ -860,6 +860,76 @@ test("with no mistakes today the tile is disabled and says so, and a mistakes ca
   });
 });
 
+test("Nhắc tôi học mỗi ngày asks ChatGPT for a daily reminder in one chat message, at 20:00 or the learner's own time, from home and the finish screen", async () => {
+  await withPreview(async ({ origin, page, app, tool, open, messages }) => {
+    const { sessionId } = await learnFirstTime(tool, ["q001"]);
+    await page.goto(`${origin}/preview?chat=1`);
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    const toggle = app.getByRole("button", { name: "Nhắc tôi học mỗi ngày", exact: true });
+    await app.getByRole("button", { name: "Giải thích: Nhắc tôi học mỗi ngày", exact: true }).click();
+    await app.getByRole("dialog").getByText("Đã lên lịch", { exact: false }).waitFor();
+    await page.keyboard.press("Escape");
+    await toggle.click();
+    assert.equal(await toggle.getAttribute("aria-expanded"), "true");
+    assert.deepEqual(await app.locator('input[name="remind"]').evaluateAll((inputs) => inputs.map((i) => `${(i as HTMLInputElement).value}${(i as HTMLInputElement).checked ? "*" : ""}`)), ["07:00", "12:00", "20:00*"], "20:00 is chosen to start with");
+    const sent = await messages();
+    await app.getByRole("button", { name: "Nhờ ChatGPT nhắc tôi" }).click();
+    await page.locator("#host-message").getByText("Hãy tạo lời nhắc hằng ngày lúc 20:00 để mình học lý thuyết lái xe. [nhắc học · 20:00 hằng ngày]").waitFor();
+    await app.getByText("Đã gửi yêu cầu. Xác nhận trong khung chat nhé.").waitFor();
+    assert.deepEqual((await sent()).filter((m) => m.method === "ui/message" || m.method === "tools/call").map((m) => m.method), ["ui/message"], "one chat message and nothing stored on the server");
+
+    await toggle.click();
+    const custom = app.getByRole("textbox", { name: "Giờ khác (HH:MM)" });
+    await custom.fill("25:00");
+    assert.equal(await app.locator('input[name="remind"]:checked').count(), 0, "typing a time replaces the chips' choice");
+    await app.getByRole("button", { name: "Nhờ ChatGPT nhắc tôi" }).click();
+    await app.getByText("Nhập giờ dạng HH:MM, ví dụ 21:30.").waitFor();
+    assert.equal((await sent()).filter((m) => m.method === "ui/message").length, 1, "an impossible time sends nothing");
+    await custom.fill("2130");
+    await app.getByRole("button", { name: "Nhờ ChatGPT nhắc tôi" }).click();
+    await page.locator("#host-message").getByText("Hãy tạo lời nhắc hằng ngày lúc 21:30 để mình học lý thuyết lái xe. [nhắc học · 21:30 hằng ngày]").waitFor();
+
+    await open(await tool("get_study_session", { sessionId }));
+    await app.getByRole("heading", { name: "Hoàn thành bài học!" }).waitFor();
+    await app.getByRole("button", { name: "Nhắc tôi học mỗi ngày", exact: true }).waitFor();
+  });
+});
+
+test("a reminder request the host refuses shows no sent state and can be sent again", async () => {
+  await withPreview(async ({ origin, page, app, tool }) => {
+    await learnFirstTime(tool, ["q001"]);
+    await page.goto(`${origin}/preview?chat=1`);
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    await app.getByRole("button", { name: "Nhắc tôi học mỗi ngày", exact: true }).click();
+    const send = app.getByRole("button", { name: "Nhờ ChatGPT nhắc tôi" });
+    await send.click();
+    await app.getByText("Chưa gửi được vào khung chat. Thử lại nhé.").waitFor();
+    assert.equal(await app.getByText("Đã gửi yêu cầu.", { exact: false }).count(), 0);
+    await send.click();
+    await page.locator("#host-message").getByText("[nhắc học · 20:00 hằng ngày]", { exact: false }).waitFor();
+    await app.getByText("Đã gửi yêu cầu. Xác nhận trong khung chat nhé.").waitFor();
+  }, async (page, origin) => {
+    await page.route(`${origin}/preview?chat=1`, async (route) => {
+      const html = await (await route.fetch()).text();
+      await route.fulfill({ contentType: "text/html", body: html.replace("else if(m.method==='ui/message'){", "else if(m.method==='ui/message'){if(!window.refusedOnce){window.refusedOnce=true;throw new Error('Host offline');}") });
+    });
+  });
+});
+
+test("a host that cannot post chat messages says so instead of a sent reminder", async () => {
+  await withPreview(async ({ origin, page, app, tool, messages }) => {
+    await learnFirstTime(tool, ["q001"]);
+    await page.goto(`${origin}/preview`);
+    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    await app.getByRole("button", { name: "Nhắc tôi học mỗi ngày", exact: true }).click();
+    const sent = await messages();
+    await app.getByRole("button", { name: "Nhờ ChatGPT nhắc tôi" }).click();
+    await app.locator("#status").getByText(/Host này không gửi được yêu cầu vào ChatGPT/).waitFor();
+    assert.equal(await app.getByText("Đã gửi yêu cầu.", { exact: false }).count(), 0);
+    assert.equal((await sent()).filter((m) => m.method === "ui/message").length, 0);
+  });
+});
+
 test("a popover fits inside the card at 360 px and narrower, with no sideways scroll", async () => {
   await withPreview(async ({ origin, page, app, tool }) => {
     await learnFirstTime(tool, ["q001", "q002", "q003"]);

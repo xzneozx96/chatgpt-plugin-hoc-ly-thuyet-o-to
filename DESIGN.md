@@ -249,6 +249,10 @@ A learner who wonders why a number or rule is what it is taps the ⓘ beside it.
 - It opens with `rise` and closes on a second tap, Esc, a tap outside or a new screen. A keyboard open moves focus to its title; Esc and Tab return focus to the button.
 - The copy is short Vietnamese that matches the server's rules. Live values, such as the next review time, come from the server's view.
 
+### Daily reminder
+
+A quiet `--mute` text row with a bell icon, "Nhắc tôi học mỗi ngày", and an ⓘ sits below the secondary actions on the home card and the finish screen. It opens an inline panel with a 2 px `--line` border: three time chips in mono (07:00, 12:00, 20:00), pressable like small tiles and inverted when chosen, and a fourth, dashed field for a custom HH:MM that turns solid when used. A secondary pressable button, "Nhờ ChatGPT nhắc tôi", sends the request. It is never a primary action.
+
 ### Mock test
 
 Fullscreen if the host allows. The test has:

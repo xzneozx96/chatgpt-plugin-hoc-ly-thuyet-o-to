@@ -162,6 +162,7 @@ This section fixes the confusion in the v0.11 build.
 | Learner types an answer ("B") while a card is live | Unchanged | Does not submit or judge it. Replies in one line asking them to tap their choice on the card. Typed answering stays available in text-only use (TUT-05). |
 | A question is wrong again on its repair step, or 3 answers are wrong in one lesson | Shows "ChatGPT có thể giải thích kỹ hơn" with a button | Coaches only if the learner taps it |
 | Lesson finished | Shows the finish screen, then posts one message with the lesson summary | Writes a 2–3 sentence coach note: one strength, one thing to watch, and tomorrow's review. No new verdicts. |
+| Learner taps "Nhờ ChatGPT nhắc tôi" | Posts one message asking for a daily reminder at the chosen time. Saves nothing. | Creates a daily ChatGPT scheduled task that opens the course, calls `get_course` and reports the due reviews. Says so plainly if scheduled tasks are unavailable on the learner's plan, and never claims a reminder exists without the task. |
 | Text-only use (card fails) | — | Falls back to the v0.11 conversational flow (TUT-05) |
 
 | ID | Priority | Requirement | Acceptance criteria |

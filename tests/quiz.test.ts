@@ -172,6 +172,17 @@ test("a running mock is summarised in text and its questions cannot be looked up
   assert.equal((finished.structuredContent as { remainingMs: number }).remainingMs, 0);
 });
 
+test("the server tells ChatGPT to turn a study-reminder request into a daily scheduled task that reports due reviews", () => {
+  const instructions = client.getInstructions() ?? "";
+  const rule = instructions.split(/(?<=\.)\s/).filter((sentence) => /reminder|scheduled task/i.test(sentence)).join(" ");
+  assert.match(rule, /Hãy tạo lời nhắc hằng ngày lúc/, "the card's reminder message is named");
+  assert.match(rule, /daily ChatGPT scheduled task/);
+  assert.match(rule, /get_course/);
+  assert.match(rule, /Học tiếp/);
+  assert.match(rule, /unavailable on their plan/);
+  assert.match(rule, /Never say a reminder exists/);
+});
+
 test("the card's own calls get short text that keeps ChatGPT silent, a replay ignores the marker, and errors carry a code", async () => {
   const text = (result: Awaited<ReturnType<typeof client.callTool>>) => (result.content as { type: string; text: string }[])[0]?.text ?? "";
   const started = await client.callTool({ name: "start_study", arguments: { questionIds: ["q010"], requestId: randomUUID(), caller: "card" } });

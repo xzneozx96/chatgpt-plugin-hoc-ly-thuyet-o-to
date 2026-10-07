@@ -43,15 +43,18 @@ The card never posts an answer as a chat message and never waits for ChatGPT to 
 
 ChatGPT can then answer a typed question about the current step without asking for the question number. Updating context produces no chat message.
 
-**Messages the card posts.** The card posts a chat message in only three cases. Each message is short, human-readable Vietnamese with a machine-readable tail:
+**Messages the card posts.** The card posts a chat message in only four cases. Each message is short, human-readable Vietnamese with a machine-readable tail:
 
 | Trigger | Message shown in chat |
 | --- | --- |
 | "Hỏi ChatGPT" on the feedback sheet | `Giải thích giúp mình câu 145: mình chọn B, đáp án là A. [q145 · chọn B · sai]` |
 | "ChatGPT giải thích kỹ hơn" after a repeated mistake | `Mình vẫn nhầm câu 145, giải thích kỹ hơn nhé. [q145 · lần 2 · sai]` |
 | Lesson finished | `Xong bài: 8/10 đúng, +95 XP, 2 câu mới thuộc. [session s_… · tổng kết]` |
+| "Nhờ ChatGPT nhắc tôi" in the reminder chooser | `Hãy tạo lời nhắc hằng ngày lúc 20:00 để mình học lý thuyết lái xe. [nhắc học · 20:00 hằng ngày]` |
 
 Before posting "Hỏi ChatGPT", the card calls `request_study_help`, so assistance is recorded before any explanation (TUT-04).
+
+The reminder request calls no tool and saves nothing. An MCP app cannot send notifications, so ChatGPT creates a daily scheduled task that the learner confirms in the chat. The task opens the course, reads `get_course` and reports the due reviews. If the host cannot post messages, the card shows its usual "Host này không gửi được yêu cầu vào ChatGPT" notice instead.
 
 **Typed input while a card is live.** If the learner types a letter or an option, ChatGPT replies in one line asking them to tap it on the card. It does not submit or judge. The card does not change.
 
@@ -122,6 +125,7 @@ Theo nhịp 12 câu/ngày: xong lượt đầu ngày 25/11
 [ Học tiếp ]
 (Chọn chủ đề)   (Thi thử)
 (Chớp nhoáng 60 giây)  (Đổi mục tiêu)
+      (Nhắc tôi học mỗi ngày) ⓘ
 ```
 
 - The ring has 12 segments, one per new question today. Its centre shows a small check when due reviews are done.
@@ -129,6 +133,16 @@ Theo nhịp 12 câu/ngày: xong lượt đầu ngày 25/11
 - Sai hôm nay counts the questions answered wrong today, each once. Its tile is a pressable button with the ⓘ in its corner, outside the button. It opens today's mistakes through `get_today_mistakes`. With no mistakes today, the tile takes the disabled look and reads "Chưa có câu sai hôm nay".
 - The league line appears only for members. Non-members see one invitation line after their first finished lesson: "Tham gia nhóm thi đua tuần".
 - "Học tiếp" starts the review queue when anything is due, otherwise the next new skill.
+- "Nhắc tôi học mỗi ngày" is a quiet row with an ⓘ, below the secondary actions here and on the finish screen. It opens an inline chooser:
+
+  ```text
+  GIỜ NHẮC MỖI NGÀY
+  [07:00] [12:00] [▓20:00▓] [HH:MM]
+  [ Nhờ ChatGPT nhắc tôi ]
+  ```
+
+  - 20:00 is chosen to start with. Typing a time in the last field (21:30, 2130 or 21h30) replaces the chip's choice. An impossible time shows "Nhập giờ dạng HH:MM, ví dụ 21:30." and sends nothing.
+  - The button posts the one reminder message from section 2. The chooser then closes to "Đã gửi yêu cầu. Xác nhận trong khung chat nhé." If the host refuses the message, the chooser stays open with "Chưa gửi được vào khung chat. Thử lại nhé."
 
 **Today's mistakes.** This view is read-only, and nothing on it can be answered.
 
@@ -270,7 +284,8 @@ Hoàn thành bài học!
 Ngày mai ôn lại: 3 câu
 
 [ Bài tiếp theo ]
-(Xong hôm nay)
+(Chớp nhoáng 60 giây)  (Xong hôm nay)
+      (Nhắc tôi học mỗi ngày) ⓘ
 ```
 
 - When the ring closes, it plays its one-time celebration and the primary button changes to "Học thêm" with a tertiary "Xong hôm nay".
