@@ -6,8 +6,7 @@
 
 - This version replaces direction B (Đường học) and the compact card-per-step model from the PRD 0.11 design.
 - The owner rejected that build as boring, flat and confusing, because each answer received a verdict in the card and another from ChatGPT.
-- The [direction-B contract](ui-ux-direction-b-contract.md) and the [first prototype](../design/chatgpt-learning/index.html) are now historical.
-- `src/ui/learning.html` implements this design on branch `ui-game-card`, using the reference screens in `ui design/`. The old prototype in `design/chatgpt-learning/` is historical.
+- `src/ui/learning.html` implements this design on branch `ui-game-card`.
 - Host behaviour in ChatGPT is still unverified (section 8).
 
 Mockup rules from the earlier design still apply:
@@ -419,30 +418,3 @@ Open owner decisions:
 
 - Whether mock-test options keep the 2×2 layout from commit `fe9f315` for short text-only options, or stack like lesson options.
 - Whether the lightning round should answer on one tap. That is faster, but a mistap would be a scored wrong answer and could remove Đã thuộc. Adopting it means amending PRD INT-03.
-
-## 9. History
-
-The sections below are the prototype record for PRD 0.11 and direction B, kept unchanged. The earlier screen specs (S01–S06, the compact-card interaction model, and the colour proposal) are in this file's git history before PRD v1.0.
-
-### Historical first prototype and revised visual direction
-
-The owner approved this proposal on 6 October 2026, including learner-selected daily goals. The isolated [clickable prototype](../design/chatgpt-learning/index.html) and [review guide](../design/chatgpt-learning/README.md) show the first representative visual direction. It simulates the ChatGPT frame for design review; it is not a separate learner website or an integrated plugin release.
-
-Browser observations covered the custom eight-question forecast, explicit answer submission, incorrect feedback, source fallback, stacked mobile comparison, light and dark question layouts, assisted application, pause/resume, explicit confusion clearing, and a recap with review 1/1 separate from new coverage 1/12. The mock-test navigator retained a selected answer on return; submission confirmed 29 unanswered items, and debrief separated those gaps from answered mistakes. Keyboard navigation displayed a solid focus outline. The selected 32 question records matched the original bank without changes.
-
-The application question is marked assisted because the comparison already exposed its answer. Sample history, timing, and progress remain visibly labelled. The prototype has no production identity, scheduling, source retrieval, or durable saving. Hover rules retain contrasting text colours in CSS; pointer-hover rendering and assistive-technology validation remain unverified. Source videos, full category teaching, image enlargement, cross-chat resume, and host-specific ChatGPT behaviour require the next integrated prototype.
-
-
-#### Revision 2 observation
-
-The revised prototype completed goal selection, review, inline teaching, assisted application, recap, and an explicit finish in browser review. Custom goal entry stayed on the same screen. Help and pause remained reachable through the collapsed menu, and pause/resume retained the application step. Tests remained accessible through plan options, with a collapsed navigator and visible Previous and Next. Original questions and temporary-progress disclosures remain intact. This is interaction verification by the builder, not evidence that learner confusion has been resolved.
-
-The owner requested a distinct visual box for explanations and things to remember. Use a soft theme-aware background, rounded outline, accent edge, and clear heading. Key values stand out within the box. This changes presentation without adding navigation or changing teaching conditions.
-
-#### Selecting a confusing-question subcategory
-
-Opening “Câu hỏi dễ nhầm lẫn” leads to a searchable list of the 249 saved families. Each row has a radio choice, title, original-question count, and image indicator. Search accepts unaccented Vietnamese or a question number. One Continue action opens the selected group overview with comparison scope and an expandable member list. The prototype can then show that family’s original questions and supplied bank explanations in sequence. It retains selection when returning to discovery. These trials are temporary and do not certify mastery, generate personalised lessons, or update review schedules. Comparisons shown before answering make this assisted practice. Draft and visual-review status remain visible.
-
-#### Revision 3 visual consistency
-
-Applied Impeccable 4.5.0 polish guidance in Operate mode to the isolated prototype. Retain the single activity, green action/selection colour, explicit answers, and boxed teaching. Use one sans family with a fixed scale, readable secondary text, row-based discovery and goal choices, consistent button and input shapes, and one activity surface. Context appears below the heading rather than as an uppercase kicker. Explanation boxes use a solid tinted background with strong key values. Shared theme tokens own state colours. A new step scrolls its introduction into view and focuses its heading; selecting an answer preserves its local focus. This is visual refinement of the design artifact, not a production integration or validated learning outcome.

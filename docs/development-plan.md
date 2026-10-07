@@ -2,7 +2,7 @@
 
 ## Current state and platform decision
 
-As of 2026-10-05, the private local product has a real browser preview, all 600 questions and 318 images, SQLite attempt history, deterministic due reviews, bank-only source search, and a tutor skill. A stateless public `/play` page and `/mcp` endpoint can be served through HTTPS. The temporary ngrok endpoint passed remote MCP and image checks. ChatGPT account rendering is still for the signed-in user to test. See `docs/full-product-run.md`, `docs/full-product-design.md`, and `docs/deployment.md` for the current implementation and handoff.
+As of 2026-10-05, the private local product has a real browser preview, all 600 questions and 318 images, SQLite attempt history, deterministic due reviews, bank-only source search, and a tutor skill. A stateless public `/play` page and `/mcp` endpoint can be served through HTTPS. The temporary ngrok endpoint passed remote MCP and image checks. ChatGPT account rendering is still for the signed-in user to test. See `docs/full-product-run.md` and `docs/deployment.md` for the current implementation and handoff.
 
 The repository contains a 600-question JSON bank, a Python study tracker, and a traffic-sign search proof of concept. It had no Node package or MCP server. The user designated the JSON as the source of truth for learner questions. It contains questions with two, three, or four options. The user supplied a URL pattern for the 318 referenced images, which are now bundled with the Phase 1 package. Forty-three questions have no explanation in the source.
 

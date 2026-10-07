@@ -30,7 +30,7 @@ Mock tests contain 30 questions, last 20 minutes, require at least 27 correct, a
 
 ## Brand Commitments
 
-The name is Lý Thuyết Lái Xe. Vietnamese is the teaching language. On 6 October 2026 the owner judged the deployed direction-B build (navy text, blue actions, Be Vietnam Pro) boring, flat and confusing, because feedback was split between the card and ChatGPT. PRD v1.0 supersedes direction B. Both themes are strictly black and white, like ChatGPT: white with black in light mode, black with white in dark mode. Correct and wrong are carried by icon, shape, motion and words, never colour. Delight comes from motion, typography and celebration moments. The design system is in DESIGN.md. docs/ui-ux-direction-b-contract.md is historical.
+The name is Lý Thuyết Lái Xe. Vietnamese is the teaching language. On 6 October 2026 the owner judged the deployed direction-B build (navy text, blue actions, Be Vietnam Pro) boring, flat and confusing, because feedback was split between the card and ChatGPT. PRD v1.0 supersedes direction B. Both themes are strictly black and white, like ChatGPT: white with black in light mode, black with white in dark mode. Correct and wrong are carried by icon, shape, motion and words, never colour. Delight comes from motion, typography and celebration moments. The design system is in DESIGN.md.
 
 ## Evidence on Hand
 

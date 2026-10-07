@@ -192,7 +192,7 @@ The home card shows the goal ring, these four numbers (Đã gặp and Đã thu�
 
 ## 9. Visual design
 
-This section supersedes direction B (navy and blue). The owner chose the original game-like monochrome style on 6 October 2026. `DESIGN.md` holds the full design system, and `ui design/` holds the reference screens.
+This section supersedes direction B (navy and blue). The owner chose the original game-like monochrome style on 6 October 2026. `DESIGN.md` holds the full design system, and `src/ui/learning.html` implements it.
 
 | Token | Light | Dark | Use |
 | --- | --- | --- | --- |

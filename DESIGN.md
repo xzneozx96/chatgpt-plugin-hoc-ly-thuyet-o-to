@@ -101,7 +101,7 @@ components:
 
 The card is as quiet as ChatGPT in colour and as tactile as Duolingo in feel. There is no hue. Energy comes from pressable tiles with a solid bottom edge, inversion (black ↔ white), diagonal stripes for mistakes, monospace numbers, and short pops, shakes and sparks. Original question images keep their own colours and are the only meaningful imagery.
 
-The owner chose this style on 6 October 2026, over the flat "Monochrome Play" draft. The reference screens are in `ui design/screens/*.dc.html`, and the handoff notes are in `ui design/README.md`. Those files are a visual reference with sample data and fake logic. The widget is `src/ui/learning.html`.
+The owner chose this style on 6 October 2026, over the flat "Monochrome Play" draft. The widget, `src/ui/learning.html`, is now the reference implementation. The design export it was built from has been retired.
 
 **Key characteristics:**
 
@@ -284,4 +284,4 @@ There is no verdict motion, XP or help during the test. The Result screen has a 
 - **Don't** use blurred drop shadows or looping animation.
 - **Don't** open a new card per question.
 
-Source scope: `ui design/README.md`, `ui design/screens/*.dc.html`, `docs/product-requirements.md` v1.0 and `docs/ui-ux-design.md`. Direction-B documents are historical.
+Source scope: `src/ui/learning.html`, `docs/product-requirements.md` v1.0 and `docs/ui-ux-design.md`.
