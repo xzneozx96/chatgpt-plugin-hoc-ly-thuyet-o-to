@@ -128,15 +128,25 @@ function questionBlock(question: ShownQuestion, origin: string) {
   ].join("\n");
 }
 
-function courseText(course: ReturnType<typeof courseView> & { historyAvailable?: boolean }) {
+// The learner's local clock time and date, for "23:55 ngày 6/10".
+function localTime(at: number, timeZone: string) {
+  const format = (options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("vi-VN", { ...options, timeZone }).format(at);
+  return `${format({ hour: "2-digit", minute: "2-digit", hourCycle: "h23" })} ngày ${format({ day: "numeric", month: "numeric" })}`;
+}
+
+// The same labels as the card: Đã gặp, Đã thuộc (never including the questions waiting for their review), Cần ôn hôm nay, Sai hôm nay.
+function courseText(course: ReturnType<typeof courseView> & { historyAvailable?: boolean; serverNow?: number }) {
+  const now = course.serverNow ?? Date.now();
+  const nextLearn = course.nextLearnAt === null ? "ôn lại khi đến hạn để thuộc" : course.nextLearnAt <= now ? "có câu đã đến hạn, ôn ngay để thuộc" : `sớm nhất ôn lại lúc ${localTime(course.nextLearnAt, course.profile.timezone)}`;
   const lines = [
     ...(course.historyAvailable === false ? ["Lịch sử học chưa khả dụng trên kết nối này; không có tiến độ nào được lưu."] : []),
     ...(course.nothingToStudy ? ["Không có buổi học mới: chưa có câu đến hạn ôn và đã đạt mục tiêu câu mới hôm nay. Gợi ý luyện theo chủ đề (start_study với unitId và count) hoặc thi thử."] : []),
-    `Khóa học bằng B: đã thử ${course.covered}/${course.total} câu, đã nhớ ${course.learned}, đến hạn ôn ${course.dueCount}.`,
+    `Khóa học bằng B: Đã gặp ${course.covered}/${course.total} · Đã thuộc ${course.learned}/${course.total} · Cần ôn hôm nay ${course.dueCount} · Sai hôm nay ${course.wrongToday}.`,
+    ...(course.onTheWay > 0 ? [`Đang chờ ôn lại để thuộc: ${course.onTheWay} câu đã đúng 1 lần, chưa tính vào Đã thuộc; ${nextLearn}.`] : []),
     `Mục tiêu ${course.dailyGoal} câu mới mỗi ngày; hôm nay đã học ${course.newToday} câu mới.`,
     `Kết quả: ${course.results.correctAttempts}/${course.results.totalAttempts} lượt đúng (${course.results.accuracyPercent}%).`,
-    ...course.units.map(unit => `- ${unit.title} (${unit.id}): ${unit.covered}/${unit.questionCount} đã thử, ${unit.learned} đã nhớ`),
-    `- ${course.customCategory.title} (${course.customCategory.id}): ${course.customCategory.covered}/${course.customCategory.total} đã thử, ${course.customCategory.familyCount} nhóm`
+    ...course.units.map(unit => `- ${unit.title} (${unit.id}): Đã gặp ${unit.covered}/${unit.questionCount}, Đã thuộc ${unit.learned}`),
+    `- ${course.customCategory.title} (${course.customCategory.id}): Đã gặp ${course.customCategory.covered}/${course.customCategory.total}, Đã thuộc ${course.customCategory.learned}, ${course.customCategory.familyCount} nhóm`
   ];
   const open = course.sessions.filter(session => session.status !== "complete");
   if (open.length) lines.push(`Buổi học đang mở: ${open.map(session => `${session.id} (${session.status})`).join(", ")}.`);
