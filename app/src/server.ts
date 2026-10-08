@@ -22,7 +22,7 @@ const learningHtmlPath = process.env.VERCEL ? resolve("src/ui/learning.html") : 
 const LEARNING_UI_URI = `ui://ly-thuyet-lai-xe/learning-${createHash("sha256").update(readFileSync(learningHtmlPath)).digest("hex").slice(0, 12)}.html`;
 const learningPreviewPath = process.env.VERCEL ? resolve("src/ui/learning-preview.html") : fileURLToPath(new URL("./ui/learning-preview.html", import.meta.url));
 const assetsPath = process.env.VERCEL ? resolve("src/ui/assets") : fileURLToPath(new URL("./ui/assets/", import.meta.url));
-const imagesPath = process.env.VERCEL ? resolve("images") : fileURLToPath(new URL("../images/", import.meta.url));
+const imagesPath = process.env.VERCEL ? resolve("data/images") : fileURLToPath(new URL("../data/images/", import.meta.url));
 const questionSchema = {
   id: z.string(),
   topic: z.string(),

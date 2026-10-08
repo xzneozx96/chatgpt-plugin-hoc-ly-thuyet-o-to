@@ -34,7 +34,7 @@ The name is Lý Thuyết Lái Xe. Vietnamese is the teaching language. On 7 Octo
 
 ## Evidence on Hand
 
-question-bank.json contains 600 original questions. Local images accompany image-dependent questions. docs/question-family-analysis.json contains 249 draft families; 132 need visual review. The PRD defines learning and review policy. Prototype history is illustrative. Approved video segments are not yet available in the prototype.
+question-bank.json contains 600 original questions. Local images accompany image-dependent questions. app/src/content/question-families.json contains 249 draft families; 132 need visual review. The PRD defines learning and review policy. Prototype history is illustrative. Approved video segments are not yet available in the prototype.
 
 ## Product Principles
 

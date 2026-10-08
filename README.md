@@ -2,18 +2,31 @@
 
 A private Vietnamese driving-theory study app with a browser preview and a streamable HTTP MCP server. It offers practice, progress, spaced reviews, and source-backed search. The answer key and scoring stay on the server.
 
-The repository's `question-bank.json` is the 600-question source of truth, version `2026.07.1`. The 318 referenced images are under `images/` from the URL pattern supplied by the project owner. The bank has 42 questions without explanations; those show a clear missing-explanation message. A separate review of image rights and publication terms remains for the public release milestone.
+The repository's `app/data/question-bank.json` is the 600-question source of truth, version `2026.07.1`. The 318 referenced images are under `app/data/images/` from the URL pattern supplied by the project owner. The bank has 42 questions without explanations; those show a clear missing-explanation message. A separate review of image rights and publication terms remains for the public release milestone.
 
 ## Run locally
+
+## Layout
+
+```
+app/       runtime application: src, api, tests, scripts, migrations, public, package.json, vercel.json, Dockerfile
+app/data/  question-bank.json and images/ (loaded by the app and copied into dist/)
+content/   source material, not shipped: book/, question-bank.txt
+docs/      product and deployment docs
+plugin/    plugin.json, mcp.json, driving-theory-tutor skill
+```
+
+Run every npm, Docker and Vercel command from `app/`. Set the Vercel project's Root Directory to `app`.
 
 Use Node.js 22 or later.
 
 ```bash
+cd app
 npm ci
 npm start
 ```
 
-Open **[the local preview](http://127.0.0.1:8787/preview)** after the server starts. The server also exposes MCP at `http://127.0.0.1:8787/mcp`. Set `PORT` to use another port. Local answer history is saved at `.data/study.sqlite`; set `DATA_PATH` to choose another file. Do not open `src/ui/quiz.html` as a `file://` page, since its buttons require the preview host or ChatGPT MCP Apps bridge.
+Open **[the local preview](http://127.0.0.1:8787/preview)** after the server starts. The server also exposes MCP at `http://127.0.0.1:8787/mcp`. Set `PORT` to use another port. Local answer history is saved at `app/.data/study.sqlite`; set `DATA_PATH` to choose another file. Do not open `app/src/ui/quiz.html` as a `file://` page, since its buttons require the preview host or ChatGPT MCP Apps bridge.
 
 The preview offers all seven topics, always-visible **Câu trước** and **Câu tiếp theo** buttons that work without answering, direct access to IDs such as `q499` through the Tra cứu tab, due reviews, saved progress, and source-backed search. Wrong answers become due immediately. Correct answers are scheduled after 1, 3, 7, 14, and 30 days as the streak grows. Search uses `question-bank.json` only.
 

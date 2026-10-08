@@ -9,8 +9,8 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-BANK = json.loads((ROOT / "question-bank.json").read_text())
-DEST = ROOT / "images"
+BANK = json.loads((ROOT / "data" / "question-bank.json").read_text())
+DEST = ROOT / "data" / "images"
 BASE = "https://thidaugplx.com/images/questions-hd/"
 PATHS = sorted({q["imagePath"] for q in BANK["questions"] if q["imagePath"]})
 

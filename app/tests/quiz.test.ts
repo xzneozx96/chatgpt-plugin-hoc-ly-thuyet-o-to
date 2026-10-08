@@ -30,7 +30,7 @@ test("the answer key stays on the server, and scoring is deterministic", () => {
 });
 
 test("all 600 source questions are reachable with unchanged text and answer keys", () => {
-  const source = JSON.parse(readFileSync(fileURLToPath(new URL("../question-bank.json", import.meta.url)), "utf8")) as {
+  const source = JSON.parse(readFileSync(fileURLToPath(new URL("../data/question-bank.json", import.meta.url)), "utf8")) as {
     questions: Array<{ id: number; text: string; imagePath: string | null; options: Array<{ key: number; text: string }>; correctKey: number }>;
   };
   let previous: string | undefined;

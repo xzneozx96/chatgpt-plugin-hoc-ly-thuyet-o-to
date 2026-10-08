@@ -14,7 +14,7 @@ const metadataSchema = z.object({
         explanation: z.string().nullable()
     }))
 });
-const bank = metadataSchema.parse(JSON.parse(readFileSync(process.env.VERCEL ? resolve("question-bank.json") : fileURLToPath(new URL("../../question-bank.json", import.meta.url)), "utf8")));
+const bank = metadataSchema.parse(JSON.parse(readFileSync(process.env.VERCEL ? resolve("data/question-bank.json") : fileURLToPath(new URL("../../data/question-bank.json", import.meta.url)), "utf8")));
 export const familySchema = z.object({
     id: z.string(),
     title: z.string(),

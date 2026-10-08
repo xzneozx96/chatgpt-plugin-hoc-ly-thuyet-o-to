@@ -4,7 +4,7 @@
   "outputDirectory": "public",
   "functions": {
     "api/index.ts": {
-      "includeFiles": "{question-bank.json,images/**,src/ui/**,src/content/**}"
+      "includeFiles": "{data/**,src/ui/**,src/content/**}"
     }
   },
   "rewrites": [

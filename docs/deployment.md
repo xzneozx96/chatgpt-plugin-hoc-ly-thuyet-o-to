@@ -4,7 +4,7 @@
 
 This repository is deployed at `https://chatgpt-plugin-hoc-ly-thuyet-o-to.vercel.app`. The public quiz is at `/play`, the MCP endpoint at `/mcp`, and the question images at `/images/qNNN.webp`. The Vercel function is stateless and does not write learner progress to its temporary filesystem.
 
-To recheck the deployment, run `node scripts/check-public-preview.mjs https://chatgpt-plugin-hoc-ly-thuyet-o-to.vercel.app`. In ChatGPT Plugins, create or update the custom MCP connection to `https://chatgpt-plugin-hoc-ly-thuyet-o-to.vercel.app/mcp`, then refresh its tool list. A custom domain can be added in Vercel Project Settings → Domains; after DNS verification, use that domain's `/mcp` URL in ChatGPT.
+To recheck the deployment, run `node app/scripts/check-public-preview.mjs https://chatgpt-plugin-hoc-ly-thuyet-o-to.vercel.app`. In ChatGPT Plugins, create or update the custom MCP connection to `https://chatgpt-plugin-hoc-ly-thuyet-o-to.vercel.app/mcp`, then refresh its tool list. A custom domain can be added in Vercel Project Settings → Domains; after DNS verification, use that domain's `/mcp` URL in ChatGPT.
 
 Until the AuthKit and Neon settings are present, the public connection is an anonymous demo. The local `/preview` retains private progress in SQLite. [Enable saved reviews in ChatGPT](chatgpt-progress-setup.md) explains the authenticated deployment.
 
@@ -25,7 +25,7 @@ docker build -t ly-thuyet-lai-xe:latest .
 docker run --rm -p 8787:8787 -e PORT=8787 -e PUBLIC_BASE_URL=https://study.example.com ly-thuyet-lai-xe:latest
 ```
 
-After deployment, check `https://study.example.com/`, `/play`, `/mcp`, and `/images/q301.webp`. Run `node scripts/check-public-preview.mjs https://study.example.com`; it checks MCP discovery and confirms private progress routes return 404. Share `/play` for browser use. Use `/mcp` when registering a ChatGPT developer connection.
+After deployment, check `https://study.example.com/`, `/play`, `/mcp`, and `/images/q301.webp`. Run `node app/scripts/check-public-preview.mjs https://study.example.com`; it checks MCP discovery and confirms private progress routes return 404. Share `/play` for browser use. Use `/mcp` when registering a ChatGPT developer connection.
 
 The source package has a portable `plugin.json`, `mcp.json`, and tutor skill. Before submitting to the public Plugins Directory, replace the local URL in `mcp.json` with the stable HTTPS `/mcp` URL and complete the required listing, support, privacy, terms, review cases, and domain verification in the publisher account. Review distribution rights for the bundled question images. Do not submit a package pointing at a temporary ngrok URL; the published MCP URL is difficult to change later. Submission and publication remain human decisions.
 

@@ -5,8 +5,7 @@ RUN npm ci
 COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 COPY scripts/copy-assets.mjs ./scripts/copy-assets.mjs
-COPY question-bank.json ./question-bank.json
-COPY images ./images
+COPY data ./data
 RUN npm run build
 
 FROM node:22-slim
