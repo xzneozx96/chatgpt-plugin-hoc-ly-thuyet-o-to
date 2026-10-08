@@ -224,3 +224,21 @@ test("the card's own calls get short text that keeps ChatGPT silent, a replay ig
   assert.equal(mismatch.isError, true);
   assert.deepEqual(mismatch.structuredContent, { kind: "error", code: "QUESTION_BINDING_MISMATCH" });
 });
+
+test("lesson results carry every queued answer key in hidden _meta, never in the content the model reads; mock tests carry none", async () => {
+  const keysOf = (result: { _meta?: unknown }) => (result._meta as { lessonKeys?: Record<string, { correctAnswer: string; question: { id: string }; teachingStatus: string }> } | undefined)?.lessonKeys;
+  const started = await client.callTool({ name: "start_study", arguments: { questionIds: ["q001", "q003"], requestId: randomUUID(), caller: "card" } });
+  const keys = keysOf(started);
+  assert.deepEqual(Object.fromEntries(Object.entries(keys ?? {}).map(([id, key]) => [id, [key.question.id, key.correctAnswer, key.teachingStatus]])), { q001: ["q001", "B", "bank_text_unreviewed"], q003: ["q003", "A", "bank_text_unreviewed"] });
+  assert.equal(JSON.stringify(started.structuredContent).includes("correctAnswer"), false, "an unanswered lesson's view has no key");
+  assert.equal(JSON.stringify(started.content).includes("correctAnswer"), false);
+  const sessionId = (started.structuredContent as { sessionId: string }).sessionId;
+  const address = httpServer.address();
+  assert.ok(address && typeof address === "object");
+  const preview = await (await fetch(`http://127.0.0.1:${address.port}/preview/tool`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "get_study_session", arguments: { sessionId } }) })).json() as { _meta?: unknown; structuredContent: object };
+  assert.equal(keysOf(preview)?.q003?.correctAnswer, "A", "the preview bridge attaches the same keys");
+  assert.equal(JSON.stringify(preview.structuredContent).includes("correctAnswer"), false);
+  const mock = await client.callTool({ name: "start_mock_test", arguments: { mode: "random", requestId: randomUUID() } });
+  assert.equal(keysOf(mock), undefined, "a mock test gets no answer keys");
+  await client.callTool({ name: "abandon_mock_test", arguments: { attemptId: (mock.structuredContent as { attemptId: string }).attemptId, requestId: randomUUID() } });
+});

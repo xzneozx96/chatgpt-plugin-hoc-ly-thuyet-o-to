@@ -9,7 +9,10 @@ export const DAY = 86400000;
 const LIGHTNING_MS = 60000;
 const LIGHTNING_MAX_LAG_MS = 3 * LIGHTNING_MS;
 const MOCK_LATE_SAVE_MS = 30000;
+// How long after a lightning deadline an answer the card sent in time may still arrive.
+const LIGHTNING_LATE_MS = 15000;
 const lagMs = z.number().int().min(0).optional().describe("Set only by the study card: milliseconds it waited on earlier lightning requests. Never set it yourself.");
+const studyLeftMs = z.number().int().min(0).optional().describe("Set only by the study card: milliseconds of the lightning round it showed as left when the learner acted. Never set it yourself.");
 const id = z.string().uuid();
 const qid = z.string().regex(/^q\d{3}$/).refine(value => bankQuestions.some(q => q.questionId === value), "Unknown original question");
 const time = z.number().finite().nonnegative();
@@ -169,7 +172,8 @@ export const LearningCommandSchema = z.discriminatedUnion("kind", [
         questionId: qid,
         answer: choice,
         confidence: confidence.optional(),
-        lagMs
+        lagMs,
+        leftMs: studyLeftMs
     }),
     z.object({
         ...sessionInput,
@@ -193,7 +197,8 @@ export const LearningCommandSchema = z.discriminatedUnion("kind", [
         kind: z.literal("next_study"),
         questionId: qid.optional(),
         repair: z.boolean().optional(),
-        lagMs
+        lagMs,
+        leftMs: studyLeftMs
     }),
     z.object({
         ...base,
@@ -399,14 +404,17 @@ export interface AnswerStep {
 function answerFacts(evidence: LearnerState["evidence"]) {
     return evidence.filter((e): e is AnswerFact => e.kind === "answer").sort((a, b) => a.at - b.at || a.sequence - b.sequence);
 }
+// As in helpView: a question without bank text has no explanation to show, only the fallback sentence.
+function teachingStatusOf(questionId: string): "bank_text_unreviewed" | "teaching_gap" {
+    return bankQuestions.find(q => q.questionId === questionId)?.explanation ? "bank_text_unreviewed" : "teaching_gap";
+}
 function feedbackOf(e: AnswerFact) {
     return {
         ...submitAnswer(e.questionId, e.answer),
         assisted: e.assisted,
         confidence: e.confidence,
         sourceId: `question-bank.json#${e.questionId}`,
-        // As in helpView: a question without bank text has no explanation to show, only the fallback sentence.
-        teachingStatus: bankQuestions.find(q => q.questionId === e.questionId)?.explanation ? "bank_text_unreviewed" : "teaching_gap"
+        teachingStatus: teachingStatusOf(e.questionId)
     };
 }
 function answerResults(answers: AnswerFact[]) {
@@ -699,6 +707,19 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
         }
     };
 }
+/**
+ * The answer key for every question in an open lesson or lightning round, so the card can show a verdict before
+ * the server confirms it. It travels in hidden result metadata; mock tests and closed sessions get none.
+ */
+export function lessonKeys(view: Pick<ReturnType<typeof studyView>, "status" | "mode" | "queue">) {
+    if (view.status === "complete" || (view.mode !== "lesson" && view.mode !== "lightning"))
+        return null;
+    return Object.fromEntries([...new Set(view.queue.map(i => i.questionId))].map(id => {
+        const question = safeQuestion(id);
+        const { correctAnswer, explanation } = submitAnswer(id, question.options[0]?.id ?? "A");
+        return [id, { question, correctAnswer, explanation, teachingStatus: teachingStatusOf(id) }];
+    }));
+}
 export function mockView(state: LearnerState, attemptId: string, now: number, resumed = false) {
     const m = findMock(state, attemptId);
     const common = {
@@ -979,6 +1000,12 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
         const s = state.sessions.find(s => s.id === command.sessionId);
         if (s?.mode === "lightning" && s.deadline !== undefined)
             s.deadline = Math.max(s.deadline, s.createdAt + LIGHTNING_MS + Math.min(command.lagMs, LIGHTNING_MAX_LAG_MS));
+    }
+    if ((command.kind === "answer_study" || command.kind === "next_study") && (command.leftMs ?? 0) > 0) {
+        // The card answers before the server hears of it, so an action taken in time can arrive after the deadline.
+        const s = state.sessions.find(s => s.id === command.sessionId);
+        if (s?.mode === "lightning" && s.status !== "complete" && s.deadline !== undefined && now < s.deadline + LIGHTNING_LATE_MS)
+            s.deadline = Math.min(s.createdAt + LIGHTNING_MS + LIGHTNING_MAX_LAG_MS, Math.max(s.deadline, now + (command.leftMs ?? 0)));
     }
     closeExpiredLightning(state, now);
     let activityId: string | null = null;

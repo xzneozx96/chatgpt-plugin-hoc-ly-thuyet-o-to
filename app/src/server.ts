@@ -12,7 +12,7 @@ import { AttemptStore } from "./persistence/attempts.js";
 import { authenticateBearer, createAuthKitVerifier, readAuthKitConfig, type TokenVerifier } from "./auth/authkit.js";
 import { createRemoteAttemptStore } from "./persistence/remote-attempts.js";
 import { LearningRuntime } from "./domain/learning-runtime.js";
-import { calledByCard, createLearningTools, learningError, learningText } from "./learning-tools.js";
+import { createLearningTools, learningError, learningResult } from "./learning-tools.js";
 import { createRemoteLearningStore, SqliteLearningStore, type LearningStore } from "./persistence/learning-store.js";
 
 const UI_MIME = "text/html;profile=mcp-app";
@@ -64,7 +64,7 @@ export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", worksp
       try {
         const started = performance.now();
         const view = await tool.run(input);
-        return { _meta: { timing: { toolMs: Math.round(performance.now() - started) } }, structuredContent: { ...view }, content: [{ type: "text", text: learningText(view, baseUrl.origin, calledByCard(input)) }] };
+        return learningResult(view, baseUrl.origin, input, Math.round(performance.now() - started));
       } catch (error) { return learningError(error); }
     });
   }
@@ -278,7 +278,7 @@ export function createHttpHandler(options: {
           try {
             const started = performance.now();
             const view = await learningTool.run(request.arguments);
-            return void res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }).end(JSON.stringify({ _meta: { timing: { toolMs: Math.round(performance.now() - started) } }, structuredContent: view, content: [{ type: "text", text: learningText(view, new URL(publicBaseUrl).origin, calledByCard(request.arguments)) }] }));
+            return void res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }).end(JSON.stringify(learningResult(view, new URL(publicBaseUrl).origin, request.arguments, Math.round(performance.now() - started))));
           } catch (error) { return void res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }).end(JSON.stringify(learningError(error))); }
         }
         const baseUrl = new URL(publicBaseUrl);

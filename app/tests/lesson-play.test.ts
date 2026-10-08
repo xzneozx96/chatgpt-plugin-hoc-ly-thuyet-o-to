@@ -274,6 +274,23 @@ test("time the card spent waiting on requests is credited to the round, and the 
     assert.equal(retried.kind === "study" && retried.correctCount, 1, "a retry with a larger credit replays the saved answer");
 });
 
+test("an answer the card showed in time counts when it reaches the server up to 15 seconds after the deadline", () => {
+    const seen = answered(3);
+    const round = lightning(seen, morning + DAY);
+    const deadline = morning + DAY + MINUTE;
+    const [first, second] = round.state.sessions.at(-1)?.items.map(i => i.questionId) ?? [];
+    assert.ok(first && second);
+    const answer = (questionId: string, at: number, state = round.state) => executeLearning(state, { kind: "answer_study", requestId: requestId(), sessionId: round.sessionId, questionId, answer: right(questionId), leftMs: 2000 }, at);
+    const late = answer(first, deadline + 5000);
+    assert.ok(late.view.kind === "study");
+    assert.deepEqual([late.view.correctCount, late.view.status, late.view.deadline], [1, "active", deadline + 7000], "5 s late with 2 s left on the card: saved, and the round runs 2 s more");
+    const moved = executeLearning(late.state, { kind: "next_study", requestId: requestId(), sessionId: round.sessionId, leftMs: 1500 }, deadline + 7500);
+    assert.ok(moved.view.kind === "study");
+    assert.equal(moved.view.question?.id, second, "a late next moves on too");
+    assert.throws(() => answer(first, deadline + 20000), /LIGHTNING_EXPIRED/, "20 s late is past the grace window");
+    assert.throws(() => executeLearning(round.state, { kind: "answer_study", requestId: requestId(), sessionId: round.sessionId, questionId: first, answer: right(first) }, deadline + 5000), /LIGHTNING_EXPIRED/, "without leftMs a late answer is refused");
+});
+
 test("an answer after the 60 seconds is rejected and records nothing, and the round closes", async () => {
     const store = new SqliteLearningStore(":memory:");
     let now = morning;
