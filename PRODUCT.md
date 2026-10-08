@@ -24,7 +24,7 @@ The question bank supplies original wording, images, answers, and applicability.
 
 Complete all due review first by default. Honour an explicit request for another activity without clearing outstanding reviews. Learners choose daily new-question goals of 10, 12, 15, or a custom number. Approved external MCP knowledge supplies explanations and timestamped video links. Source integration, production identity, persistence, and ChatGPT host validation remain implementation gates.
 
-Game layer: server-computed XP, a daily goal ring built from the new-question goal plus due review, and opt-in pseudonymous weekly leagues. No streaks, levels, badges or lives. Learners see three progress numbers: Đã gặp (seen), Đã thuộc (mastered), Cần ôn hôm nay (due today).
+Game layer: server-computed XP, a daily goal ring built from the new-question goal plus due review, and opt-in pseudonymous weekly leagues. A daily study streak is derived from saved answers in the learner timezone; one answered question counts as a study day, regardless of correctness. No levels, badges or lives. Learners see three progress numbers: Đã gặp (seen), Đã thuộc (mastered), Cần ôn hôm nay (due today).
 
 Mock tests contain 30 questions, last 20 minutes, require at least 27 correct, and fail on any wrong or unanswered critical question. The owner-supplied test library is pending. Random-bank practice must be labelled honestly.
 
@@ -39,7 +39,7 @@ question-bank.json contains 600 original questions. Local images accompany image
 ## Product Principles
 
 - Play in the card, talk in the chat: one verdict per answer, shown instantly by the card.
-- Small wins often, never punishment: XP, a filling goal ring and lesson celebrations; no lives or streak loss.
+- Small wins often, never punishment: XP, a filling goal ring and lesson celebrations; no lives or XP penalty for a missed study day.
 - Teach meaningful distinctions with source-backed explanations and original questions.
 - Keep course coverage distinct from independently demonstrated learning.
 - Let learners follow course units and resume their work.

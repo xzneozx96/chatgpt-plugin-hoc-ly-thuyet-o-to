@@ -212,6 +212,7 @@ test("the lesson summary counts as posted only after the host accepts it, and a 
     await app.getByRole("heading", { name: "Chính xác!" }).waitFor();
     await continueStudy(app);
     await app.getByRole("heading", { name: "Hoàn thành bài học!" }).waitFor();
+    await app.locator('[data-action="finish-continue"]').click();
     await app.getByText("Chưa gửi được tổng kết vào khung chat").waitFor();
     const sent = await messages();
     await app.locator('[data-action="summary-retry"]').click();
@@ -265,6 +266,7 @@ test("skipping the last question ends on the finish screen with what is left, an
     await app.getByText("Đã bỏ qua · vẫn cần ôn").waitFor();
     await continueStudy(app);
     await app.getByText("Còn 1 câu bỏ qua — vẫn cần ôn").waitFor();
+    await app.locator('[data-action="finish-continue"]').click();
     await app.getByText("Bỏ qua: 1", { exact: false }).waitFor();
     assert.equal(await app.getByRole("heading", { name: "Buổi học đã tạm dừng" }).count(), 0);
     await page.waitForTimeout(300);
@@ -944,7 +946,7 @@ test("the home card's fourth tile counts today's mistakes and opens a read-only 
     assert.equal((await tiles.nth(3).innerText()).replace(/\s+/g, " ").trim(), "3 câu Sai hôm nay Xem lại");
     const tops = () => tiles.evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
     const [a, b, c, d] = await tops();
-    assert.ok(a! < b! && b! < c! && c! < d!, "Đã gặp leads, the other three stack beneath it");
+    assert.ok(a === b && c === d && a! < c!, "mobile progress uses two balanced rows");
     const open = app.getByRole("button", { name: "Sai hôm nay: 3 câu, xem lại" });
     assert.equal(await open.locator(".info-btn").count(), 0, "the ⓘ is not inside the tile's button");
     await app.getByRole("button", { name: "Giải thích: Sai hôm nay", exact: true }).click();
@@ -980,7 +982,7 @@ test("the home card's fourth tile counts today's mistakes and opens a read-only 
 
     await page.setViewportSize({ width: 900, height: 900 });
     const [w, x, y, z] = await tops();
-    assert.ok(w! < x! && x! < y! && y! < z!, "the same stacked order in the desktop progress sidebar");
+    assert.ok(w === x && x === y && y === z, "desktop progress uses one evenly aligned row");
   });
 });
 
@@ -1032,6 +1034,7 @@ test("Nhắc tôi học mỗi ngày asks ChatGPT for a daily reminder in one cha
 
     await open(await tool("get_study_session", { sessionId }));
     await app.getByRole("heading", { name: "Hoàn thành bài học!" }).waitFor();
+    await app.locator('[data-action="finish-continue"]').click();
     await app.getByRole("button", { name: "Nhắc tôi học mỗi ngày", exact: true }).waitFor();
   });
 });
@@ -1132,6 +1135,7 @@ test("the ⓘ beside Tôi đoán, THỬ LẠI, the combo, XP, the goal, the mock
     await next();
     await app.getByRole("heading", { name: "Hoàn thành bài học!" }).waitFor();
     await explains("XP", "XP");
+    await app.locator('[data-action="finish-continue"]').click();
     await explains("Mục tiêu hôm nay", "Mục tiêu hôm nay");
 
     await app.getByRole("button", { name: "Xong hôm nay" }).click();
@@ -1155,6 +1159,7 @@ test("with nothing newly mastered, the finish screen counts first-time correct a
     assert.equal(await third.locator("[data-count]").getAttribute("data-count"), "3");
     assert.equal(await app.getByText("câu mới thuộc").count(), 0);
     // Answered just now, so they count again from 24 hours later: tomorrow.
+    await app.locator('[data-action="finish-continue"]').click();
     await app.getByText("Ngày mai ôn lại để thuộc", { exact: true }).waitFor();
     await app.getByRole("button", { name: "Giải thích: Đã thuộc", exact: true }).click();
     await app.getByRole("dialog").getByText("3 câu đã đúng 1 lần", { exact: false }).waitFor();

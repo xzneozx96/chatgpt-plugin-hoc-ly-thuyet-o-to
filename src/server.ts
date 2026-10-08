@@ -61,8 +61,9 @@ export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", worksp
       _meta: { ui: { ...(tool.card ? { resourceUri: LEARNING_UI_URI } : {}), visibility: ["model", "app"] } }
     }, async (input) => {
       try {
+        const started = performance.now();
         const view = await tool.run(input);
-        return { structuredContent: { ...view }, content: [{ type: "text", text: learningText(view, baseUrl.origin, calledByCard(input)) }] };
+        return { _meta: { timing: { toolMs: Math.round(performance.now() - started) } }, structuredContent: { ...view }, content: [{ type: "text", text: learningText(view, baseUrl.origin, calledByCard(input)) }] };
       } catch (error) { return learningError(error); }
     });
   }
@@ -274,8 +275,9 @@ export function createHttpHandler(options: {
         const learningTool = createLearningTools(localLearningRuntime, localLearningRuntime ? "local" : "unavailable").find(tool => tool.name === request.name);
         if (learningTool) {
           try {
+            const started = performance.now();
             const view = await learningTool.run(request.arguments);
-            return void res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }).end(JSON.stringify({ structuredContent: view, content: [{ type: "text", text: learningText(view, new URL(publicBaseUrl).origin, calledByCard(request.arguments)) }] }));
+            return void res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }).end(JSON.stringify({ _meta: { timing: { toolMs: Math.round(performance.now() - started) } }, structuredContent: view, content: [{ type: "text", text: learningText(view, new URL(publicBaseUrl).origin, calledByCard(request.arguments)) }] }));
           } catch (error) { return void res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }).end(JSON.stringify(learningError(error))); }
         }
         const baseUrl = new URL(publicBaseUrl);

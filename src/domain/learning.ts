@@ -3,6 +3,7 @@ import { z } from "zod";
 import { submitAnswer } from "./quiz.js";
 import { bankQuestions, bankVersion, categories, categoryTitles, CONFUSING_CATEGORY_ID, families, safeQuestion, unitQuestions } from "./course.js";
 import { answerAwards, awardParts, comboOf, hasFinishedLesson, lessonXp, xpSummary } from "./game.js";
+import { dailyStreak } from "./streak.js";
 import { leagueDisplayName } from "./league.js";
 export const DAY = 86400000;
 const LIGHTNING_MS = 60000;
@@ -487,6 +488,7 @@ export function courseView(state: LearnerState, now: number, nothingToStudy = fa
         dailyGoal: daily.dailyGoal,
         dueCount: daily.dueCount,
         wrongToday: daily.wrongToday,
+        streak: dailyStreak(state.evidence.filter(event => event.kind === "answer").map(event => event.at), state.profile.timezone, now),
         requiredStudyDays,
         calendarCapacity,
         bufferDays: calendarCapacity - requiredStudyDays,
