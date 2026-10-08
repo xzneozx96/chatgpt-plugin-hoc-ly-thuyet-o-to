@@ -1,6 +1,5 @@
+import { appFile } from "../paths.js";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { getQuestionById } from "./quiz.js";
 const metadataSchema = z.object({
@@ -14,7 +13,7 @@ const metadataSchema = z.object({
         explanation: z.string().nullable()
     }))
 });
-const bank = metadataSchema.parse(JSON.parse(readFileSync(process.env.VERCEL ? resolve("data/question-bank.json") : fileURLToPath(new URL("../../data/question-bank.json", import.meta.url)), "utf8")));
+const bank = metadataSchema.parse(JSON.parse(readFileSync(appFile("data/question-bank.json"), "utf8")));
 export const familySchema = z.object({
     id: z.string(),
     title: z.string(),
@@ -24,7 +23,7 @@ export const familySchema = z.object({
     status: z.literal("approved"),
     reviewedOn: z.string()
 });
-export const families = z.array(familySchema).parse(JSON.parse(readFileSync(process.env.VERCEL ? resolve("src/content/question-families.json") : fileURLToPath(new URL("../content/question-families.json", import.meta.url)), "utf8")));
+export const families = z.array(familySchema).parse(JSON.parse(readFileSync(appFile("src/content/question-families.json"), "utf8")));
 export const bankVersion = bank.version;
 export const bankQuestions = bank.questions.map(q => ({
     ...q,

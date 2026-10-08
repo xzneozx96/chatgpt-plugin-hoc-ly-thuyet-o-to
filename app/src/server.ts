@@ -1,3 +1,4 @@
+import { appFile } from "./paths.js";
 import { createHash, randomUUID } from "node:crypto";
 import { createServer, type RequestListener } from "node:http";
 import { readFileSync } from "node:fs";
@@ -15,14 +16,14 @@ import { calledByCard, createLearningTools, learningError, learningText } from "
 import { createRemoteLearningStore, SqliteLearningStore, type LearningStore } from "./persistence/learning-store.js";
 
 const UI_MIME = "text/html;profile=mcp-app";
-const htmlPath = process.env.VERCEL ? resolve("src/ui/quiz.html") : fileURLToPath(new URL("./ui/quiz.html", import.meta.url));
-const previewPath = process.env.VERCEL ? resolve("src/ui/preview.html") : fileURLToPath(new URL("./ui/preview.html", import.meta.url));
-const learningHtmlPath = process.env.VERCEL ? resolve("src/ui/learning.html") : fileURLToPath(new URL("./ui/learning.html", import.meta.url));
+const htmlPath = appFile("src/ui/quiz.html");
+const previewPath = appFile("src/ui/preview.html");
+const learningHtmlPath = appFile("src/ui/learning.html");
 // ChatGPT caches widget HTML by URI, so a content hash makes every widget change a new URI.
 const LEARNING_UI_URI = `ui://ly-thuyet-lai-xe/learning-${createHash("sha256").update(readFileSync(learningHtmlPath)).digest("hex").slice(0, 12)}.html`;
-const learningPreviewPath = process.env.VERCEL ? resolve("src/ui/learning-preview.html") : fileURLToPath(new URL("./ui/learning-preview.html", import.meta.url));
-const assetsPath = process.env.VERCEL ? resolve("src/ui/assets") : fileURLToPath(new URL("./ui/assets/", import.meta.url));
-const imagesPath = process.env.VERCEL ? resolve("data/images") : fileURLToPath(new URL("../data/images/", import.meta.url));
+const learningPreviewPath = appFile("src/ui/learning-preview.html");
+const assetsPath = appFile("src/ui/assets");
+const imagesPath = appFile("data/images");
 const questionSchema = {
   id: z.string(),
   topic: z.string(),
