@@ -81,6 +81,10 @@ test("MCP get, submit, next and UI resource work over HTTP", async () => {
   assert.equal(learningHtml.mimeType, "text/html;profile=mcp-app");
   assert.match(learningHtml.text, /Lý Thuyết Lái Xe/);
   assert.equal(learningHtml.text.includes("{{BASE_URL}}"), false);
+  const staleUri = "ui://ly-thuyet-lai-xe/learning-da7844442067.html";
+  const stale = (await client.readResource({ uri: staleUri })).contents[0] as { uri: string; text: string };
+  assert.deepEqual([stale.uri, stale.text], [staleUri, learningHtml.text], "a card URI from an earlier deploy still opens today's card");
+  assert.deepEqual((await client.listResources()).resources.map(r => r.uri), [learningUri], "only the current card URI is listed");
   const getTool = tools.tools.find((tool) => tool.name === "get_question");
   assert.match((getTool?._meta as { ui?: { resourceUri?: string } })?.ui?.resourceUri ?? "", /^ui:\/\/ly-thuyet-lai-xe\/learning-[0-9a-f]{12}\.html$/, "single questions use the Direction B widget");
 

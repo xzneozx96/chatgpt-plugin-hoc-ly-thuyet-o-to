@@ -4,7 +4,7 @@ import { createServer, type RequestListener } from "node:http";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 import { AuthenticatedLearnerWorkspace, LearnerWorkspace, type UserAttemptStore } from "./domain/workspace.js";
@@ -51,8 +51,10 @@ export function createQuizServer(publicBaseUrl = "http://127.0.0.1:8787", worksp
   );
 
 
-  server.registerResource("learning", LEARNING_UI_URI, { title: "Lý Thuyết Lái Xe", mimeType: UI_MIME }, async () => ({
-    contents: [{ uri: LEARNING_UI_URI, mimeType: UI_MIME, text: readFileSync(learningHtmlPath, "utf8").replaceAll("{{BASE_URL}}", baseUrl.origin),
+  // ChatGPT keeps the card URI from when the connector was last refreshed, so a URI from an earlier deploy still gets today's card.
+  const learningCard = new ResourceTemplate("ui://ly-thuyet-lai-xe/learning-{version}.html", { list: async () => ({ resources: [{ uri: LEARNING_UI_URI, name: "learning", title: "Lý Thuyết Lái Xe", mimeType: UI_MIME }] }) });
+  server.registerResource("learning", learningCard, { title: "Lý Thuyết Lái Xe", mimeType: UI_MIME }, async uri => ({
+    contents: [{ uri: uri.href, mimeType: UI_MIME, text: readFileSync(learningHtmlPath, "utf8").replaceAll("{{BASE_URL}}", baseUrl.origin),
       _meta: { ui: { csp: { connectDomains: [], resourceDomains: [baseUrl.origin] } } } }]
   }));
   for (const tool of createLearningTools(learningRuntime, learningRuntime ? authenticatedWorkspace ? "authenticated" : "local" : "unavailable")) {
