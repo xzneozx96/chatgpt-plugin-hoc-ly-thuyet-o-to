@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { createLearner, courseView, listUnits, LearningCommandSchema, type mockView, type studyView, type todayMistakes } from "./domain/learning.js";
+import { createLearner, courseView, lessonKeys, listUnits, LearningCommandSchema, type mockView, type studyView, type todayMistakes } from "./domain/learning.js";
 import { LearningRuntime } from "./domain/learning-runtime.js";
 import { questionTeaching } from "./domain/teaching.js";
 import type { leagueView } from "./domain/league.js";
@@ -117,6 +117,16 @@ const callerSchema = z.literal("card").optional().describe("Set only by the stud
 /** True when the study card made this call; its result is already on screen. */
 export function calledByCard(input: unknown) {
   return typeof input === "object" && input !== null && "caller" in input && input.caller === "card";
+}
+
+/** A learning tool's MCP result. Lesson answer keys ride in _meta, which reaches the card but never the model. */
+export function learningResult(view: object, origin: string, input: unknown, toolMs: number) {
+  const keys = "kind" in view && view.kind === "study" ? lessonKeys(view as ReturnType<typeof studyView>) : null;
+  return {
+    _meta: { timing: { toolMs }, ...(keys ? { lessonKeys: keys } : {}) },
+    structuredContent: { ...view },
+    content: [{ type: "text" as const, text: learningText(view, origin, calledByCard(input)) }]
+  };
 }
 
 type ShownQuestion = Pick<NonNullable<ReturnType<typeof studyView>["question"]>, "id" | "question" | "options" | "imagePath">;

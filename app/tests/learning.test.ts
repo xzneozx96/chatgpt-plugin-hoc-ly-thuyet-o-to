@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { createLearner, executeLearning, importLegacyAttempts, questionProgress, courseView, listUnits, todayMistakes, DAY, type LearnerState, type LearningCommand } from "../src/domain/learning.js";
+import { createLearner, executeLearning, importLegacyAttempts, lessonKeys, questionProgress, courseView, listUnits, todayMistakes, DAY, type LearnerState, type LearningCommand } from "../src/domain/learning.js";
 import { safeQuestion, bankQuestions, families } from "../src/domain/course.js";
 import { submitAnswer, type AnswerId } from "../src/domain/quiz.js";
 const clock = Date.parse("2026-10-05T16:55:00Z");
@@ -584,4 +584,26 @@ test("questions with one qualifying success are on the way to Đã thuộc until
     s = answer(s, "q003", clock + DAY + 6 * MINUTE, wrong("q003"));
     const none = courseView(s, clock + DAY + 7 * MINUTE);
     assert.deepEqual([none.onTheWay, none.nextLearnAt], [0, null]);
+});
+
+test("lesson keys cover the open queue, repair steps included, and stop once the lesson completes", () => {
+    const started = executeLearning(createLearner(clock), { kind: "start_study", requestId: requestId(), questionIds: ["q001", "q002", "q003"] }, clock);
+    if (started.view.kind !== "study") assert.fail("expected study view");
+    const sessionId = started.view.sessionId;
+    const keys = lessonKeys(started.view);
+    assert.deepEqual(Object.entries(keys ?? {}).map(([id, key]) => [id, key.correctAnswer]), [["q001", "B"], ["q002", "B"], ["q003", "A"]]);
+    assert.match(keys?.q001?.explanation ?? "", /phần đường xe chạy/);
+    const missed = executeLearning(started.state, { kind: "answer_study", requestId: requestId(), sessionId, questionId: "q001", answer: "A" }, clock + 1000);
+    if (missed.view.kind !== "study") assert.fail("expected study view");
+    assert.deepEqual(missed.view.queue.map(i => i.questionId), ["q001", "q002", "q003", "q001"], "the repair step joins the queue");
+    assert.deepEqual(Object.keys(lessonKeys(missed.view) ?? {}), ["q001", "q002", "q003"]);
+    let state = missed.state;
+    for (const [at, q] of [[2, "q002"], [4, "q003"], [6, "q001"]] as const) {
+        state = run(state, { kind: "next_study", requestId: requestId(), sessionId }, clock + at * 1000);
+        state = run(state, { kind: "answer_study", requestId: requestId(), sessionId, questionId: q, answer: right(q) }, clock + at * 1000 + 500);
+    }
+    const done = executeLearning(state, { kind: "next_study", requestId: requestId(), sessionId }, clock + 8000);
+    if (done.view.kind !== "study") assert.fail("expected study view");
+    assert.equal(done.view.status, "complete");
+    assert.equal(lessonKeys(done.view), null);
 });

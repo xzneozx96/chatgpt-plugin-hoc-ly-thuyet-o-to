@@ -63,7 +63,7 @@ async function withPreview(run: (preview: Preview) => Promise<void>, setup: (pag
   }
 }
 
-test("✕ pauses while a lost answer waits for its resend, and the resend keeps its request ID", async () => {
+test("a lesson answer that cannot be sent is retried in the background with its request ID, and after three failures Thử lại resumes the queue", async () => {
   const submits: string[] = [];
   await withPreview(async ({ origin, page, app, tool, open }) => {
     const started = await tool("start_study", { questionIds: ["q001", "q002"], requestId: randomUUID() });
@@ -71,18 +71,21 @@ test("✕ pauses while a lost answer waits for its resend, and the resend keeps 
     await app.locator('[data-action="daily"], [data-action="lesson-start"], [data-action="goals"]').first().waitFor();
     await open(started);
     await app.getByRole("button", { name: "Bắt đầu" }).click();
-    await app.locator('input[name="answer"][value="A"]').check();
+    await app.locator(`input[name="answer"][value="${wrong("q001")}"]`).check();
     await app.locator('[data-action="answer"]').click();
+    await app.getByRole("heading", { name: "Chưa đúng" }).waitFor({ timeout: 300 });
     await app.getByText("Chưa gửi được — thử lại").waitFor();
-    await app.getByRole("button", { name: "Tạm dừng và lưu" }).click();
-    await app.getByRole("heading", { name: "Buổi học đã tạm dừng" }).waitFor();
-    await continueStudy(app);
-    await app.getByText("Chưa gửi được — thử lại").waitFor();
-    assert.equal(await app.locator('input[name="answer"][value="A"]').isChecked(), true, "the choice is kept across the pause");
+    assert.equal(submits.length, 3, "two background resends after the first failure");
+    assert.equal(new Set(submits).size, 1, "every resend reuses the request ID");
+    assert.equal(await app.getByRole("heading", { name: "Chưa đúng" }).isVisible(), true, "the verdict stays on screen");
+    await app.getByRole("button", { name: "Tiếp tục", exact: true }).click();
+    await app.locator("#status").getByText("Câu trả lời trước chưa gửi được. Bấm Thử lại để gửi tiếp.").waitFor();
+    assert.equal(await app.getByRole("heading", { name: "Chưa đúng" }).isVisible(), true, "nothing moves on while the answer is unsent");
     await app.getByRole("button", { name: "Thử lại" }).click();
-    await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
-    assert.equal(submits.length, 2);
-    assert.equal(submits[1], submits[0], "the resend reuses the request ID");
+    await app.getByText("Chưa gửi được — thử lại").waitFor({ state: "detached" });
+    await app.locator(".answer-award").getByText("-3 XP").waitFor();
+    assert.equal(submits.length, 4);
+    assert.equal(new Set(submits).size, 1, "the resumed send reuses the request ID");
     const course = await tool("get_course", {});
     assert.equal((course.structuredContent.results as { totalAttempts: number }).totalAttempts, 1);
   }, async (page, origin) => {
@@ -90,10 +93,66 @@ test("✕ pauses while a lost answer waits for its resend, and the resend keeps 
       const body = JSON.parse(route.request().postData() ?? "{}") as { name?: string; arguments?: { requestId?: string } };
       if (body.name !== "submit_study_answer") return route.continue();
       submits.push(body.arguments?.requestId ?? "");
-      // The first answer never reaches the server.
-      if (submits.length === 1) return route.fulfill({ status: 502, body: "" });
+      if (submits.length <= 3) return route.fulfill({ status: 502, body: "" });
       return route.continue();
     });
+  });
+});
+
+test("under a 3-second host delay a lesson shows each verdict and the next question at once, and the server records the same answers", async () => {
+  await withPreview(async ({ origin, page, app, tool, open }) => {
+    const started = await tool("start_study", { questionIds: ["q001", "q002", "q003"], requestId: randomUUID() });
+    const sessionId = started.structuredContent.sessionId as string;
+    await page.goto(`${origin}/preview?delay=3000`);
+    await app.locator("[data-action]").first().waitFor();
+    await open(started);
+    await app.getByRole("button", { name: "Bắt đầu" }).click({ timeout: 15000 });
+    await app.locator(`input[name="answer"][value="${right("q001")}"]`).check();
+    await app.locator('[data-action="answer"]').click();
+    await app.getByRole("heading", { name: "Chính xác!" }).waitFor({ timeout: 300 });
+    assert.equal(await app.locator('[data-loading]').count(), 0, "no spinner on Kiểm tra");
+    await app.locator('[data-action="study-next"]').click();
+    await app.locator("h2.stem", { hasText: safeQuestion("q002").question }).waitFor({ timeout: 300 });
+    await app.locator(`input[name="answer"][value="${wrong("q002")}"]`).check();
+    await app.locator('[data-action="answer"]').click();
+    await app.getByRole("heading", { name: "Chưa đúng" }).waitFor({ timeout: 300 });
+    assert.equal(await app.locator(".segs .seg").count(), 4, "the card queued the repair step for q002");
+    let saved = await tool("get_study_session", { sessionId });
+    for (let i = 0; i < 60 && (saved.structuredContent.sessionResults as { answered: number }).answered < 2; i++) {
+      await page.waitForTimeout(250);
+      saved = await tool("get_study_session", { sessionId });
+    }
+    assert.deepEqual(saved.structuredContent.sessionResults, { answered: 2, correct: 1, wrong: 1, items: [{ questionId: "q001", answer: right("q001"), correct: true }, { questionId: "q002", answer: wrong("q002"), correct: false }] });
+    assert.deepEqual((saved.structuredContent.queue as { questionId: string; repairOf?: string }[]).map(i => i.repairOf ? `${i.questionId}*` : i.questionId), ["q001", "q002", "q003", "q002*"], "the server put the repair step where the card did");
+    await app.locator(".answer-award").getByText("-3 XP").waitFor();
+  });
+});
+
+test("under a 3-second host delay a lightning round moves on at once and the server records both answers", async () => {
+  await withPreview(async ({ origin, dataPath, page, app, tool, open }) => {
+    const sessionId = await lightningStartedAgo(dataPath, 0);
+    await page.goto(`${origin}/preview?delay=3000`);
+    await app.locator("[data-action]").first().waitFor();
+    const opened = await tool("get_study_session", { sessionId });
+    await open(opened);
+    await app.locator("h2.stem").waitFor({ timeout: 15000 });
+    const order = (opened.structuredContent.queue as { questionId: string }[]).map(i => i.questionId);
+    const [first, second, third] = order;
+    assert.ok(first && second && third);
+    await app.locator(`input[name="answer"][value="${right(first)}"]`).check();
+    await app.locator('[data-action="lt-check"]').click();
+    await app.locator("h2.stem", { hasText: safeQuestion(second).question }).waitFor({ timeout: 300 });
+    await app.locator(".flash").getByText(`Câu ${Number(first.slice(1))}: chính xác!`).waitFor({ timeout: 300 });
+    await app.locator(`input[name="answer"][value="${wrong(second)}"]`).check();
+    await app.locator('[data-action="lt-check"]').click();
+    await app.locator("h2.stem", { hasText: safeQuestion(third).question }).waitFor({ timeout: 300 });
+    let saved = await tool("get_study_session", { sessionId });
+    for (let i = 0; i < 80 && (saved.structuredContent.question as { id: string }).id !== third; i++) {
+      await page.waitForTimeout(250);
+      saved = await tool("get_study_session", { sessionId });
+    }
+    assert.deepEqual((saved.structuredContent.sessionResults as { items: unknown[] }).items, [{ questionId: first, answer: right(first), correct: true }, { questionId: second, answer: wrong(second), correct: false }]);
+    assert.equal((saved.structuredContent.question as { id: string }).id, third, "the server moved on to the question the card shows");
   });
 });
 
@@ -146,6 +205,7 @@ test("study actions stay in one footer, inline XP accumulates, and immediate ret
     await app.locator('[data-action="answer"]').click();
     await app.getByRole("heading", { name: "Đã sửa!" }).waitFor();
     assert.equal(await app.locator('[data-action="study-retry"]').count(), 0);
+    await app.locator(".answer-award").waitFor();
     const corrected = await tool("get_study_session", { sessionId });
     assert.equal(await app.locator("[data-lesson-xp]").innerText(), String(corrected.structuredContent.xp));
     assert.equal(Number(corrected.structuredContent.xp) - Number(repair.structuredContent.xp), 2, "repair earns only the server's assisted credit");
@@ -180,8 +240,8 @@ test("direct actions remain reachable on mobile and negative XP survives feedbac
       await app.locator(`input[name="answer"][value="${wrong(questionId)}"]`).check();
       await app.locator('[data-action="answer"]').click();
       await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
+      assert.equal(await app.locator(".answer-award").innerText(), "-3 XP", "the award arrives with the server's confirmation");
       assert.equal(await app.locator("[data-lesson-xp]").innerText(), "-3");
-      assert.equal(await app.locator(".answer-award").innerText(), "-3 XP");
       assert.equal(await app.locator(".answer-award").evaluate(el => getComputedStyle(el).animationName), "none");
       assert.equal(await app.locator(".opts").evaluate(el => el.ownerDocument.activeElement?.id), "verdict", "inline verdict stays focusable after grading");
       assert.equal(await app.locator(".card").evaluate(el => el.scrollWidth <= el.clientWidth), true);
@@ -288,6 +348,7 @@ test("XP, the combo and a repair step come from the server, and a second miss of
       await app.locator(`input[name="answer"][value="${choice}"]`).check();
       await app.locator('[data-action="answer"]').click();
       await app.locator("#verdict").waitFor();
+      await app.locator(".answer-award").waitFor();
     };
     // Waits for the next step to replace the verdict, so a choice is never made on the old question.
     const next = async () => {
@@ -374,9 +435,9 @@ async function lightningStartedAgo(dataPath: string, ago: number) {
   return round.sessionId;
 }
 
-test("a lightning round sends answers whatever the card's clock says, and shows the server's summary once time is up", async () => {
-  await withPreview(async ({ origin, dataPath, page, app, tool, open, messages }) => {
-    // The round began 58 seconds ago, but the card is told it has 30 seconds left, as a slow clock would.
+test("a lightning answer the card showed in time counts even when it reaches the server after the deadline", async () => {
+  await withPreview(async ({ origin, dataPath, page, app, tool, open }) => {
+    // The round began 58 seconds ago, but the card is told it has 30 seconds left, as a slow host's clock would.
     const sessionId = await lightningStartedAgo(dataPath, 58000);
     await page.goto(`${origin}/preview`);
     await app.locator("[data-action]").first().waitFor();
@@ -389,23 +450,46 @@ test("a lightning round sends answers whatever the card's clock says, and shows 
       await route.fulfill({ response, json });
     });
     await open(opened);
-    await app.locator("#lt-timer").waitFor();
     await app.locator('[data-action="lt-check"]').waitFor();
-    const sent = await messages();
     await page.waitForTimeout(2500);
-    assert.equal(await app.getByRole("heading", { name: "Hết giờ!" }).count(), 0, "the card's own clock still shows time left");
-    await app.locator('input[name="answer"]').first().check();
+    const first = (opened.structuredContent.question as { id: string }).id;
+    await app.locator(`input[name="answer"][value="${right(first)}"]`).check();
     await page.keyboard.press("Enter");
-    await app.getByRole("heading", { name: "Hết giờ!" }).waitFor();
-    const answers = (await sent()).filter((m) => m.name === "submit_study_answer");
-    assert.equal(answers.length, 1, "the late answer was sent, not blocked in the card");
-    await app.locator("#status").getByText("Hết 60 giây — câu cuối không được tính.").waitFor();
-    const course = await tool("get_course", {});
-    assert.equal((course.structuredContent.results as { totalAttempts: number }).totalAttempts, 3, "the server saved nothing for the late answer");
+    await app.locator(".flash").getByText(`Câu ${Number(first.slice(1))}: chính xác! +`, { exact: false }).waitFor();
+    const saved = await tool("get_study_session", { sessionId });
+    assert.equal(saved.structuredContent.correctCount, 1, "the server counted the answer the card's clock allowed");
   });
 });
 
-test("the lightning clock stands still while an answer is loading", async () => {
+test("when the server refuses a lightning answer the card shows the round as the server has it", async () => {
+  await withPreview(async ({ origin, dataPath, page, app, tool, open, messages }) => {
+    const sessionId = await lightningStartedAgo(dataPath, 58000);
+    await page.goto(`${origin}/preview`);
+    await app.locator("[data-action]").first().waitFor();
+    const opened = await tool("get_study_session", { sessionId });
+    await page.route(`${origin}/preview/tool`, async (route) => {
+      const body = JSON.parse(route.request().postData() ?? "{}") as { name?: string };
+      if (body.name === "submit_study_answer") return route.fulfill({ json: { isError: true, structuredContent: { kind: "error", code: "LIGHTNING_EXPIRED" }, content: [{ type: "text", text: "Đã hết 60 giây" }] } });
+      const response = await route.fetch();
+      const json = await response.json();
+      if (body.name === "get_study_session" && json.structuredContent?.remainingMs > 0) json.structuredContent.remainingMs = 30000;
+      await route.fulfill({ response, json });
+    });
+    await open(opened);
+    await app.locator('[data-action="lt-check"]').waitFor();
+    const sent = await messages();
+    await page.waitForTimeout(2500);
+    await app.locator('input[name="answer"]').first().check();
+    await page.keyboard.press("Enter");
+    await app.getByRole("heading", { name: "Hết giờ!" }).waitFor();
+    assert.equal((await sent()).filter((m) => m.name === "submit_study_answer").length, 1, "the answer was sent once, not resent");
+    await app.locator("#status").getByText("Hết 60 giây — câu cuối không được tính.").waitFor();
+    const course = await tool("get_course", {});
+    assert.equal((course.structuredContent.results as { totalAttempts: number }).totalAttempts, 3, "the server saved nothing for the refused answer");
+  });
+});
+
+test("a lightning answer shows at once, the clock keeps running, and its XP follows the server's confirmation", async () => {
   await withPreview(async ({ origin, dataPath, page, app, tool, open }) => {
     const sessionId = await lightningStartedAgo(dataPath, 0);
     await page.goto(`${origin}/preview`);
@@ -421,9 +505,10 @@ test("the lightning clock stands still while an answer is loading", async () => 
     });
     await app.locator(`input[name="answer"][value="${right(first)}"]`).check();
     await app.locator('[data-action="lt-check"]').click();
-    await app.locator(".flash").getByText(`Câu ${Number(first.slice(1))}: chính xác`).waitFor({ timeout: 15000 });
+    await app.locator(".flash").getByText(`Câu ${Number(first.slice(1))}: chính xác!`, { exact: true }).waitFor({ timeout: 300 });
+    await app.locator(".flash").getByText(`Câu ${Number(first.slice(1))}: chính xác! +`, { exact: false }).waitFor({ timeout: 15000 });
     const [minutes, seconds] = (await app.locator("#lt-timer").innerText()).split(":").map(Number) as [number, number];
-    assert.ok(minutes * 60 + seconds >= 56, `5 seconds of loading were not charged to the round, timer reads ${minutes}:${seconds}`);
+    assert.ok(minutes * 60 + seconds <= 55, `the 5 seconds of sending were not paused, timer reads ${minutes}:${seconds}`);
   });
 });
 
@@ -1160,6 +1245,7 @@ test("the ⓘ beside Tôi đoán, THỬ LẠI, the combo, XP, the goal, the mock
       await app.locator(`input[name="answer"][value="${choice}"]`).check();
       await app.locator('[data-action="answer"]').click();
       await app.locator("#verdict").waitFor();
+      await app.locator(".answer-award").waitFor();
     };
     const next = async () => {
       await continueStudy(app);
