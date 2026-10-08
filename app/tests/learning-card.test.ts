@@ -422,7 +422,7 @@ test("the lightning clock stands still while an answer is loading", async () => 
     await app.locator(`input[name="answer"][value="${right(first)}"]`).check();
     await app.locator('[data-action="lt-check"]').click();
     await app.locator(".flash").getByText(`Câu ${Number(first.slice(1))}: chính xác`).waitFor({ timeout: 15000 });
-    const [minutes, seconds] = (await app.locator("#lt-timer").innerText()).split(":").map(Number);
+    const [minutes, seconds] = (await app.locator("#lt-timer").innerText()).split(":").map(Number) as [number, number];
     assert.ok(minutes * 60 + seconds >= 56, `5 seconds of loading were not charged to the round, timer reads ${minutes}:${seconds}`);
   });
 });
@@ -528,6 +528,33 @@ test("joining the league shows the server's name errors in the card's words, the
     await app.getByRole("heading", { name: "Thi đua XP mỗi tuần" }).waitFor();
     const league = await tool("get_league", {});
     assert.equal(league.structuredContent.joined, false);
+  });
+});
+
+test("a mock choice made in time still counts when its save reaches the server after the deadline", async () => {
+  await withPreview(async ({ origin, dataPath, page, app, tool, open }) => {
+    const store = new SqliteLearningStore(dataPath);
+    const runtime = new LearningRuntime(store, "local-development", () => Date.now() - (20 * 60000 - 10000));
+    const started = await runtime.command({ kind: "start_mock", requestId: randomUUID(), mode: "random" });
+    store.close();
+    assert.ok(started.kind === "mock");
+    await page.goto(`${origin}/preview`);
+    await app.locator("[data-action]").first().waitFor();
+    await open(await tool("get_mock_test", { attemptId: started.attemptId }));
+    await app.locator('input[name="answer"]').first().waitFor();
+    await page.route(`${origin}/preview/tool`, async (route) => {
+      const name = (JSON.parse(route.request().postData() ?? "{}") as { name?: string }).name;
+      if (name === "save_mock_choice") await new Promise((done) => setTimeout(done, 14000));
+      await route.continue();
+    });
+    await app.locator('input[name="answer"]').first().check();
+    let answered = 0;
+    for (let i = 0; i < 20 && !answered; i++) {
+      await page.waitForTimeout(1000);
+      const view = await tool("get_mock_test", { attemptId: started.attemptId });
+      answered = (view.structuredContent as { answeredCount: number; status: string }).status === "finalised" ? (view.structuredContent as { answeredCount: number }).answeredCount : 0;
+    }
+    assert.equal(answered, 1, "the choice made with time left was counted after a slow save");
   });
 });
 

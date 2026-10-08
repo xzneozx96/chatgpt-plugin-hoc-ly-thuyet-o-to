@@ -8,6 +8,7 @@ import { leagueDisplayName } from "./league.js";
 export const DAY = 86400000;
 const LIGHTNING_MS = 60000;
 const LIGHTNING_MAX_LAG_MS = 3 * LIGHTNING_MS;
+const MOCK_LATE_SAVE_MS = 30000;
 const lagMs = z.number().int().min(0).optional().describe("Set only by the study card: milliseconds it waited on earlier lightning requests. Never set it yourself.");
 const id = z.string().uuid();
 const qid = z.string().regex(/^q\d{3}$/).refine(value => bankQuestions.some(q => q.questionId === value), "Unknown original question");
@@ -224,7 +225,8 @@ export const LearningCommandSchema = z.discriminatedUnion("kind", [
         ...mockInput,
         kind: z.literal("save_mock_choice"),
         questionId: qid,
-        answer: choice
+        answer: choice,
+        leftMs: z.number().int().min(0).optional().describe("Set only by the test card: milliseconds it showed as left when the learner chose. Never set it yourself.")
     }),
     z.object({
         ...mockInput,
@@ -917,12 +919,18 @@ function closeMock(state: LearnerState, attemptId: string, now: number, reason: 
         criticalFailures
     };
 }
+/** Undo an expiry close so a choice made before the deadline, but delayed on its way here, can still count. */
+function reopenExpiredMock(state: LearnerState, m: Extract<z.infer<typeof mock>, { status: "finalised" }>) {
+    const members = new Set(m.questionIds);
+    state.evidence = state.evidence.filter(e => !((e.kind === "answer" && e.activityId === m.id) || (e.kind === "gap" && e.at === m.deadline && members.has(e.questionId))));
+    state.mocks[state.mocks.findIndex(x => x.id === m.id)] = { id: m.id, createdAt: m.createdAt, deadline: m.deadline, questionIds: m.questionIds, choices: m.choices, status: "active" };
+}
 function assertNotInRunningMock(state: LearnerState, questionId: string) {
     if (state.mocks.some(m => m.status === "active" && m.questionIds.includes(questionId)))
         throw new Error("MOCK_IN_PROGRESS");
 }
 function digest(command: LearningCommand) {
-    return createHash("sha256").update(JSON.stringify({ ...command, lagMs: undefined })).digest("hex");
+    return createHash("sha256").update(JSON.stringify({ ...command, lagMs: undefined, leftMs: undefined })).digest("hex");
 }
 export function executeLearning(original: LearnerState, input: LearningCommand, now: number): {
     state: LearnerState;
@@ -1237,10 +1245,16 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
             break;
         }
         case "save_mock_choice": {
-            const m = findMock(state, command.attemptId);
+            let m = findMock(state, command.attemptId);
             activityId = m.id;
             viewKind = "mock";
-            if (expired.includes(m.id))
+            let late = false;
+            if (m.status === "finalised" && m.reason === "expiry" && (command.leftMs ?? 0) > 0 && now < m.deadline + MOCK_LATE_SAVE_MS && m.questionIds.includes(command.questionId)) {
+                reopenExpiredMock(state, m);
+                m = findMock(state, command.attemptId);
+                late = true;
+            }
+            else if (expired.includes(m.id))
                 break;
             if (m.status !== "active")
                 throw new Error("MOCK_NOT_ACTIVE");
@@ -1248,12 +1262,15 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
                 throw new Error("QUESTION_BINDING_MISMATCH");
             if (!safeQuestion(command.questionId).options.some(o => o.id === command.answer))
                 throw new Error("INVALID_ANSWER");
+            const savedAt = Math.min(now, m.deadline);
             m.choices[command.questionId] = {
                 answer: command.answer,
-                at: now,
+                at: savedAt,
                 localDay: localDay(now, state.profile.timezone),
                 acceptedOrder: state.nextOrder++
             };
+            if (late)
+                closeMock(state, m.id, now, "expiry");
             break;
         }
         case "finalise_mock": {

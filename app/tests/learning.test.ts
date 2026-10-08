@@ -347,6 +347,28 @@ test('timezone edits cannot change elapsed eligibility',()=>{let s=answer(create
 test('reviewOnly freezes all due items and skip cannot bypass unresolved review into new coverage',()=>{let s=answer(createLearner(clock),'q001',clock,wrong('q001'));s=run(s,{kind:'start_study',requestId:requestId(),reviewOnly:true},clock+DAY);const ss=s.sessions.at(-1);assert.ok(ss);assert.equal(ss.items.length,1);assert.equal(ss.items[0]?.kind,'review');s=run(s,{kind:'skip_study',requestId:requestId(),sessionId:ss.id},clock+DAY);assert.equal(s.sessions.at(-1)?.status,'paused');assert.equal(s.sessions.at(-1)?.items[0]?.status,'pending');assert.equal(p(s)?.dueAt,clock+DAY);});
 test('help-shifted due date does not fabricate completion at resume',()=>{let s=answer(createLearner(clock),'q001',clock,wrong('q001'));s=run(s,{kind:'start_study',requestId:requestId(),reviewOnly:true},clock+DAY);const ss=s.sessions.at(-1);assert.ok(ss);s=run(s,{kind:'record_help',requestId:requestId(),sessionId:ss.id,questionId:'q001'},clock+DAY);s=run(s,{kind:'resume_study',requestId:requestId(),sessionId:ss.id},clock+DAY);assert.equal(s.sessions.at(-1)?.items[0]?.status,'pending');s=run(s,{kind:'answer_study',requestId:requestId(),sessionId:ss.id,questionId:'q001',answer:right('q001')},clock+DAY);assert.equal(p(s)?.successes,0);assert.equal(p(s)?.dueAt,clock+2*DAY);});
 test('direct original-question scoring shares coverage and idempotency',()=>{const c:LearningCommand={kind:'answer_question',requestId:requestId(),questionId:'q001',answer:right('q001')};let response=executeLearning(createLearner(clock),c,clock);assert.equal(response.view.kind,'answer');assert.equal(courseView(response.state,clock).covered,1);const n=response.state.evidence.length;response=executeLearning(response.state,c,clock+DAY);assert.equal(response.state.evidence.length,n);assert.equal(response.view.kind,'answer');});
+test("a choice made in time but delayed past the deadline still counts, once, and only within the grace window", () => {
+    const { state, m } = mockState(createLearner(clock), clock);
+    const [first, second, third] = m.questionIds;
+    assert.ok(first && second && third);
+    let s = run(state, { kind: "save_mock_choice", requestId: requestId(), attemptId: m.id, questionId: first, answer: right(first) }, clock + 1000);
+    s = run(s, { kind: "view_mock", requestId: requestId(), attemptId: m.id }, m.deadline + 1000);
+    assert.equal(s.evidence.filter(e => e.kind === "gap").length, 29, "the test closed at its deadline with 29 gaps");
+    const late = (state: LearnerState, questionId: string, extra: { leftMs?: number }, at: number) =>
+        run(state, { kind: "save_mock_choice", requestId: requestId(), attemptId: m.id, questionId, answer: right(questionId), ...extra }, at);
+    assert.throws(() => late(s, second, {}, m.deadline + 2000), /MOCK_NOT_ACTIVE/, "a late save without proof it was made in time is refused");
+    assert.throws(() => late(s, second, { leftMs: 3000 }, m.deadline + 31000), /MOCK_NOT_ACTIVE/, "a save past the grace window is refused");
+    s = late(s, second, { leftMs: 3000 }, m.deadline + 2000);
+    const closed = s.mocks.find(x => x.id === m.id);
+    assert.deepEqual([closed?.status, closed?.status === "finalised" ? closed.reason : null, closed?.status === "finalised" ? closed.closedAt : null], ["finalised", "expiry", m.deadline]);
+    assert.equal(closed?.status === "finalised" ? closed.score : null, 2);
+    assert.equal(s.evidence.filter(e => e.kind === "gap").length, 28);
+    assert.equal(s.evidence.filter(e => e.kind === "answer" && e.activityId === m.id).length, 2, "each answer is recorded once after the re-close");
+    const changed = run(s, { kind: "save_mock_choice", requestId: requestId(), attemptId: m.id, questionId: second, answer: wrong(second), leftMs: 1000 }, m.deadline + 3000);
+    const closedAgain = changed.mocks.find(x => x.id === m.id);
+    assert.equal(closedAgain?.status === "finalised" ? closedAgain.score : null, 1, "a last-second change of answer replaces the earlier choice");
+    assert.equal(changed.evidence.filter(e => e.kind === "answer" && e.activityId === m.id).length, 2, "and each answer is still recorded once");
+});
 test("any command first finalises an expired mock at its deadline so review-first sees its results", () => {
     const { state, m } = mockState(createLearner(clock), clock);
     const q = m.questionIds[0];
