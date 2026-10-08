@@ -304,7 +304,7 @@ test("opening the explanation keeps the chosen answer and verdict, the card shri
   }
 });
 
-test("a lost answer response shows no verdict, and Thử lại resends the same request without a second attempt", async () => {
+test("a lost answer response still shows the verdict at once, and the background resend saves no second attempt", async () => {
   const dir = mkdtempSync(join(tmpdir(), "driving-widget-retry-"));
   const server = startHttpServer(0, { dataPath: join(dir, "study.sqlite") });
   if (!server.listening) await once(server, "listening");
@@ -332,17 +332,13 @@ test("a lost answer response shows no verdict, and Thử lại resends the same 
     await app.getByRole("button", { name: "Bắt đầu" }).click();
     await app.locator('input[name="answer"][value="A"]').check();
     await app.locator('[data-action="answer"]').click();
-    await app.getByText("Chưa gửi được — thử lại").waitFor();
-    assert.equal(await app.locator("#verdict").count(), 0, "no verdict before the server's result arrives");
-    assert.equal(await app.locator('input[name="answer"][value="A"]').isChecked(), true, "the choice is kept");
-    assert.equal(await app.getByRole("button", { name: "Thử lại" }).count(), 1, "one retry control");
-    assert.equal(await app.locator("#status").innerText(), "", "the row says it once; the host's error text is not shown as well");
-    await app.getByRole("button", { name: "Thử lại" }).click();
-    await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
+    await app.getByRole("heading", { name: "Chưa đúng" }).waitFor({ timeout: 300 });
+    await app.locator(".answer-award").waitFor();
     assert.equal(submits.length, 2);
-    assert.equal(submits[1], submits[0], "the retry reuses the request ID");
+    assert.equal(submits[1], submits[0], "the background resend reuses the request ID");
+    assert.equal(await app.getByText("Chưa gửi được — thử lại").count(), 0, "one lost response is recovered without asking the learner");
     const course = await (await fetch(`${origin}/preview/tool`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "get_course", arguments: {} }) })).json();
-    assert.equal(course.structuredContent.results.totalAttempts, 1, "the retry does not save a second attempt");
+    assert.equal(course.structuredContent.results.totalAttempts, 1, "the resend does not save a second attempt");
   } finally {
     await browser.close();
     server.close();
