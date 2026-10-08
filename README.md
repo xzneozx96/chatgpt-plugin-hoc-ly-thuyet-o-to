@@ -1,6 +1,6 @@
 # Lý Thuyết Lái Xe Tutor
 
-A private Vietnamese driving-theory study app with a browser preview and a streamable HTTP MCP server. It offers practice, progress, spaced reviews, and source-backed search. The answer key and scoring stay on the server.
+A private Vietnamese driving-theory study app with a browser preview and a streamable HTTP MCP server. It offers practice, progress, spaced reviews, and source-backed search. Scoring stays on the server. Lesson and lightning cards receive answer keys in hidden `_meta` so they can show a verdict at once. Mock tests never receive keys.
 
 The repository's `app/data/question-bank.json` is the 600-question source of truth, version `2026.07.1`. The 318 referenced images are under `app/data/images/` from the URL pattern supplied by the project owner. The bank has 42 questions without explanations; those show a clear missing-explanation message. A separate review of image rights and publication terms remains for the public release milestone.
 

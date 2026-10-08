@@ -8,7 +8,7 @@ The course orbit keeps a fixed ellipse centered on the platform. A darker arc tr
 
 ## Loading and latency
 
-The missing loading feedback was a confirmed UI bug. `call()` previously disabled controls and announced only to screen readers. It now shows a shared visible status and a loading label inside Check and Continue while preserving backend grading, saved results and stable request IDs for retries.
+The missing loading feedback was a confirmed UI bug. `call()` previously disabled controls and announced only to screen readers. It now shows a shared visible status and a loading label inside Check and Continue while preserving backend grading, saved results and stable request IDs for retries. In lessons and lightning rounds, Check no longer waits for the server. Continue shows the loading label only when the card cannot predict the next step: at the end of a session, before a compare-the-pair step, or when the lesson has no answer keys.
 
 The exact cause of the multi-second production ChatGPT delay remains unverified. Local measurements rule out multi-second grading in the tested workloads, but do not measure production Neon, authentication, cold starts or the host bridge.
 
@@ -30,11 +30,11 @@ performance.getEntriesByName('learning-tool').map(entry => ({
 }))
 ```
 
-A large server duration requires profiling the deployed runtime/store. A small server duration with a large round trip requires tracing authentication, transport and the ChatGPT host. The difference is not proof that ChatGPT alone caused the delay. No direct widget-to-database path or optimistic scoring was added.
+A large server duration requires profiling the deployed runtime/store. A small server duration with a large round trip requires tracing authentication, transport and the ChatGPT host. The difference is not proof that ChatGPT alone caused the delay. No direct widget-to-database path was added. Lesson and lightning cards receive answer keys in hidden `_meta` to show verdicts instantly. Each click is shown at once and queued. The server confirms the queue in order, and scoring, XP and learned status stay server-computed. Mock tests never receive keys. Under the preview's `?delay=3000`, `node --import tsx scripts/measure-card-latency.mts 3000` measured click to verdict at 1–2 ms and click to next question at 1 ms, against about 3,015 ms for both before the change.
 
 ## Verification
 
-`tests/learning-refresh.test.ts` holds answer and navigation responses until released, checks visible loading and disabled actions, verifies the two-view transition makes no tool call, checks orbit centering and reduced motion, and checks mobile overflow. `CAPTURE_UI=1 node --import tsx --test tests/learning-refresh.test.ts` refreshes screenshots in `docs/ui-refresh-preview/`.
+`tests/learning-refresh.test.ts` holds answer and navigation responses until released, checks that Check shows the verdict with no loading while the server confirms, checks visible loading and disabled actions on the last Continue, verifies the two-view transition makes no tool call, checks orbit centering and reduced motion, and checks mobile overflow. `CAPTURE_UI=1 node --import tsx --test tests/learning-refresh.test.ts` refreshes screenshots in `docs/ui-refresh-preview/`.
 
 The existing tests retain scoring, retry, help, reminder, league and mock contracts. Their completion and progress-layout assertions now follow the new presentation. Production ChatGPT performance still needs a fresh trace after this change is deployed.
 

@@ -59,7 +59,7 @@ Each lesson step follows the same rhythm:
 
 1. **Prompt.** The card shows the question, its image if any, and options as large tap targets. An optional "Tôi đoán" (I'm guessing) chip records low confidence before submitting.
 2. **Tap.** One tap selects. Submission happens on the "Kiểm tra" (Check) tap, so learners can change their choice before submitting.
-3. **Verdict (instant).** The card scores the answer through the server and shows the result in place:
+3. **Verdict (instant).** The card shows the verdict in place from the answer key in the hidden `_meta` of the lesson result, then confirms the answer with the server in the background. XP appears when the server confirms:
    - Correct: a filled check icon, the chosen option inverts (black ↔ white), a short bounce, the text "Chính xác!", and "+10 XP" floating up. From 3 correct in a row, a combo counter appears ("3 câu liên tiếp").
    - Wrong: an outlined ✕ icon, a short horizontal shake, the text "Chưa đúng". The correct option is outlined heavily and labelled "Đáp án đúng".
 4. **Why (one line).** The approved explanation in at most two sentences, with "Xem thêm" to expand. For a question in a confusing family, include a one-line contrast ("Câu 145 khác vì đây là đường hai chiều").
@@ -70,12 +70,12 @@ The progress bar at the top of the card advances after every step. After a wrong
 | ID | Priority | Requirement | Acceptance criteria |
 | --- | --- | --- | --- |
 | PLAY-01 | P0 | One living lesson card | A lesson runs in one card that updates in place. The card never asks ChatGPT to open a new card per question. Reloading the chat restores the current step from the server. |
-| PLAY-02 | P0 | Instant, self-contained scoring | The card calls `submit_study_answer` directly through the host's `tools/call` bridge. It never posts the answer as a chat message, and it never polls for a verdict that ChatGPT must produce. The verdict renders within 1 s at p95 on mobile data. |
+| PLAY-02 | P0 | Instant, self-contained scoring | The card calls `submit_study_answer` directly through the host's `tools/call` bridge. It never posts the answer as a chat message, and it never polls for a verdict that ChatGPT must produce. The verdict and the next question render from the lesson answer keys without waiting for the server. The server scores each answer when it arrives, and its result is the one saved. |
 | PLAY-03 | P0 | Felt feedback | Correct and wrong verdicts each have a distinct icon, motion (≤ 400 ms), and words. They are fully understandable without motion and without colour. `prefers-reduced-motion` replaces movement with a fade. A screen reader announces the verdict (live region). |
 | PLAY-04 | P0 | One-line why | Every verdict shows approved teaching text (B3 KB-07) in ≤ 2 sentences, with optional expansion. If no approved text exists, say so plainly and offer "Hỏi ChatGPT". |
 | PLAY-05 | P0 | Repair inside the lesson | A wrong answer schedules one repair attempt later in the same lesson, after at least 2 other steps. Repair earns reduced XP and never counts as delayed recall. |
 | PLAY-06 | P0 | Learning rules unchanged | Scoring, confidence, assistance, confusion and review scheduling follow appendix B2–B4 exactly. The game layer reads their results and never alters them. |
-| PLAY-07 | P0 | Resilient on bad networks | If a request does not reach the server or gets no reply, the card keeps the selection, shows no verdict, and says "Chưa gửi được — thử lại". "Thử lại" resends with the same request ID, so the answer counts once (DAT-02, DAT-03). The learner can still pause. The card never shows a verdict that the server did not return. |
+| PLAY-07 | P0 | Resilient on bad networks | If an answer or a move to the next question does not reach the server or gets no reply, the card resends it in the background with the same request ID, so the answer counts once (DAT-02, DAT-03). After three failed sends the card keeps the verdict on screen, says "Chưa gửi được — thử lại", and holds other lesson actions until "Thử lại" gets the queue through. If the server refuses an answer, the card drops the unsent steps and shows the session as the server has it. |
 
 ## 4. Session shape
 
@@ -112,7 +112,7 @@ Every interaction is fully usable by tap, keyboard and screen reader, and at 360
 
 ## 6. Gamification
 
-All game values are computed on the server from saved learning events. The card displays them and never computes them.
+All game values are computed on the server from saved learning events. Lesson and lightning cards receive answer keys in hidden `_meta` to show verdicts instantly. Until the server confirms an answer, the card shows only the verdict, the correct count and the combo it predicts from that key. XP, mastery and learned status appear only from the server's confirmation. Mock tests never receive keys.
 
 ### 6.1 XP
 
