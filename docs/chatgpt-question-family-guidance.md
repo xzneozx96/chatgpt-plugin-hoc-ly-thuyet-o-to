@@ -57,7 +57,7 @@ The catalogue identifies draft teaching relationships. It does not approve expla
 
 ## Implementation handoff
 
-Use [question-family-analysis.json](question-family-analysis.json) as the versioned candidate catalogue and [question-family-analysis.md](question-family-analysis.md) as its human review reference. Retrieve by original question ID, concept, or category de_nham_lan. Return relevant comparison dimensions, membership, evidence basis, and review status. Keep answer scoring, attempt eligibility, qualifying counts, and scheduling under the plugin's deterministic contracts.
+Use `app/src/content/question-families.json` as the versioned candidate catalogue. Retrieve by original question ID, concept, or category de_nham_lan. Return relevant comparison dimensions, membership, evidence basis, and review status. Keep answer scoring, attempt eligibility, qualifying counts, and scheduling under the plugin's deterministic contracts.
 
 Before production, verify actual retrieval through the ChatGPT connection, current bank version, approved teaching status, per-question learning, provisional test isolation, text fallback, and the PRD's policy acceptance scenarios. These documents specify intended behaviour; they do not establish that the running plugin implements it.
 
