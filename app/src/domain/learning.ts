@@ -7,6 +7,8 @@ import { dailyStreak } from "./streak.js";
 import { leagueDisplayName } from "./league.js";
 export const DAY = 86400000;
 const LIGHTNING_MS = 60000;
+const LIGHTNING_MAX_LAG_MS = 3 * LIGHTNING_MS;
+const lagMs = z.number().int().min(0).optional().describe("Set only by the study card: milliseconds it waited on earlier lightning requests. Never set it yourself.");
 const id = z.string().uuid();
 const qid = z.string().regex(/^q\d{3}$/).refine(value => bankQuestions.some(q => q.questionId === value), "Unknown original question");
 const time = z.number().finite().nonnegative();
@@ -165,7 +167,8 @@ export const LearningCommandSchema = z.discriminatedUnion("kind", [
         kind: z.literal("answer_study"),
         questionId: qid,
         answer: choice,
-        confidence: confidence.optional()
+        confidence: confidence.optional(),
+        lagMs
     }),
     z.object({
         ...sessionInput,
@@ -188,7 +191,8 @@ export const LearningCommandSchema = z.discriminatedUnion("kind", [
         ...sessionInput,
         kind: z.literal("next_study"),
         questionId: qid.optional(),
-        repair: z.boolean().optional()
+        repair: z.boolean().optional(),
+        lagMs
     }),
     z.object({
         ...base,
@@ -918,7 +922,7 @@ function assertNotInRunningMock(state: LearnerState, questionId: string) {
         throw new Error("MOCK_IN_PROGRESS");
 }
 function digest(command: LearningCommand) {
-    return createHash("sha256").update(JSON.stringify(command)).digest("hex");
+    return createHash("sha256").update(JSON.stringify({ ...command, lagMs: undefined })).digest("hex");
 }
 export function executeLearning(original: LearnerState, input: LearningCommand, now: number): {
     state: LearnerState;
@@ -962,6 +966,12 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
     const expired = state.mocks.filter(m => m.status === "active" && now >= m.deadline).map(m => m.id);
     for (const attemptId of expired)
         closeMock(state, attemptId, now, "expiry");
+    if ((command.kind === "answer_study" || command.kind === "next_study") && command.lagMs) {
+        // The card pauses its clock while a request is in flight and reports the total wait, so slow loading never costs round time.
+        const s = state.sessions.find(s => s.id === command.sessionId);
+        if (s?.mode === "lightning" && s.deadline !== undefined)
+            s.deadline = Math.max(s.deadline, s.createdAt + LIGHTNING_MS + Math.min(command.lagMs, LIGHTNING_MAX_LAG_MS));
+    }
     closeExpiredLightning(state, now);
     let activityId: string | null = null;
     let viewKind: "course" | "study" | "mock" | "help" | "answer" = "course";

@@ -389,7 +389,7 @@ test("a lightning round sends answers whatever the card's clock says, and shows 
       await route.fulfill({ response, json });
     });
     await open(opened);
-    await app.getByText("CHỚP NHOÁNG").waitFor();
+    await app.locator("#lt-timer").waitFor();
     await app.locator('[data-action="lt-check"]').waitFor();
     const sent = await messages();
     await page.waitForTimeout(2500);
@@ -402,6 +402,28 @@ test("a lightning round sends answers whatever the card's clock says, and shows 
     await app.locator("#status").getByText("Hết 60 giây — câu cuối không được tính.").waitFor();
     const course = await tool("get_course", {});
     assert.equal((course.structuredContent.results as { totalAttempts: number }).totalAttempts, 3, "the server saved nothing for the late answer");
+  });
+});
+
+test("the lightning clock stands still while an answer is loading", async () => {
+  await withPreview(async ({ origin, dataPath, page, app, tool, open }) => {
+    const sessionId = await lightningStartedAgo(dataPath, 0);
+    await page.goto(`${origin}/preview`);
+    await app.locator("[data-action]").first().waitFor();
+    const opened = await tool("get_study_session", { sessionId });
+    const first = (opened.structuredContent.question as { id: string }).id;
+    await open(opened);
+    await app.locator("h2.stem").waitFor();
+    await page.route(`${origin}/preview/tool`, async (route) => {
+      const name = (JSON.parse(route.request().postData() ?? "{}") as { name?: string }).name;
+      if (name === "submit_study_answer") await new Promise((done) => setTimeout(done, 5000));
+      await route.continue();
+    });
+    await app.locator(`input[name="answer"][value="${right(first)}"]`).check();
+    await app.locator('[data-action="lt-check"]').click();
+    await app.locator(".flash").getByText(`Câu ${Number(first.slice(1))}: chính xác`).waitFor({ timeout: 15000 });
+    const [minutes, seconds] = (await app.locator("#lt-timer").innerText()).split(":").map(Number);
+    assert.ok(minutes * 60 + seconds >= 56, `5 seconds of loading were not charged to the round, timer reads ${minutes}:${seconds}`);
   });
 });
 

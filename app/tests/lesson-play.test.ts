@@ -256,6 +256,24 @@ test("lightning answers are scored attempts worth 1 XP each up to 15 a round, wi
     assert.deepEqual([view.correctCount, view.wrongItems], [19, [order[0]]]);
 });
 
+test("time the card spent waiting on requests is credited to the round, and the credit is not part of the retry identity", async () => {
+    const store = new SqliteLearningStore(":memory:");
+    let now = morning;
+    const runtime = new LearningRuntime(store, "learner-a", () => now);
+    for (const q of ["q001", "q002"])
+        await runtime.command({ kind: "answer_question", requestId: requestId(), questionId: q, answer: right(q) });
+    const round = await runtime.command({ kind: "start_lightning", requestId: requestId() });
+    assert.ok(round.kind === "study" && round.question);
+    now = morning + MINUTE + 4000;
+    const answerId = requestId();
+    const answer = { kind: "answer_study" as const, sessionId: round.sessionId, questionId: round.question.id, answer: right(round.question.id) };
+    const view = await runtime.command({ ...answer, requestId: answerId, lagMs: 5000 });
+    assert.ok(view.kind === "study");
+    assert.equal(view.remainingMs, 1000, "5 seconds of waiting moved the deadline from 60s to 65s");
+    const retried = await runtime.command({ ...answer, requestId: answerId, lagMs: 7000 });
+    assert.equal(retried.kind === "study" && retried.correctCount, 1, "a retry with a larger credit replays the saved answer");
+});
+
 test("an answer after the 60 seconds is rejected and records nothing, and the round closes", async () => {
     const store = new SqliteLearningStore(":memory:");
     let now = morning;
