@@ -130,3 +130,32 @@ test("league tools open the card and return the board, never a user ID", async (
     assert.equal(JSON.stringify(await tool("get_league").run({})).includes("learner-a"), false);
     store.close();
 });
+
+test("a member's finished lesson and finalised mock test carry their league line, and a non-member's do not", async () => {
+    const store = new SqliteLearningStore(":memory:");
+    const rival = join(earn(finishedLesson(), 3), "Rival", morning);
+    assert.ok(await store.compareAndSwap("rival", null, rival));
+    const member = new LearningRuntime(store, "member", () => morning + 60000);
+    const outsider = new LearningRuntime(store, "outsider", () => morning + 60000);
+    const lesson = async (runtime: LearningRuntime) => {
+        const started = await runtime.command({ kind: "start_study", requestId: requestId(), questionIds: ["q001"] }) as { sessionId: string };
+        await runtime.command({ kind: "answer_study", requestId: requestId(), sessionId: started.sessionId, questionId: "q001", answer: right("q001") });
+        return { sessionId: started.sessionId, done: await runtime.command({ kind: "next_study", requestId: requestId(), sessionId: started.sessionId }) as { status: string; leagueSummary?: unknown } };
+    };
+    const first = await lesson(member);
+    assert.equal(first.done.status, "complete");
+    assert.equal(first.done.leagueSummary, undefined, "a learner who has not joined gets no league line");
+    await member.command({ kind: "join_league", requestId: requestId(), displayName: "Member" });
+    const second = await lesson(member);
+    const home = (await member.course()).leagueSummary;
+    assert.deepEqual(home, { joined: true, rank: 2, weekXp: 33 });
+    assert.deepEqual(second.done.leagueSummary, home, "the finish card shows the same line as the home card");
+    assert.deepEqual((await member.session(second.sessionId) as { leagueSummary?: unknown }).leagueSummary, home, "a reloaded finish card shows it too");
+    assert.equal((await lesson(outsider)).done.leagueSummary, undefined);
+    const mock = await member.command({ kind: "start_mock", requestId: requestId(), mode: "random" }) as { attemptId: string; leagueSummary?: unknown };
+    assert.equal(mock.leagueSummary, undefined, "a running mock test has no rank yet");
+    const result = await member.command({ kind: "finalise_mock", requestId: requestId(), attemptId: mock.attemptId, confirmUnanswered: true }) as { score: number; leagueSummary?: { joined: boolean; rank: number | null } };
+    assert.equal(result.leagueSummary?.joined, true);
+    assert.equal(typeof result.leagueSummary?.rank, "number");
+    store.close();
+});
