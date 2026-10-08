@@ -116,18 +116,19 @@ test("loading is visible through a delayed host call and completion continues lo
     await app.locator('[data-action="course"]').click();
     await app.locator('[data-action="map"]').click();
     await app.locator('.current .orbit').first().waitFor();
-    const centerDifference = await app.locator('.current .path-node').first().evaluate(el => {
-      const ring = el.querySelector(".orbit")!.getBoundingClientRect();
-      const platform = el.querySelector(".coin-shape")!.getBoundingClientRect();
-      return Math.abs((ring.left + ring.width / 2) - (platform.left + platform.width / 2));
+    const orbitOffset = () => app.locator('.current .path-node').first().evaluate(el => {
+      const ring = el.querySelector(".orbit ellipse")!.getBoundingClientRect();
+      const [edge, face] = [...el.querySelectorAll(".coin-shape ellipse")].map(e => e.getBoundingClientRect());
+      return [Math.abs((ring.left + ring.right) / 2 - (edge!.left + edge!.right) / 2), Math.abs((ring.top + ring.bottom) / 2 - (face!.top + edge!.bottom) / 2)];
     });
-    assert.ok(centerDifference < 1, "the orbit and platform share a horizontal center");
+    assert.deepEqual((await orbitOffset()).map(d => d < 1), [true, true], "the orbit and the drawn coin share a center");
     if (process.env.CAPTURE_UI) await page.screenshot({ path: "../docs/ui-refresh-preview/orbit-dark.png", fullPage: true });
     await page.emulateMedia({ reducedMotion: "reduce" });
     assert.equal(await app.locator('.lesson-confetti-piece').count(), 0, 'completion particles do not leak to the course browser');
     const orbit = app.locator('.current .orbit-arc').first();
     assert.equal(await orbit.evaluate(el => getComputedStyle(el).animationName), "none");
     await page.setViewportSize({ width: 390, height: 844 });
+    assert.deepEqual((await orbitOffset()).map(d => d < 1), [true, true], "the mobile orbit and the drawn coin share a center");
     assert.equal(await app.locator('.path-section').count(), 0, 'course path has no redundant heading block');
     assert.equal(await app.locator('body').evaluate(el => el.scrollWidth > window.innerWidth), false, 'course stats fit mobile');
     if (process.env.CAPTURE_UI) await page.screenshot({ path: "../docs/ui-refresh-preview/course-mobile-dark.png", fullPage: true });
