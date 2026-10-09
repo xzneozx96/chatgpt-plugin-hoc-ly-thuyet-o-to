@@ -96,7 +96,7 @@ test("authenticated MCP isolates learners, persists across handler restart, and 
   try {
     await alice.client.connect(alice.transport);
     await bob.client.connect(bob.transport);
-    assert.deepEqual((await alice.client.listTools()).tools.map((tool) => tool.name).sort(), ["abandon_mock_test", "delete_my_progress", "finalise_mock_test", "get_course", "get_league", "get_mock_test", "get_progress", "get_question", "get_study_session", "get_today_mistakes", "join_league", "leave_league", "list_units", "next_study_question", "pause_study", "request_study_help", "resume_study", "save_mock_choice", "search_theory", "set_league_hidden", "set_question_confusion", "skip_study_question", "start_lightning", "start_mock_test", "start_study", "submit_answer", "submit_study_answer", "update_profile"]);
+    assert.deepEqual((await alice.client.listTools()).tools.map((tool) => tool.name).sort(), ["abandon_mock_test", "delete_my_progress", "finalise_mock_test", "get_course", "get_league", "get_mock_test", "get_progress", "get_question", "get_study_session", "get_today_mistakes", "join_league", "leave_league", "list_units", "next_study_question", "pause_study", "request_study_help", "resume_study", "save_mock_choice", "search_theory", "set_league_hidden", "skip_study_question", "start_lightning", "start_mock_test", "start_study", "submit_answer", "submit_study_answer", "update_profile"]);
     const tools = (await alice.client.listTools()).tools;
     assert.equal(tools.find((tool) => tool.name === "delete_my_progress")?.annotations?.destructiveHint, true);
     const attempt = { questionId: "q001", selectedAnswer: "A", attemptId: "00000000-0000-4000-8000-000000000001" };

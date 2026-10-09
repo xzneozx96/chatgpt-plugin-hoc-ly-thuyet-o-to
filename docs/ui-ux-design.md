@@ -27,7 +27,6 @@ PRD section 7 defines who speaks when. This section defines how the UI carries i
 - `next_study_question`
 - `skip_study_question`
 - `request_study_help`
-- `set_question_confusion`
 - `pause_study`
 
 The card never posts an answer as a chat message and never waits for ChatGPT to score.

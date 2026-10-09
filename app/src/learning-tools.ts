@@ -26,7 +26,6 @@ const commands: Record<string, { name: string; title: string; description: strin
   pause_study: { name: "pause_study", title: "Pause a study session", description: "Save a paused session without clearing its remaining reviews or recording answers." },
   resume_study: { name: "resume_study", title: "Resume a study session", description: "Resume a saved session and reconcile reviews now due. An explicit other activity may retain this paused session." },
   record_help: { name: "request_study_help", title: "Request source-backed teaching", description: "Record answer assistance before giving a hint or explanation for the active original question. Use its question ID and session ID. Explain only from the returned bank explanation; external knowledge and verified video timestamps are unavailable until configured." },
-  set_confusion: { name: "set_question_confusion", title: "Update unresolved confusion", description: "Set a learner's explicit confusion flag, or clear it only on their confirmation. A correct answer does not clear it. Bring review within 24 hours without resetting learned status." },
   update_profile: { name: "update_profile", title: "Update the study plan", description: "Save the learner's goal, timezone, target date and study weekdays. Offer 10, 12, 15 or their custom number of new unique questions per study day. Reviews count separately." },
   start_mock: { name: "start_mock_test", title: "Start a timed mock test (thi thử)", description: "Start a new timed mock test (thi thử, practice exam): 30 random licence-B questions in 20 minutes. Answers remain provisional. Passing requires 27/30 and no wrong or unanswered critical question. Official library mode is unavailable until supplied. Honour an explicit test request while retaining due reviews. If a test is unfinished, this returns it with resumed=true and its saved choices: tell the learner they are continuing it, and offer a new test (abandon_mock_test, then start_mock_test)." },
   save_mock_choice: { name: "save_mock_choice", title: "Save a provisional test answer", description: "Save or replace a choice in an active test without revealing correctness or updating learning history. The server records its accepted time." },
@@ -79,7 +78,7 @@ export function createLearningTools(runtime: LearningRuntime | null, persistence
   }];
   for (const schema of LearningCommandSchema.options) {
     const kind = schema.shape.kind.value;
-    if (kind === "answer_question") continue;
+    if (kind === "answer_question" || kind === "set_confusion") continue;
     const definition = commands[kind];
     if (!definition) throw new Error(`UNREGISTERED_LEARNING_COMMAND:${kind}`);
     const inputSchema: Record<string, z.ZodTypeAny> = {};
