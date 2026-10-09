@@ -714,3 +714,18 @@ test("a no-argument start reopens the latest open topic session instead of start
     assert.ok(resumed.view.kind === "study");
     assert.equal(resumed.view.sessionId, topic.id);
 });
+
+test("an unfinished extra session does not hide due reviews: Học tiếp starts the daily one and Tiếp tục only returns once reviews are done", () => {
+    let s = answer(createLearner(clock), "q001", clock, wrong("q001"));
+    s = run(s, { kind: "start_study", requestId: requestId(), count: 5 }, clock + 1000);
+    const extra = s.sessions.at(-1)!;
+    assert.equal(extra.override, true);
+    assert.equal(courseView(s, clock + 2000).openSession?.id, extra.id, "nothing is due yet, so the extra session can be resumed");
+    assert.equal(courseView(s, clock + DAY + 5000).dueCount, 1);
+    assert.equal(courseView(s, clock + DAY + 5000).openSession, null, "a due review hides the extra session's Tiếp tục");
+    const next = run(s, { kind: "start_study", requestId: requestId() }, clock + DAY + 5000);
+    const daily = next.sessions.at(-1)!;
+    assert.notEqual(daily.id, extra.id);
+    assert.equal(daily.items[0]?.questionId, "q001");
+    assert.equal(daily.items[0]?.kind, "review");
+});

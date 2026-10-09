@@ -517,7 +517,7 @@ export function courseView(state: LearnerState, now: number, nothingToStudy = fa
         // The latest unfinished lesson: the dashboard offers Tiếp tục for it instead of a new daily start.
         openSession: (() => {
             const open = [...state.sessions].reverse().find(s => s.mode === "lesson" && s.status !== "complete");
-            return open ? { id: open.id, reviewOnly: open.reviewOnly, unitId: open.unitId } : null;
+            return open && !(open.override && !open.reviewOnly && daily.dueCount > 0) ? { id: open.id, reviewOnly: open.reviewOnly, unitId: open.unitId } : null;
         })(),
         mocks: state.mocks.map(m => ({
             id: m.id,
@@ -1008,7 +1008,8 @@ export function executeLearning(original: LearnerState, input: LearningCommand, 
             const progress = questionProgress(state);
             const overridden = command.override === true || command.unitId !== undefined || command.questionIds !== undefined || command.count !== undefined;
             const open = overridden ? undefined : [...state.sessions].reverse().find(s => s.mode === "lesson" && s.reviewOnly === (command.reviewOnly === true) && s.status !== "complete");
-            if (open) {
+            // Reviews come first: an unfinished extra or topic session never reopens while reviews are due, because it skips them.
+            if (open && !(open.override && !open.reviewOnly && dueIds(state, now).some(q => !runningMockQuestions(state).has(q)))) {
                 reopen(state, open, now);
                 activityId = open.id;
                 viewKind = "study";
