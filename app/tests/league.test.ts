@@ -15,7 +15,7 @@ const requestId = () => randomUUID();
 const right = (q: string) => submitAnswer(q, safeQuestion(q).options[0]?.id ?? "A").correctAnswer;
 const run = (state: LearnerState, c: LearningCommand, now = morning) => executeLearning(state, c, now).state;
 
-/** A learner who finished a one-question lesson: 10 XP for the answer and 10 for the lesson. */
+/** A learner who finished a one-question lesson: 25 XP for the answer (10 plus the 15 mastery bonus) and 10 for the lesson. */
 function finishedLesson(q = "q001") {
     let s = run(createLearner(morning), { kind: "start_study", requestId: requestId(), questionIds: [q] });
     const id = s.sessions.at(-1)?.id ?? "";
@@ -23,7 +23,7 @@ function finishedLesson(q = "q001") {
     return run(s, { kind: "next_study", requestId: requestId(), sessionId: id });
 }
 const join = (state: LearnerState, displayName: string, at = morning) => run(state, { kind: "join_league", requestId: requestId(), displayName }, at);
-/** Adds n first-time correct answers (10 XP each) through the direct answer path. */
+/** Adds n first-time correct answers (25 XP each) through the direct answer path. */
 function earn(state: LearnerState, n: number, from = 100) {
     for (const q of bankQuestions.slice(from, from + n).map(q => q.questionId))
         state = run(state, { kind: "answer_question", requestId: requestId(), questionId: q, answer: right(q) });
@@ -64,9 +64,9 @@ test("members form cohorts of 30 by join time and see only their own cohort, ran
     const board = await new LearningRuntime(store, "user-45", () => morning + 60000).league();
     assert.equal(board.rows.length, 30);
     assert.deepEqual(board.rows.map(r => r.displayName).sort(), Array.from({ length: 30 }, (_, i) => `Member ${i + 30}`).sort());
-    assert.deepEqual(board.rows[0], { rank: 1, displayName: "Member 40", weekXp: 50, you: false });
-    assert.deepEqual(board.rows[1], { rank: 2, displayName: "Member 30", weekXp: 20, you: false }, "ties keep join order");
-    assert.deepEqual(board.rows.find(r => r.you), { rank: 16, displayName: "Member 45", weekXp: 20, you: true });
+    assert.deepEqual(board.rows[0], { rank: 1, displayName: "Member 40", weekXp: 110, you: false });
+    assert.deepEqual(board.rows[1], { rank: 2, displayName: "Member 30", weekXp: 35, you: false }, "ties keep join order");
+    assert.deepEqual(board.rows.find(r => r.you), { rank: 16, displayName: "Member 45", weekXp: 35, you: true });
     assert.equal(board.rank, 16);
     const last = await new LearningRuntime(store, "user-60", () => morning + 60000).league();
     assert.deepEqual(last.rows.map(r => r.displayName), ["Member 60"]);
@@ -80,12 +80,12 @@ test("hidden members appear only on their own board, and a learner with a day ov
     const plain = join(template, "Plain Jane", morning + 2000);
     const store = await storeWith([hidden, flagged, plain]);
     const others = await new LearningRuntime(store, "user-2", () => morning + 60000).league();
-    assert.deepEqual(others.rows, [{ rank: 1, displayName: "Plain Jane", weekXp: 20, you: true }]);
+    assert.deepEqual(others.rows, [{ rank: 1, displayName: "Plain Jane", weekXp: 35, you: true }]);
     const own = await new LearningRuntime(store, "user-0", () => morning + 60000).league();
-    assert.deepEqual(own.rows, [{ rank: 1, displayName: "Hidden One", weekXp: 70, you: true }, { rank: 2, displayName: "Plain Jane", weekXp: 20, you: false }]);
+    assert.deepEqual(own.rows, [{ rank: 1, displayName: "Hidden One", weekXp: 160, you: true }, { rank: 2, displayName: "Plain Jane", weekXp: 35, you: false }]);
     assert.equal(own.hidden, true);
     const busy = await new LearningRuntime(store, "user-1", () => morning + 60000).league();
-    assert.deepEqual(busy.rows.at(-1), { rank: null, displayName: "Busy Bee", weekXp: 530, you: true });
+    assert.deepEqual(busy.rows.at(-1), { rank: null, displayName: "Busy Bee", weekXp: 1310, you: true });
     assert.equal(busy.rank, null);
     store.close();
 });
@@ -98,8 +98,8 @@ test("the league view and the home summary never carry user IDs or learning data
     for (const leak of ["user-0", "user-1", "accuracy", "targetDate", "answer", "evidence", "questionId", "dailyGoal"])
         assert.equal(text.includes(leak), false, leak);
     assert.deepEqual(Object.keys(board.rows[0] ?? {}).sort(), ["displayName", "rank", "weekXp", "you"]);
-    assert.deepEqual((await runtime.course()).leagueSummary, { joined: true, rank: 2, weekXp: 20 });
-    assert.deepEqual((await new LearningRuntime(store, "user-2", () => morning + 60000).course()).leagueSummary, { joined: false, rank: null, weekXp: 20 }, "a finished lesson brings the invitation");
+    assert.deepEqual((await runtime.course()).leagueSummary, { joined: true, rank: 2, weekXp: 35 });
+    assert.deepEqual((await new LearningRuntime(store, "user-2", () => morning + 60000).course()).leagueSummary, { joined: false, rank: null, weekXp: 35 }, "a finished lesson brings the invitation");
     assert.equal((await new LearningRuntime(store, "user-3", () => morning + 60000).course()).leagueSummary, null, "no league line before a finished lesson");
     assert.deepEqual((await store.leagueMembers()).map(m => m.userId).sort(), ["user-0", "user-1"]);
     await new LearningRuntime(store, "user-0").delete();
@@ -147,8 +147,9 @@ test("a member's finished lesson and finalised mock test carry their league line
     assert.equal(first.done.leagueSummary, undefined, "a learner who has not joined gets no league line");
     await member.command({ kind: "join_league", requestId: requestId(), displayName: "Member" });
     const second = await lesson(member);
+    // 35 for the first lesson, then 3 for the repeated answer (assisted) and 10 for the second lesson.
     const home = (await member.course()).leagueSummary;
-    assert.deepEqual(home, { joined: true, rank: 2, weekXp: 33 });
+    assert.deepEqual(home, { joined: true, rank: 2, weekXp: 48 });
     assert.deepEqual(second.done.leagueSummary, home, "the finish card shows the same line as the home card");
     assert.deepEqual((await member.session(second.sessionId) as { leagueSummary?: unknown }).leagueSummary, home, "a reloaded finish card shows it too");
     assert.equal((await lesson(outsider)).done.leagueSummary, undefined);

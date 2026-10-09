@@ -2,7 +2,7 @@
 // request, which adds no evidence, cannot add XP, and these rules never feed back into B4 scheduling.
 import { applyAnswer, localDay, questionProgress, type AnswerFact, type AnswerStep, type LearnerState, type ScoredAnswer } from "./learning.js";
 
-export type AwardReason = "first_correct" | "first_wrong" | "review_correct" | "review_wrong" | "assisted" | "repair" | "practice" | "lightning";
+export type AwardReason = "first_correct" | "first_wrong" | "review_correct" | "review_wrong" | "assisted" | "practice" | "lightning";
 export interface Award {
     xp: number;
     reason: AwardReason;
@@ -17,7 +17,6 @@ const BASE_XP: Record<Exclude<AwardReason, "lightning">, number> = {
     review_correct: 10,
     review_wrong: -3,
     assisted: 3,
-    repair: 2,
     practice: 2
 };
 const MASTERED_BONUS = 15;
@@ -30,8 +29,8 @@ const MOCK_PASSED_XP = 30;
 const SUSPICIOUS_DAILY_XP = 500;
 const LEAGUE_UTC_OFFSET = 7 * HOUR;
 
-/** Where a study answer was given: a lightning round, a lesson's repair step, or any other study step. */
-type AnswerPath = "lightning" | "repair" | "study";
+/** Where a study answer was given: a lightning round or any other study step. */
+type AnswerPath = "lightning" | "study";
 /** What is left of the two XP caps for an answer: the learner-local day's practice XP and the lightning round's XP. */
 interface AwardBudget {
     practiceLeft: number;
@@ -39,14 +38,14 @@ interface AwardBudget {
 }
 
 /**
- * The award for one scored study answer. Precedence, first match wins: lightning round, repair step,
+ * The award for one scored study answer. Precedence, first match wins: lightning round,
  * assisted, first answer, due review, other practice. Assisted answers on questions that were neither new
  * nor due share the practice cap. masteredNow adds its bonus outside both caps. charge is the XP the
  * answer takes from a cap, so the caller can track what is left.
  */
 function awardFor(step: AnswerStep, answer: Pick<AnswerFact, "correct" | "assisted">, path: AnswerPath, budget: AwardBudget): { award: Award; charge: { cap: "practice" | "lightning"; xp: number } | null } {
     if (!answer.correct) {
-        const reason: AwardReason = path === "lightning" ? "lightning" : path === "repair" ? "repair" : answer.assisted ? "assisted" : step.first ? "first_wrong" : step.due ? "review_wrong" : "practice";
+        const reason: AwardReason = path === "lightning" ? "lightning" : answer.assisted ? "assisted" : step.first ? "first_wrong" : step.due ? "review_wrong" : "practice";
         return { award: { xp: -3, reason, masteredNow: false }, charge: null };
     }
     const masteredNow = !step.learnedBefore && step.learnedAfter;
@@ -55,8 +54,6 @@ function awardFor(step: AnswerStep, answer: Pick<AnswerFact, "correct" | "assist
         const xp = budget.lightningLeft > 0 ? 1 : 0;
         return { award: { xp: xp + bonus, reason: "lightning", masteredNow }, charge: { cap: "lightning", xp } };
     }
-    if (path === "repair")
-        return { award: { xp: BASE_XP.repair + bonus, reason: "repair", masteredNow }, charge: null };
     const reason: AwardReason = answer.assisted ? "assisted" : step.first ? "first_correct" : step.due ? "review_correct" : "practice";
     if (step.first || step.due)
         return { award: { xp: BASE_XP[reason] + bonus, reason, masteredNow }, charge: null };
@@ -71,14 +68,13 @@ function awardFor(step: AnswerStep, answer: Pick<AnswerFact, "correct" | "assist
  */
 function replayAwards(state: LearnerState) {
     const lightning = new Set(state.sessions.filter(s => s.mode === "lightning").map(s => s.id));
-    const repairs = new Set(state.sessions.flatMap(s => s.items.flatMap(i => i.repairOf !== undefined && i.answerId ? [i.answerId] : [])));
     const practiceSpent = new Map<string, number>();
     const lightningSpent = new Map<string, number>();
     const awards = new Map<string, Award>();
     const progress = questionProgress(state, (e, step) => {
         if (e.origin === "mock")
             return;
-        const path: AnswerPath = lightning.has(e.activityId) ? "lightning" : repairs.has(e.id) ? "repair" : "study";
+        const path: AnswerPath = lightning.has(e.activityId) ? "lightning" : "study";
         const budget = { practiceLeft: PRACTICE_CAP_PER_DAY - (practiceSpent.get(e.localDay) ?? 0), lightningLeft: LIGHTNING_CAP_PER_ROUND - (lightningSpent.get(e.activityId) ?? 0) };
         const { award, charge } = awardFor(step, e, path, budget);
         if (charge?.cap === "practice")
@@ -95,7 +91,7 @@ export function answerAwards(state: LearnerState) {
 }
 
 /**
- * What answering each question now would earn, unassisted and outside a repair step, in this session:
+ * What answering each question now would earn, unassisted, in this session:
  * correct, correct but marked a guess, and wrong. Each hypothetical answer goes through the same applyAnswer
  * and awardFor as a saved one, so a hint cannot drift from the award the answer then gets. budget is what is
  * left of the caps now; lightningLeft is null outside a lightning round.

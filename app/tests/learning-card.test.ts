@@ -7,7 +7,7 @@ import { randomUUID } from "node:crypto";
 import { test } from "node:test";
 import { chromium, type FrameLocator, type Page } from "playwright";
 import { startHttpServer } from "../src/server.js";
-import { safeQuestion } from "../src/domain/course.js";
+import { bankQuestions, safeQuestion } from "../src/domain/course.js";
 import { submitAnswer } from "../src/domain/quiz.js";
 import { LearningRuntime } from "../src/domain/learning-runtime.js";
 import { SqliteLearningStore } from "../src/persistence/learning-store.js";
@@ -125,14 +125,14 @@ test("under a 3-second host delay a lesson shows each verdict and the next quest
     await app.locator(`input[name="answer"][value="${wrong("q002")}"]`).check();
     await app.locator('[data-action="answer"]').click();
     await app.getByRole("heading", { name: "Chưa đúng" }).waitFor({ timeout: 300 });
-    assert.equal(await app.locator(".segs .seg").count(), 4, "the card queued the repair step for q002");
+    assert.equal(await app.locator(".segs .seg").count(), 3, "a wrong answer adds no step to the queue");
     let saved = await tool("get_study_session", { sessionId });
     for (let i = 0; i < 60 && (saved.structuredContent.sessionResults as { answered: number }).answered < 2; i++) {
       await page.waitForTimeout(250);
       saved = await tool("get_study_session", { sessionId });
     }
     assert.deepEqual(saved.structuredContent.sessionResults, { answered: 2, correct: 1, wrong: 1, items: [{ questionId: "q001", answer: right("q001"), correct: true }, { questionId: "q002", answer: wrong("q002"), correct: false }] });
-    assert.deepEqual((saved.structuredContent.queue as { questionId: string; repairOf?: string }[]).map(i => i.repairOf ? `${i.questionId}*` : i.questionId), ["q001", "q002", "q003", "q002*"], "the server put the repair step where the card did");
+    assert.deepEqual((saved.structuredContent.queue as { questionId: string }[]).map(i => i.questionId), ["q001", "q002", "q003"], "the server queue has no repair step either");
     await app.locator(".answer-award").getByText("-3 XP").waitFor();
   });
 });
@@ -149,14 +149,14 @@ test("under a 3-second host delay a lesson verdict shows its XP and the header t
     assert.equal(await total.innerText(), "0");
     await app.locator(`input[name="answer"][value="${right("q001")}"]`).check();
     await app.locator('[data-action="answer"]').click();
-    await app.locator(".answer-award").getByText("+10 XP", { exact: true }).waitFor({ timeout: 300 });
-    assert.equal(await total.innerText(), "10", "the header total moves in the verdict render");
+    await app.locator(".answer-award").getByText("+25 XP", { exact: true }).waitFor({ timeout: 300 });
+    assert.equal(await total.innerText(), "25", "the header total moves in the verdict render (10 first correct + 15 learned bonus)");
     await app.locator('[data-action="study-next"]').click();
     await app.locator("h2.stem", { hasText: safeQuestion("q002").question }).waitFor({ timeout: 300 });
     await app.locator(`input[name="answer"][value="${wrong("q002")}"]`).check();
     await app.locator('[data-action="answer"]').click();
     await app.locator(".answer-award").getByText("-3 XP", { exact: true }).waitFor({ timeout: 300 });
-    assert.equal(await total.innerText(), "7");
+    assert.equal(await total.innerText(), "22");
     const chip = await app.locator(".answer-award").elementHandle();
     assert.ok(chip);
     let saved = await tool("get_study_session", { sessionId });
@@ -165,8 +165,8 @@ test("under a 3-second host delay a lesson verdict shows its XP and the header t
       saved = await tool("get_study_session", { sessionId });
     }
     await page.waitForTimeout(3500);
-    assert.equal(saved.structuredContent.xp, 7, "the server gave the XP the card showed");
-    assert.equal(await total.innerText(), "7");
+    assert.equal(saved.structuredContent.xp, 22, "the server gave the XP the card showed");
+    assert.equal(await total.innerText(), "22");
     assert.equal(await chip.evaluate(el => [el.isConnected, el.textContent].join(" ")), "true -3 XP", "the confirmation left the verdict and its XP chip as drawn");
   });
 });
@@ -199,7 +199,7 @@ test("under a 3-second host delay a lightning round moves on at once and the ser
   });
 });
 
-test("study actions stay in one footer, inline XP accumulates, and immediate retry unlocks the same question", async () => {
+test("study actions stay in one footer, inline XP accumulates, and a miss offers no immediate retry", async () => {
   await withPreview(async ({ origin, page, app, tool, open }) => {
     const started = await tool("start_study", { questionIds: ["q001", "q002"], requestId: randomUUID() });
     const sessionId = started.structuredContent.sessionId;
@@ -217,7 +217,7 @@ test("study actions stay in one footer, inline XP accumulates, and immediate ret
     await app.locator('[data-action="answer"]').click();
     await app.getByRole("heading", { name: "Chính xác!" }).waitFor();
     assert.equal(await app.locator(".opt.right #verdict").count(), 1, "feedback is inside the selected answer");
-    assert.equal(await app.locator(".opt.right .answer-award").innerText(), "+10 XP");
+    assert.equal(await app.locator(".opt.right .answer-award").innerText(), "+25 XP");
     assert.equal(await app.locator('[data-action="why"]').getAttribute("aria-expanded"), "false");
     assert.equal(await app.locator(".why").count(), 0);
     const why = await app.locator('[data-action="why"]').boundingBox();
@@ -230,28 +230,16 @@ test("study actions stay in one footer, inline XP accumulates, and immediate ret
     await app.locator('[data-action="answer"]').click();
     await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
     assert.equal(await app.locator(".opt.wrong .answer-award").innerText(), "-3 XP");
-    assert.equal(await app.locator("[data-lesson-xp]").innerText(), "7");
+    assert.equal(await app.locator("[data-lesson-xp]").innerText(), "22");
     assert.equal(await app.locator(".opt.wrong .x").count(), 0, "cross has no nested background");
     assert.equal(await app.locator(".panel #verdict").count(), 0, "feedback is not repeated at the bottom");
     assert.equal(await app.locator(".opt.right").count(), 0, "the solution is hidden until help is requested");
-    await app.locator('[data-action="study-retry"]').click();
-    await app.getByText("Bạn đã sai câu này lúc nãy").waitFor();
-    assert.equal(await app.locator("#verdict").count(), 0, "retry clears feedback even though the question ID is unchanged");
-    assert.equal(await app.locator('input[name="answer"]').first().isEnabled(), true);
-    assert.equal(await app.locator('input[name="answer"]:checked').count(), 0);
-    await app.getByRole("button", { name: "Tạm dừng và lưu" }).click();
-    await continueStudy(app);
-    await app.getByText("Bạn đã sai câu này lúc nãy").waitFor();
-    const repair = await tool("get_study_session", { sessionId });
-    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String(repair.structuredContent.xp));
-    await app.locator(`input[name="answer"][value="${right("q002")}"]`).check();
-    await app.locator('[data-action="answer"]').click();
-    await app.getByRole("heading", { name: "Đã sửa!" }).waitFor();
-    assert.equal(await app.locator('[data-action="study-retry"]').count(), 0);
-    await app.locator(".answer-award").waitFor();
-    const corrected = await savedSession(tool, sessionId, 3);
-    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String(corrected.structuredContent.xp));
-    assert.equal(Number(corrected.structuredContent.xp) - Number(repair.structuredContent.xp), 2, "repair earns only the server's assisted credit");
+    assert.equal(await app.locator('[data-action="study-retry"]').count(), 0, "a miss has no immediate retry");
+    assert.equal(await app.getByRole("button", { name: "Thử lại", exact: true }).count(), 0);
+    assert.equal(await app.locator('[data-action="deep-help"]').count(), 0);
+    const missed = await savedSession(tool, sessionId, 2);
+    assert.equal(missed.structuredContent.xp, 22);
+    assert.equal((missed.structuredContent.queue as unknown[]).length, 2, "no repair step is queued");
     await page.setViewportSize({ width: 390, height: 844 });
     assert.equal(await app.locator(".card").evaluate(el => el.scrollWidth <= el.clientWidth), true);
     await app.locator('[data-action="why"]').click();
@@ -288,7 +276,8 @@ test("direct actions remain reachable on mobile and negative XP survives feedbac
       assert.equal(await app.locator(".answer-award").evaluate(el => getComputedStyle(el).animationName), "none");
       assert.equal(await app.locator(".opts").evaluate(el => el.ownerDocument.activeElement?.id), "verdict", "inline verdict stays focusable after grading");
       assert.equal(await app.locator(".card").evaluate(el => el.scrollWidth <= el.clientWidth), true);
-      for (const name of ["Xem đáp án", "Thử lại", "Tiếp tục"]) assert.equal(await app.getByRole("button", { name, exact: true }).isVisible(), true, `${name} is reachable after a miss on mobile`);
+      for (const name of ["Xem đáp án", "Tiếp tục"]) assert.equal(await app.getByRole("button", { name, exact: true }).isVisible(), true, `${name} is reachable after a miss on mobile`);
+      assert.equal(await app.getByRole("button", { name: "Thử lại", exact: true }).count(), 0, "a miss offers no retry");
       assert.equal(await app.locator('[data-action="confusion"]').count(), 0, "the confusion toggle was removed");
       assert.equal(await app.locator('[data-action="help"]').count(), 0, "ChatGPT help waits inside the explanation");
       await app.getByRole("button", { name: "Xem đáp án", exact: true }).click();
@@ -319,7 +308,7 @@ test("the lesson summary counts as posted only after the host accepts it, and a 
     await app.getByText("Chưa gửi được tổng kết vào khung chat").waitFor();
     const sent = await messages();
     await app.locator('[data-action="summary-retry"]').click();
-    await page.locator("#host-message").getByText(`Xong bài: 1/1 đúng, +10 XP. [session ${sessionId} · tổng kết]`).waitFor();
+    await page.locator("#host-message").getByText(`Xong bài: 1/1 đúng, +25 XP, 1 câu mới thuộc. [session ${sessionId} · tổng kết]`).waitFor();
     await app.getByText("Chưa gửi được tổng kết vào khung chat").waitFor({ state: "detached" });
     assert.equal((await sent()).filter((m) => m.method === "ui/message").length, 1);
 
@@ -379,7 +368,7 @@ test("skipping the last question ends on the finish screen with what is left, an
   });
 });
 
-test("XP, the combo and a repair step come from the server, and a second miss offers ChatGPT's deeper explanation", async () => {
+test("XP and the combo come from the server, a miss adds no repair step, and Hỏi ChatGPT sends one message after recording help", async () => {
   await withPreview(async ({ origin, page, app, tool, open, messages }) => {
     const ids = ["q001", "q002", "q003", "q004", "q005", "q006"];
     const started = await tool("start_study", { questionIds: ids, requestId: randomUUID() });
@@ -412,16 +401,22 @@ test("XP, the combo and a repair step come from the server, and a second miss of
       await next();
       await answer(q, right(q));
     }
-    await next();
-    await app.getByText("THỬ LẠI", { exact: true }).waitFor();
-    await app.getByText("Bạn đã sai câu này lúc nãy").waitFor();
+    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String((await savedSession(tool, started.structuredContent.sessionId, 6)).structuredContent.xp));
+    assert.equal(await app.getByText("THỬ LẠI", { exact: true }).count(), 0, "no repair step exists");
+    assert.equal(await app.getByText("Bạn đã sai câu này lúc nãy").count(), 0);
+    assert.equal(((await tool("get_study_session", { sessionId: started.structuredContent.sessionId })).structuredContent.queue as unknown[]).length, 6, "the miss added no step");
+    await app.getByRole("button", { name: "Tiếp tục", exact: true }).waitFor();
+    // The miss on q004 re-queues for review; ask ChatGPT about it from the lesson's own step.
+    const reviewed = await tool("start_study", { questionIds: ["q004"], requestId: randomUUID() });
+    await open(reviewed);
+    await app.getByRole("button", { name: "Bắt đầu" }).click();
     const sent = await messages();
     await answer("q004", wrong("q004"));
     await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
-    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String((await savedSession(tool, started.structuredContent.sessionId, 7)).structuredContent.xp));
+    assert.equal(await app.getByRole("button", { name: "ChatGPT có thể giải thích kỹ hơn" }).count(), 0, "there is no deeper-explanation button");
     await app.getByRole("button", { name: "Xem đáp án" }).click();
-    await app.getByRole("button", { name: "ChatGPT có thể giải thích kỹ hơn" }).click();
-    await page.locator("#host-message").getByText("Mình vẫn nhầm câu 4, giải thích kỹ hơn nhé. [q004 · lần 2 · sai]").waitFor();
+    await app.getByRole("button", { name: "Hỏi ChatGPT về câu này" }).click();
+    await page.locator("#host-message").getByText(new RegExp(`Giải thích giúp mình câu 4: mình chọn ${wrong("q004")}, đáp án là ${right("q004")}\\. \\[q004 · chọn ${wrong("q004")} · sai\\]`)).waitFor({ timeout: 5000 });
     const order = (await sent()).filter((m) => m.method === "ui/message" || m.name === "request_study_help" || m.name === "submit_study_answer").map((m) => m.name ?? m.method);
     assert.deepEqual(order, ["submit_study_answer", "request_study_help", "ui/message"], "help is recorded before the one chat message");
     assert.ok((await sent()).filter((m) => m.method === "tools/call").every((m) => m.arguments?.caller === "card"), "every card call says it came from the card");
@@ -605,8 +600,8 @@ test("the home card draws the goal ring and the four numbers from the course vie
     assert.equal(await app.locator(".ring .seg").count(), course.dailyGoal, "one segment per new question in today's goal");
     assert.equal(await app.locator(".ring .seg.on").count(), course.newToday);
     const tiles = await app.locator(".nums .ntile").allInnerTexts();
-    assert.ok(course.onTheWay > 0, "the lesson's first-time right answers wait for their review");
-    assert.deepEqual(tiles.map((t) => t.replace(/\s+/g, " ").trim()), [`${course.covered} /600 Đã gặp`, `${course.learned} /600 Đã thuộc +${course.onTheWay} đang chờ ôn lại`, `${course.dueCount} câu Cần ôn hôm nay`, "1 câu Sai hôm nay Xem lại"], "q002's miss is today's one mistake");
+    assert.deepEqual([course.covered, course.learned, course.onTheWay, course.dueCount], [5, 4, 1, 0], "four first-try answers are learned at once; q002's miss waits for tomorrow's review");
+    assert.deepEqual(tiles.map((t) => t.replace(/\s+/g, " ").trim()), [`${course.covered} /600 Đã gặp`, `${course.learned} /600 Đã thuộc +${course.onTheWay} đang trong lịch ôn`, `${course.dueCount} câu Cần ôn hôm nay`, "1 câu Sai hôm nay Xem lại"], "q002's miss is today's one mistake");
     const weekXp = ((await tool("get_course", {})).structuredContent as { leagueSummary: { weekXp: number } }).leagueSummary.weekXp;
     await app.getByRole("button", { name: `Tham gia nhóm thi đua tuần Tuần này bạn có ${weekXp} XP` }).waitFor();
     assert.equal(await app.locator(".row-btn").count(), 0, "a learner outside the league sees only the invitation");
@@ -619,7 +614,7 @@ test("the home card draws the goal ring and the four numbers from the course vie
     await app.locator(".sheet").getByRole("button", { name: "Học", exact: true }).click();
     await app.getByRole("button", { name: "Bắt đầu" }).waitFor();
     const call = (await sent()).find((m) => m.name === "start_study");
-    assert.deepEqual([call?.arguments?.unitId, call?.arguments?.override], ["bien_bao", true]);
+    assert.deepEqual([call?.arguments?.unitId, call?.arguments?.count, call?.arguments?.override], ["bien_bao", 12, undefined], "the topic starts with the default count of 12, no override");
   });
 });
 
@@ -730,7 +725,7 @@ test("a request for the supplied test library shows Chưa có bộ đề gốc a
     const refused = await tool("start_mock_test", { mode: "library", requestId: randomUUID() });
     assert.equal(refused.isError, true);
     await page.goto(`${origin}/preview`);
-    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    await app.getByRole("button", { name: "Tiếp tục", exact: true }).waitFor();
     await open(refused);
     await app.getByRole("heading", { name: "Chưa có bộ đề gốc" }).waitFor();
     await app.getByRole("button", { name: "Tạo đề ngẫu nhiên" }).click();
@@ -770,7 +765,7 @@ test("a failed progress load offers Thử lại and shows no numbers, and a host
     await app.getByText("Chưa tải được tiến độ").waitFor();
     assert.equal(await app.locator(".nums").count(), 0, "no zeros stand in for unknown progress");
     await app.getByRole("button", { name: "Thử lại" }).click();
-    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    await app.getByRole("button", { name: "Tiếp tục", exact: true }).waitFor();
 
     await page.route(`${origin}/preview`, async (route) => {
       const html = await (await route.fetch()).text();
@@ -1040,13 +1035,13 @@ test("after lowering the goal below today's new questions, the home ring stays f
   });
 });
 
-/** Answers each question right in one lesson, through the server, and returns the course view afterwards. */
-async function learnFirstTime(tool: Preview["tool"], ids: string[]) {
+/** Answers each question right (or wrong, for ids in miss) in one lesson, through the server, and returns the course view afterwards. */
+async function learnFirstTime(tool: Preview["tool"], ids: string[], miss: string[] = []) {
   const started = await tool("start_study", { questionIds: ids, requestId: randomUUID() });
   const sessionId = started.structuredContent.sessionId as string;
   let current = started.structuredContent.question as { id: string } | null;
   while (current) {
-    await tool("submit_study_answer", { sessionId, questionId: current.id, answer: right(current.id), requestId: randomUUID() });
+    await tool("submit_study_answer", { sessionId, questionId: current.id, answer: miss.includes(current.id) ? wrong(current.id) : right(current.id), requestId: randomUUID() });
     current = (await tool("next_study_question", { sessionId, requestId: randomUUID() })).structuredContent.question as { id: string } | null;
   }
   return { sessionId, course: (await tool("get_course", {})).structuredContent as { covered: number; learned: number; onTheWay: number; nextLearnAt: number | null } };
@@ -1054,13 +1049,13 @@ async function learnFirstTime(tool: Preview["tool"], ids: string[]) {
 
 test("the Đã thuộc tile keeps its number and names the questions waiting for their review, on home and the course map", async () => {
   await withPreview(async ({ origin, page, app, tool }) => {
-    const { course } = await learnFirstTime(tool, ["q001", "q002", "q003"]);
-    assert.deepEqual([course.learned, course.onTheWay], [0, 3]);
+    const { course } = await learnFirstTime(tool, ["q001", "q002", "q003"], ["q002", "q003"]);
+    assert.deepEqual([course.learned, course.onTheWay], [1, 2], "a first-try right answer is learned at once; the two misses wait in the review schedule");
     await page.goto(`${origin}/preview`);
     await app.getByRole("button", { name: "Học tiếp" }).waitFor();
     const learned = app.locator(".nums .ntile.mid");
-    assert.equal(await learned.locator("b").innerText(), "0", "the main number is never added to");
-    assert.equal((await learned.locator(".nwait").innerText()).trim(), `+${course.onTheWay} đang chờ ôn lại`);
+    assert.equal(await learned.locator("b").innerText(), "1", "the main number counts only learned questions");
+    assert.equal((await learned.locator(".nwait").innerText()).trim(), `+${course.onTheWay} đang trong lịch ôn`);
     assert.equal(await app.locator(".nums .nwait").count(), 1, "only the Đã thuộc tile has the line");
     await app.getByRole("button", { name: "Chọn chủ đề" }).click();
     await app.locator(".course-summary .course-pending").getByText(`+${course.onTheWay}`).waitFor();
@@ -1071,7 +1066,7 @@ test("the Đã thuộc tile keeps its number and names the questions waiting for
 
 test("an ⓘ opens one explanation at a time: the keyboard moves focus in and Esc back, a second ⓘ replaces the first, and a tap outside closes it", async () => {
   await withPreview(async ({ origin, page, app, tool }) => {
-    const { course } = await learnFirstTime(tool, ["q001", "q002", "q003"]);
+    const { course } = await learnFirstTime(tool, ["q001", "q002", "q003"], ["q002"]);
     await page.goto(`${origin}/preview`);
     await app.getByRole("button", { name: "Học tiếp" }).waitFor();
     const pop = app.getByRole("dialog");
@@ -1082,7 +1077,7 @@ test("an ⓘ opens one explanation at a time: the keyboard moves focus in and Es
     await pop.getByRole("heading", { name: "Đã thuộc" }).waitFor();
     assert.equal(await learned.getAttribute("aria-expanded"), "true");
     assert.equal(await focused(pop.getByRole("heading")), true, "a keyboard open moves focus to the popover's title");
-    await pop.getByText(`${course.onTheWay} câu đã đúng 1 lần`, { exact: false }).waitFor();
+    await pop.getByText(`${course.onTheWay} câu đang trong lịch ôn`, { exact: false }).waitFor();
     await page.keyboard.press("Escape");
     await pop.waitFor({ state: "hidden" });
     assert.equal(await focused(learned), true, "Esc returns focus to the button");
@@ -1098,7 +1093,7 @@ test("an ⓘ opens one explanation at a time: the keyboard moves focus in and Es
     await pop.waitFor({ state: "hidden" });
     await covered.click();
     await pop.waitFor();
-    await app.locator(".lx-title").click();
+    await app.getByRole("heading", { name: "Mỗi ngày một bước tiến." }).click();
     await pop.waitFor({ state: "hidden" });
     assert.equal(await covered.getAttribute("aria-expanded"), "false", "a tap outside closes it");
   });
@@ -1120,7 +1115,7 @@ test("the home card's fourth tile counts today's mistakes and opens a read-only 
     assert.equal(before.wrongToday, 3);
     await page.setViewportSize({ width: 390, height: 900 });
     await page.goto(`${origin}/preview`);
-    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    await app.getByRole("button", { name: "Tiếp tục", exact: true }).waitFor();
     const tiles = app.locator(".nums .ntile");
     assert.equal(await tiles.count(), 4);
     assert.equal((await tiles.nth(3).innerText()).replace(/\s+/g, " ").trim(), "3 câu Sai hôm nay Xem lại");
@@ -1156,7 +1151,7 @@ test("the home card's fourth tile counts today's mistakes and opens a read-only 
     assert.equal(await app.locator('#content input, #content [data-action="answer"]').count(), 0, "nothing here can be answered");
     await app.getByText("Các câu này sẽ quay lại trong lượt ôn của bạn.").waitFor();
     await app.getByRole("button", { name: "Về trang chính" }).click();
-    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    await app.getByRole("button", { name: "Tiếp tục", exact: true }).waitFor();
     const after = (await tool("get_course", {})).structuredContent as { results: { totalAttempts: number } };
     assert.equal(after.results.totalAttempts, before.results.totalAttempts, "reviewing records nothing");
 
@@ -1170,7 +1165,7 @@ test("with no mistakes today the tile is disabled and says so, and a mistakes ca
   await withPreview(async ({ origin, page, app, tool, open }) => {
     await answerEach(tool, [["q001", "right"]]);
     await page.goto(`${origin}/preview`);
-    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    await app.getByRole("button", { name: "Tiếp tục", exact: true }).waitFor();
     const tile = app.locator(".nums .ntile").nth(3);
     assert.equal((await tile.innerText()).replace(/\s+/g, " ").trim(), "0 câu Sai hôm nay Chưa có câu sai hôm nay");
     assert.equal(await tile.getByRole("button", { name: "Sai hôm nay: chưa có câu sai hôm nay" }).isDisabled(), true);
@@ -1179,7 +1174,134 @@ test("with no mistakes today the tile is disabled and says so, and a mistakes ca
     await app.locator(".dashed").getByText("Chưa có câu sai hôm nay").waitFor();
     assert.equal(await app.locator(".mk-item").count(), 0);
     await app.getByRole("button", { name: "Về trang chính" }).click();
-    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    await app.getByRole("button", { name: "Tiếp tục", exact: true }).waitFor();
+  });
+});
+
+/** Answers each question in the server's store as if `ago` ms ago, right or wrong, so a miss is already due when the card opens. */
+async function answerAgo(dataPath: string, ids: string[], how: "right" | "wrong", ago = 0) {
+  const store = new SqliteLearningStore(dataPath);
+  const runtime = new LearningRuntime(store, "local-development", () => Date.now() - ago);
+  for (const questionId of ids) await runtime.command({ kind: "answer_question", requestId: randomUUID(), questionId, answer: how === "right" ? right(questionId) : wrong(questionId) });
+  store.close();
+}
+/** The first tool call of this name the card has posted so far, waiting briefly for the log to catch up with the screen. */
+async function sentCall(sent: () => Promise<WidgetMessage[]>, name: string) {
+  for (let i = 0; i < 30; i++) {
+    const found = (await sent()).find((m) => m.method === "tools/call" && m.name === name);
+    if (found) return found;
+    await new Promise((done) => setTimeout(done, 100));
+  }
+  return undefined;
+}
+const culture = bankQuestions.filter((q) => q.examCategory === "van_hoa").map((q) => q.questionId);
+
+test("with an unfinished lesson the home card offers Tiếp tục instead of Học tiếp, and it resumes that lesson", async () => {
+  await withPreview(async ({ origin, page, app, tool, messages }) => {
+    const started = await tool("start_study", { questionIds: ["q001", "q002", "q003"], requestId: randomUUID() });
+    const sessionId = started.structuredContent.sessionId as string;
+    await tool("submit_study_answer", { sessionId, questionId: "q001", answer: right("q001"), requestId: randomUUID() });
+    await tool("next_study_question", { sessionId, requestId: randomUUID() });
+    const course = (await tool("get_course", {})).structuredContent as { openSession: { id: string } | null };
+    assert.equal(course.openSession?.id, sessionId);
+    await page.goto(`${origin}/preview`);
+    await app.getByRole("button", { name: "Tiếp tục", exact: true }).waitFor();
+    assert.equal(await app.getByRole("button", { name: "Học tiếp", exact: true }).count(), 0, "Học tiếp is replaced, not added");
+    assert.equal(await app.locator('[data-action="daily"], [data-action="more"], #more-count').count(), 0);
+    assert.equal(await app.locator('[data-action="resume"]').getAttribute("data-value"), sessionId);
+    const sent = await messages();
+    await app.getByRole("button", { name: "Tiếp tục", exact: true }).click();
+    await app.locator("h2.stem", { hasText: safeQuestion("q002").question }).waitFor();
+    const resumed = (await sent()).find((m) => m.method === "tools/call" && m.name === "resume_study");
+    assert.equal(resumed?.arguments?.sessionId, sessionId, "the card resumes that session");
+    assert.equal((await sent()).filter((m) => m.name === "start_study").length, 0, "no new lesson starts");
+  });
+});
+
+test("once the daily goal is met and nothing is due, the home card offers Học thêm with 10, 12 or 15 questions and starts that many new ones", async () => {
+  await withPreview(async ({ origin, page, app, tool, messages }) => {
+    await tool("update_profile", { dailyGoal: 10, requestId: randomUUID() });
+    const { course } = await learnFirstTime(tool, ["q001", "q002", "q003", "q004", "q005", "q006", "q007", "q008", "q009", "q010"]);
+    assert.deepEqual([course.covered, course.onTheWay], [10, 0]);
+    await page.goto(`${origin}/preview`);
+    const more = app.locator("#more-count");
+    await more.waitFor();
+    assert.deepEqual(await more.locator("input").evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value)), ["10", "12", "15"]);
+    assert.equal(await more.locator("input:checked").getAttribute("value"), "10", "the default is the daily goal");
+    assert.equal(await app.locator('[data-action="daily"], [data-action="resume"]').count(), 0);
+    await more.locator('input[value="15"]').check();
+    const sent = await messages();
+    await app.locator('[data-action="more"]').getByText("Học tiếp", { exact: true }).click();
+    await app.getByRole("button", { name: "Bắt đầu" }).waitFor();
+    const call = await sentCall(sent, "start_study");
+    assert.deepEqual(call?.arguments && { count: call.arguments.count, unitId: call.arguments.unitId, reviewOnly: call.arguments.reviewOnly }, { count: 15, unitId: undefined, reviewOnly: undefined });
+    assert.equal(await app.locator(".segs .seg").count(), 15, "the lesson has 15 never-answered questions");
+  });
+});
+
+test("with a review due, a topic's sheet offers Ôn trước and no way to start the topic", async () => {
+  await withPreview(async ({ origin, dataPath, page, app, messages }) => {
+    await answerAgo(dataPath, ["q301"], "wrong", 24 * 3600000 + 1000);
+    await page.goto(`${origin}/preview`);
+    await app.getByRole("button", { name: "Chọn chủ đề" }).click();
+    await app.getByRole("button", { name: /^Biển báo, đã gặp 1 trên 185, 1 câu cần ôn hôm nay/ }).click();
+    const sheet = app.locator(".sheet");
+    await sheet.getByRole("heading", { name: "Biển báo" }).waitFor();
+    await sheet.getByRole("button", { name: "Ôn trước · 1 câu" }).waitFor();
+    await sheet.getByText("Hãy ôn xong các câu đến hạn rồi quay lại học chủ đề này.", { exact: true }).waitFor();
+    assert.equal(await sheet.locator('[data-action="unit"], [data-action="unit-practice"], #topic-count').count(), 0, "no way to start the topic while reviews are due");
+    const sent = await messages();
+    await sheet.getByRole("button", { name: "Ôn trước · 1 câu" }).click();
+    await app.getByRole("button", { name: "Bắt đầu" }).waitFor();
+    assert.equal((await sentCall(sent, "start_study"))?.arguments?.reviewOnly, true);
+  });
+});
+
+test("a topic with fewer questions left than the chosen count asks first, then studies just those", async () => {
+  await withPreview(async ({ origin, dataPath, page, app, messages }) => {
+    assert.equal(culture.length, 23);
+    await answerAgo(dataPath, culture.slice(0, 20), "right");
+    await page.goto(`${origin}/preview`);
+    await app.getByRole("button", { name: "Chọn chủ đề" }).click();
+    await app.getByRole("button", { name: /^Văn hóa giao thông, đã gặp 20 trên 23/ }).click();
+    const count = app.locator("#topic-count");
+    assert.deepEqual(await count.locator("input").evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value)), ["10", "12", "15"]);
+    assert.equal(await count.locator("input:checked").getAttribute("value"), "12", "the default is the daily goal");
+    assert.equal(await app.locator('[data-action="map-close"]').count(), 0, "the sheet has no collapse chevron");
+    const sent = await messages();
+    await app.locator('.sheet [data-action="unit"]').click();
+    const modal = app.getByRole("alertdialog");
+    await modal.getByRole("heading", { name: "Chủ đề còn ít câu hơn bạn chọn" }).waitFor();
+    await modal.getByText("Chủ đề này chỉ còn 3 câu chưa học, nên bài học sẽ có 3 câu thay vì 12 câu.", { exact: true }).waitFor();
+    assert.equal((await sent()).filter((m) => m.name === "start_study").length, 0, "nothing starts before the learner confirms");
+    await modal.getByRole("button", { name: "Quay lại" }).click();
+    await app.getByRole("alertdialog").waitFor({ state: "detached" });
+    await app.locator(".sheet").getByRole("heading", { name: "Văn hóa giao thông" }).waitFor();
+    await app.locator('.sheet [data-action="unit"]').click();
+    await app.getByRole("alertdialog").getByRole("button", { name: "Học 3 câu" }).click();
+    await app.getByRole("button", { name: "Bắt đầu" }).waitFor();
+    const call = await sentCall(sent, "start_study");
+    assert.deepEqual([call?.arguments?.unitId, call?.arguments?.count], ["van_hoa", 3]);
+    assert.equal(await app.locator(".segs .seg").count(), 3);
+  });
+});
+
+test("a topic with every question already met says so and offers Luyện lại câu đã làm as practice", async () => {
+  await withPreview(async ({ origin, dataPath, page, app, messages }) => {
+    await answerAgo(dataPath, culture, "right");
+    await page.goto(`${origin}/preview`);
+    await app.getByRole("button", { name: "Chọn chủ đề" }).click();
+    await app.getByRole("button", { name: /^Văn hóa giao thông, đã gặp 23 trên 23/ }).click();
+    const sheet = app.locator(".sheet");
+    await sheet.getByText("Bạn đã gặp hết 23 câu của chủ đề này.", { exact: true }).waitFor();
+    assert.equal(await sheet.locator('[data-action="unit"]').count(), 0, "there is nothing new to start");
+    assert.equal(await sheet.locator("#topic-count input:checked").getAttribute("value"), "12");
+    const sent = await messages();
+    await sheet.getByRole("button", { name: "Luyện lại câu đã làm" }).click();
+    await app.getByRole("button", { name: "Bắt đầu" }).waitFor();
+    const call = await sentCall(sent, "start_study");
+    assert.deepEqual([call?.arguments?.unitId, call?.arguments?.count, call?.arguments?.practice], ["van_hoa", 12, true]);
+    assert.equal(await app.locator(".segs .seg").count(), 12, "practice re-asks answered questions");
   });
 });
 
@@ -1275,7 +1397,7 @@ test("a popover fits inside the card at 360 px and narrower, with no sideways sc
   });
 });
 
-test("the ⓘ beside Tôi đoán, THỬ LẠI, the combo, XP, the goal, the mock rule and the league each open their own explanation", async () => {
+test("the ⓘ beside Tôi đoán, the combo, XP, the goal, the mock rule and the league each open their own explanation", async () => {
   await withPreview(async ({ origin, page, app, tool, open }) => {
     const started = await tool("start_study", { questionIds: ["q001", "q002", "q003", "q004"], requestId: randomUUID() });
     await page.goto(`${origin}/preview`);
@@ -1300,19 +1422,14 @@ test("the ⓘ beside Tôi đoán, THỬ LẠI, the combo, XP, the goal, the mock
     await app.getByRole("button", { name: "Bắt đầu" }).click();
     await explains("Tôi đoán", "Tôi đoán");
     await answer(wrong("q001"));
-    for (const q of ["q002", "q003"]) {
+    for (const q of ["q002", "q003", "q004"]) {
       await next();
       await answer(right(q));
     }
-    await next();
-    await app.getByText("THỬ LẠI", { exact: true }).waitFor();
-    await explains("Thử lại", "Thử lại");
-    await answer(right("q001"));
+    assert.equal(await app.getByText("THỬ LẠI", { exact: true }).count(), 0, "no repair step exists");
     assert.equal(await app.locator("[data-lesson-xp]").innerText(), String((await savedSession(tool, started.structuredContent.sessionId, 4)).structuredContent.xp));
     await app.getByRole("button", { name: "Vì sao?" }).click();
     await explains("Combo", "Combo");
-    await next();
-    await answer(right("q004"));
     await next();
     await app.getByRole("heading", { name: "Hoàn thành bài học!" }).waitFor();
     await explains("XP", "XP");
@@ -1328,32 +1445,30 @@ test("the ⓘ beside Tôi đoán, THỬ LẠI, the combo, XP, the goal, the mock
   });
 });
 
-test("with nothing newly mastered, the finish screen counts first-time correct answers and says which day to review them; a mastered answer keeps câu mới thuộc", async () => {
-  await withPreview(async ({ origin, dataPath, page, app, tool, open }) => {
+test("the finish screen counts first-try correct answers as câu mới thuộc, and a lesson of misses shows 0 and no review-day line", async () => {
+  await withPreview(async ({ origin, page, app, tool, open }) => {
     const { sessionId } = await learnFirstTime(tool, ["q001", "q002", "q003"]);
     await page.goto(`${origin}/preview`);
     await app.locator("[data-action]").first().waitFor();
     await open(await tool("get_study_session", { sessionId }));
     await app.getByRole("heading", { name: "Hoàn thành bài học!" }).waitFor();
     const third = app.locator(".tiles .stat-tile").nth(2);
-    await third.getByText("câu đúng lần đầu").waitFor();
-    assert.equal(await third.locator("[data-count]").getAttribute("data-count"), "3");
-    assert.equal(await app.getByText("câu mới thuộc").count(), 0);
-    // Answered just now, so they count again from 24 hours later: tomorrow.
+    await third.getByText("câu mới thuộc").waitFor();
+    assert.equal(await third.locator("[data-count]").getAttribute("data-count"), "3", "three first-try right answers are learned at once");
+    assert.equal(await app.getByText("câu đúng lần đầu").count(), 0);
     await app.locator('[data-action="finish-continue"]').click();
-    await app.getByText("Ngày mai ôn lại để thuộc", { exact: true }).waitFor();
-    await app.getByRole("button", { name: "Giải thích: Đã thuộc", exact: true }).click();
-    await app.getByRole("dialog").getByText("3 câu đã đúng 1 lần", { exact: false }).waitFor();
+    await app.getByText("ôn lại để thuộc", { exact: false }).waitFor({ state: "detached" });
 
-    // q010 answered right a day ago, so today's right answer masters it.
-    const store = new SqliteLearningStore(dataPath);
-    await new LearningRuntime(store, "local-development", () => Date.now() - 24 * 3600000 - 1000).command({ kind: "answer_question", requestId: randomUUID(), questionId: "q010", answer: right("q010") });
-    store.close();
-    const mastered = await learnFirstTime(tool, ["q010"]);
-    await open(await tool("get_study_session", { sessionId: mastered.sessionId }));
-    await app.getByText("câu mới thuộc").waitFor();
-    assert.equal(await app.locator(".tiles .stat-tile").nth(2).locator("[data-count]").getAttribute("data-count"), "1");
-    assert.equal(await app.locator("#content").getByText("ôn lại để thuộc").count(), 0, "the first-step line is only for lessons with nothing mastered");
+    const missed = await learnFirstTime(tool, ["q004", "q005"], ["q004", "q005"]);
+    await open(await tool("get_study_session", { sessionId: missed.sessionId }));
+    await app.getByRole("heading", { name: "Hoàn thành bài học!" }).waitFor();
+    const tile = app.locator(".tiles .stat-tile").nth(2);
+    await tile.getByText("câu mới thuộc").waitFor();
+    assert.equal(await tile.locator("[data-count]").getAttribute("data-count"), "0");
+    await app.locator('[data-action="finish-continue"]').click();
+    await app.getByRole("heading", { name: "Bước tiếp theo" }).waitFor();
+    assert.equal(await app.locator("#content").getByText("ôn lại để thuộc").count(), 0);
+    assert.equal(missed.course.onTheWay, 2, "both misses wait in the review schedule");
   });
 });
 
@@ -1438,11 +1553,7 @@ test("the course path keeps every topic reachable across themes and widths and r
         assert.equal(await app.locator(".path-dock#topic-details").count(), 1);
         assert.equal(await app.locator('.path-dock#topic-details').isVisible(), true);
         assert.equal(await app.locator('.path').evaluate(el => el.scrollTop), pathTop, "opening details preserves the path position");
-        await app.getByRole("button", { name: "Thu gọn", exact: true }).press("Enter");
-        await app.locator("#topic-details").waitFor({ state: "detached" });
-        assert.equal(await topic.evaluate((button) => button === document.activeElement), true);
-        await topic.press("Enter");
-        await app.locator("#topic-details").waitFor();
+        assert.equal(await app.getByRole("button", { name: "Thu gọn", exact: true }).count(), 0, "the sheet has no separate collapse button");
         await topic.press("Enter");
         await app.locator("#topic-details").waitFor({ state: "detached" });
         assert.equal(await topic.evaluate((button) => button === document.activeElement), true, "collapsing from the trigger keeps keyboard position");

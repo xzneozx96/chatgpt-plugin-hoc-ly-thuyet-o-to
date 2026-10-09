@@ -41,13 +41,13 @@ test("a widget opened by a tool call shows that tool's result, not the course ov
     const page = await browser.newPage();
     await page.goto(`${origin}/preview`);
     const app = page.frameLocator("#widget");
-    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    await app.getByRole("button", { name: "Tiếp tục" }).waitFor();
     await page.evaluate((params) => {
       const frame = document.querySelector<HTMLIFrameElement>("#widget");
       frame?.contentWindow?.postMessage({ jsonrpc: "2.0", method: "ui/notifications/tool-result", params }, location.origin);
     }, toolResult);
     await app.getByRole("button", { name: "Bắt đầu" }).waitFor({ timeout: 5000 });
-    assert.equal(await app.getByRole("button", { name: "Học tiếp" }).count(), 0);
+    assert.equal(await app.getByRole("button", { name: "Tiếp tục" }).count(), 0);
     await app.getByRole("button", { name: "Bắt đầu" }).click();
     await app.getByRole("heading", { name: /Phần của đường bộ được sử dụng/ }).waitFor({ timeout: 5000 });
   } finally {
@@ -112,6 +112,7 @@ test("in ChatGPT the card's answer button scores the choice through tools/call a
     await app.getByRole("button", { name: "Tôi đoán", exact: true }).click();
     await app.locator('[data-action="answer"]').click();
     await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
+    for (let i = 0; i < 50 && !(await messages()).some((m) => m.name === "submit_study_answer"); i++) await page.waitForTimeout(100);
     const sent = await messages();
     assert.deepEqual(sent.filter((m) => m.name === "submit_study_answer").map((m) => [m.method, m.arguments?.answer, m.arguments?.confidence]), [["tools/call", "A", "guess"]]);
     assert.equal(sent.filter((m) => m.method === "ui/message").length, 0, "the card never posts an answer into the chat");
@@ -295,8 +296,14 @@ test("opening the explanation keeps the chosen answer and verdict, the card shri
       await fetch(`${origin}/preview/tool`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "next_study_question", arguments: { sessionId: study.sessionId, requestId: randomUUID() } }) });
     }
     await page.reload();
-    await app.locator('[data-action="daily"]').click();
-    await app.getByText(/Hôm nay không còn câu đến hạn ôn và bạn đã đạt mục tiêu câu mới/).waitFor();
+    await app.locator("#more-count").waitFor();
+    assert.equal(await app.locator('[data-action="daily"]').count(), 0, "goal met and nothing due offers extra questions instead of the daily lesson");
+    assert.deepEqual(await app.locator("#more-count input").evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value)), ["10", "12", "15"]);
+    assert.equal(await app.getByRole("button", { name: "Học tiếp" }).count(), 1);
+    const daily = await app.locator(".daily-block").innerText();
+    assert.match(daily, /10\/10 câu mới/);
+    assert.match(daily, /Đã ôn xong hôm nay/, "nothing due says so");
+
   } finally {
     await browser.close();
     server.close();
@@ -328,7 +335,7 @@ test("a lost answer response still shows the verdict at once, and the background
     await fetch(`${origin}/preview/tool`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "start_study", arguments: { requestId: randomUUID() } }) });
     await page.goto(`${origin}/preview`);
     const app = page.frameLocator("#widget");
-    await app.locator('[data-action="daily"]').click();
+    await app.locator('[data-action="resume"]').click();
     await app.getByRole("button", { name: "Bắt đầu" }).click();
     await app.locator('input[name="answer"][value="A"]').check();
     await app.locator('[data-action="answer"]').click();
@@ -361,7 +368,7 @@ test("Hỏi ChatGPT records help on the server before posting exactly one chat m
     await fetch(`${origin}/preview/tool`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "start_study", arguments: { requestId: randomUUID() } }) });
     await page.goto(`${origin}/preview?chat=1`);
     const app = page.frameLocator("#widget");
-    await app.locator('[data-action="daily"]').click();
+    await app.locator('[data-action="resume"]').click();
     await app.getByRole("button", { name: "Bắt đầu" }).click();
     await app.locator('input[name="answer"][value="A"]').check();
     await app.locator('[data-action="answer"]').click();
@@ -398,7 +405,7 @@ test("the finish screen posts the lesson summary once, and reopening the finishe
     const page = await browser.newPage();
     await page.goto(`${origin}/preview?chat=1`);
     const app = page.frameLocator("#widget");
-    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    await app.getByRole("button", { name: "Tiếp tục" }).waitFor();
     await open(page, started);
     await app.getByRole("button", { name: "Bắt đầu" }).click();
     await app.locator('input[name="answer"][value="B"]').check();
@@ -408,7 +415,7 @@ test("the finish screen posts the lesson summary once, and reopening the finishe
     await app.getByRole("button", { name: "Tiếp tục" }).click();
     await app.getByRole("heading", { name: "Hoàn thành bài học!" }).waitFor();
     const sessionId = started.structuredContent.sessionId as string;
-    await page.locator("#host-message").getByText(`Xong bài: 1/1 đúng, +10 XP. [session ${sessionId} · tổng kết]`).waitFor();
+    await page.locator("#host-message").getByText(`Xong bài: 1/1 đúng, +25 XP, 1 câu mới thuộc. [session ${sessionId} · tổng kết]`).waitFor();
     assert.equal((await messages()).filter((m) => m.method === "ui/message").length, 1);
 
     await page.reload();

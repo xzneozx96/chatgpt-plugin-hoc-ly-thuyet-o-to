@@ -30,74 +30,37 @@ function lesson(questionIds: string[], state = createLearner(morning)) {
 const answerIn = (state: LearnerState, sessionId: string, q: string, now: number, selected: AnswerId = right(q)) =>
     run(state, { kind: "answer_study", requestId: requestId(), sessionId, questionId: q, answer: selected }, now);
 const next = (state: LearnerState, sessionId: string, now: number) => run(state, { kind: "next_study", requestId: requestId(), sessionId }, now);
-const queue = (state: LearnerState, sessionId: string) => state.sessions.find(s => s.id === sessionId)?.items.map(i => i.repairOf ? `repair:${i.repairOf}` : i.questionId);
+const queue = (state: LearnerState, sessionId: string) => state.sessions.find(s => s.id === sessionId)?.items.map(i => i.questionId);
 
-test("a wrong lesson answer schedules one repair step after the next two steps, or last when fewer remain", () => {
+test("a wrong lesson answer inserts no repair step: the queue is unchanged and the question is queued for tomorrow", () => {
     const five = lesson(["q001", "q002", "q003", "q004", "q005"]);
     const s = answerIn(five.state, five.sessionId, "q001", morning, wrong("q001"));
-    assert.deepEqual(queue(s, five.sessionId), ["q001", "q002", "q003", "repair:q001", "q004", "q005"]);
-    let three = lesson(["q001", "q002", "q003"]);
-    let t = answerIn(three.state, three.sessionId, "q001", morning);
-    t = next(t, three.sessionId, morning);
-    t = answerIn(t, three.sessionId, "q002", morning + MINUTE, wrong("q002"));
-    assert.deepEqual(queue(t, three.sessionId), ["q001", "q002", "q003", "repair:q002"]);
-    three = lesson(["q001"]);
-    t = answerIn(three.state, three.sessionId, "q001", morning, wrong("q001"));
-    assert.deepEqual(queue(t, three.sessionId), ["q001"], "with no other step left there is nothing to separate a repair from the feedback");
+    assert.deepEqual(queue(s, five.sessionId), ["q001", "q002", "q003", "q004", "q005"]);
+    const p = questionProgress(s).get("q001");
+    assert.deepEqual([p?.learned, p?.stage, p?.dueAt, p?.lastWrong], [false, 0, morning + DAY, true]);
+    let t = next(s, five.sessionId, morning);
+    for (const q of ["q002", "q003", "q004", "q005"])
+        t = next(answerIn(t, five.sessionId, q, morning + MINUTE), five.sessionId, morning + MINUTE);
+    assert.equal(t.sessions.find(x => x.id === five.sessionId)?.status, "complete", "the lesson ends after its last original question");
+    assert.equal(t.evidence.filter(e => e.kind === "answer" && e.questionId === "q001").length, 1, "q001 is not asked again in the lesson");
+    const one = lesson(["q001"]);
+    const done = next(answerIn(one.state, one.sessionId, "q001", morning, wrong("q001")), one.sessionId, morning);
+    assert.equal(done.sessions.find(x => x.id === one.sessionId)?.status, "complete");
 });
 
-test("a wrong repair deducts 3 XP and is never repaired again", () => {
-    const { state, sessionId } = lesson(["q001", "q002", "q003"]);
-    let s = answerIn(state, sessionId, "q001", morning, wrong("q001"));
-    assert.throws(() => answerIn(s, sessionId, "q001", morning), /QUESTION_NOT_PENDING/, "the repair cannot be answered while the first answer's feedback shows");
-    s = next(s, sessionId, morning + MINUTE);
-    s = answerIn(s, sessionId, "q002", morning + MINUTE);
-    s = next(s, sessionId, morning + MINUTE);
-    s = answerIn(s, sessionId, "q003", morning + MINUTE);
-    s = next(s, sessionId, morning + 2 * MINUTE);
-    const repair = study(s, { kind: "resume_study", requestId: requestId(), sessionId }, morning + 2 * MINUTE);
-    assert.deepEqual([repair.question?.id, repair.itemKind, repair.repairOf, repair.questionStatus, repair.status], ["q001", "practice", "q001", "pending", "active"]);
-    assert.equal(repair.currentFeedback, null, "the earlier verdict is not shown on the repair step");
-    assert.equal(repair.help, null, "the answer key is not shown on the repair step");
-    assert.equal(repair.lastAward, null);
-    const answered = executeLearning(s, { kind: "answer_study", requestId: requestId(), sessionId, questionId: "q001", answer: wrong("q001") }, morning + 3 * MINUTE);
-    assert.ok(answered.view.kind === "study");
-    assert.deepEqual(answered.view.lastAward, { xp: -3, reason: "repair", masteredNow: false, baseXp: -3, bonusXp: 0 });
-    assert.equal(answered.view.currentFeedback?.correct, false);
-    assert.deepEqual(queue(answered.state, sessionId), ["q001", "q002", "q003", "repair:q001"], "a wrong repair adds no second repair");
-    const done = next(answered.state, sessionId, morning + 3 * MINUTE);
-    assert.equal(done.sessions.find(x => x.id === sessionId)?.status, "complete");
-});
-
-test("help asked on a waiting repair step is shown, and a skipped repair step moves without its answered original", () => {
-    const { state, sessionId } = lesson(["q001", "q002"]);
-    let s = answerIn(state, sessionId, "q001", morning, wrong("q001"));
-    s = next(s, sessionId, morning);
-    s = answerIn(s, sessionId, "q002", morning);
-    s = next(s, sessionId, morning);
-    s = run(s, { kind: "skip_study", requestId: requestId(), sessionId }, morning + MINUTE);
-    assert.deepEqual(queue(s, sessionId), ["q001", "q002", "repair:q001"]);
-    assert.equal(s.sessions.find(x => x.id === sessionId)?.status, "paused", "a skipped last step leaves the lesson paused, not complete");
-    s = run(s, { kind: "resume_study", requestId: requestId(), sessionId }, morning + 2 * MINUTE);
-    const helped = study(s, { kind: "record_help", requestId: requestId(), sessionId, questionId: "q001" }, morning + 3 * MINUTE);
-    assert.equal(helped.help?.question.id, "q001");
-});
-
-test("a correct repair answer is assisted practice and never counts as delayed recall", () => {
-    const { state, sessionId } = lesson(["q001", "q002"]);
-    let s = answerIn(state, sessionId, "q001", morning, wrong("q001"));
-    const dueAfterWrong = questionProgress(s).get("q001")?.dueAt;
-    s = next(s, sessionId, morning);
-    s = answerIn(s, sessionId, "q002", morning);
-    s = next(s, sessionId, morning);
-    // Even a day later, so the 24-hour wait has passed, the repair is not delayed recall.
-    s = answerIn(s, sessionId, "q001", morning + DAY + MINUTE);
-    const repairAnswer = s.evidence.filter(e => e.kind === "answer" && e.questionId === "q001").at(-1);
-    assert.ok(repairAnswer?.kind === "answer");
-    assert.equal(repairAnswer.assisted, true);
-    assert.equal(questionProgress(s).get("q001")?.successes, 0);
-    assert.equal(answerAwards(s).get(repairAnswer.id)?.reason, "repair");
-    assert.equal(dueAfterWrong, morning + DAY);
+test("a clean first answer is learned at once, while a wrong, guessed or assisted first answer is queued for tomorrow", () => {
+    let { state, sessionId } = lesson(["q001", "q002", "q003"]);
+    state = answerIn(state, sessionId, "q001", morning);
+    state = next(state, sessionId, morning);
+    state = run(state, { kind: "answer_study", requestId: requestId(), sessionId, questionId: "q002", answer: right("q002"), confidence: "guess" }, morning);
+    state = next(state, sessionId, morning);
+    state = run(state, { kind: "record_help", requestId: requestId(), sessionId, questionId: "q003" }, morning);
+    state = answerIn(state, sessionId, "q003", morning);
+    const progress = questionProgress(state);
+    assert.deepEqual([progress.get("q001")?.learned, progress.get("q001")?.dueAt], [true, null]);
+    assert.deepEqual([progress.get("q002")?.learned, progress.get("q002")?.stage, progress.get("q002")?.dueAt], [false, 0, morning + DAY], "a guess is queued");
+    assert.deepEqual([progress.get("q003")?.learned, progress.get("q003")?.stage, progress.get("q003")?.dueAt], [false, 0, morning + DAY], "an assisted answer is queued");
+    assert.equal(progress.get("q001")?.coveredAt, morning);
 });
 
 function dailyLesson() {
@@ -165,9 +128,8 @@ test("both pair questions are shown and answered before either verdict, and each
     assert.deepEqual(both.view.pair?.feedback.map(f => f?.correct), [true, false]);
     assert.equal(both.view.sessionResults.answered, 13);
     assert.equal(both.view.combo, 1);
-    assert.deepEqual(both.state.sessions.at(-1)?.items.slice(-1).map(i => i.repairOf), [b], "the wrong pair answer gets its repair after the pair");
-    let s = next(both.state, daily.sessionId, morning + 3 * MINUTE);
-    s = next(answerIn(s, daily.sessionId, b, morning + 4 * MINUTE), daily.sessionId, morning + 4 * MINUTE);
+    assert.equal(both.state.sessions.at(-1)?.items.length, 13, "the wrong pair answer adds no repair step");
+    const s = next(both.state, daily.sessionId, morning + 3 * MINUTE);
     assert.equal(s.sessions.at(-1)?.status, "complete");
     assert.equal(courseView(s, morning + 5 * MINUTE).covered, 13);
     assert.equal(s.evidence.filter(e => e.kind === "answer" && e.questionId === a).length, 1, "the moved question is answered once");
@@ -233,7 +195,7 @@ test("a lightning round takes up to 30 distinct seen questions in an order seede
     assert.ok(daily.kind === "course" && daily.nothingToStudy, "the daily lesson never reopens a lightning round");
 });
 
-test("lightning answers are scored attempts worth 1 XP each up to 15 a round, with mastery bonuses on top and no repairs", () => {
+test("lightning answers are scored attempts worth 1 XP each up to 15 a round, with no repairs and no mastery bonus on learned questions", () => {
     const seen = answered(20);
     const round = lightning(seen, morning + DAY);
     const sessionId = round.sessionId;
@@ -249,9 +211,10 @@ test("lightning answers are scored attempts worth 1 XP each up to 15 a round, wi
     assert.ok(facts.every(e => e.kind === "answer" && e.origin === "study"));
     const awards = facts.map(e => answerAwards(s).get(e.id));
     assert.deepEqual(awards[0], { xp: -3, reason: "lightning", masteredNow: false });
-    assert.equal(questionProgress(s).get(order[0] ?? "")?.successes, 0, "the wrong answer lapses the question as usual");
-    assert.ok(awards.slice(1).every(a => a?.reason === "lightning" && a.masteredNow), "due recalls master the other 19");
-    assert.equal(awards.reduce((sum, a) => sum + (a?.xp ?? 0) - (a?.masteredNow ? 15 : 0), 0), 12, "15 reward XP minus the wrong-answer penalty");
+    assert.equal(questionProgress(s).get(order[0] ?? "")?.learned, false, "the wrong answer unlearns the question as usual");
+    assert.ok(awards.slice(1).every(a => a?.reason === "lightning" && !a.masteredNow), "the other 19 were learned already, so no mastery bonus");
+    assert.deepEqual(awards.slice(1).map(a => a?.xp), [...Array<number>(15).fill(1), 0, 0, 0, 0], "1 XP each until the round's 15 XP cap");
+    assert.equal(awards.reduce((sum, a) => sum + (a?.xp ?? 0), 0), 12, "15 reward XP minus the wrong-answer penalty");
     const view = study(s, { kind: "resume_study", requestId: requestId(), sessionId }, morning + DAY + 30000);
     assert.deepEqual([view.correctCount, view.wrongItems], [19, [order[0]]]);
 });

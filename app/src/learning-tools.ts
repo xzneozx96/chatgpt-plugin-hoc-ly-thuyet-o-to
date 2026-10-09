@@ -15,14 +15,13 @@ export interface LearningTool {
   run(input: unknown): Promise<object>;
 }
 
-const cardCommands = new Set(["start_study", "resume_study", "next_study", "retry_study", "skip_study", "start_mock", "view_mock", "start_lightning", "join_league", "leave_league", "set_league_hidden"]);
+const cardCommands = new Set(["start_study", "resume_study", "next_study", "skip_study", "start_mock", "view_mock", "start_lightning", "join_league", "leave_league", "set_league_hidden"]);
 const leagueCommands = new Set(["join_league", "leave_league", "set_league_hidden"]);
 
 const commands: Record<string, { name: string; title: string; description: string }> = {
-  start_study: { name: "start_study", title: "Start a study session", description: "Use whenever the learner wants to study, learn, review or continue. Reopens the open daily session or starts one: all due reviews, then new questions within the daily goal. Explicit category or family requests may override review ordering while retaining due work. unitId accepts a bank category, a confusing-question group, or de_nham_lan for all confusing-question groups. Pass count for a specific number of questions, such as 5. Supply selected original question IDs to assemble a focused source-supported lesson." },
+  start_study: { name: "start_study", title: "Start a study session", description: "Use whenever the learner wants to study, learn, review or continue. With no arguments it reopens the latest open session, or starts the daily one: due reviews first, then the next never-answered questions in bank order up to the daily goal. Once reviews are done and the goal is met, pass count alone (10, 12 or 15) for that many more never-answered questions. With unitId (a bank category, a confusing-question group, or de_nham_lan) and count it studies never-answered questions of that topic; if fewer remain it takes all of them. Add practice=true to study already-answered questions of a finished topic; practice adds no new coverage. While reviews are due, unitId and count fail with REVIEWS_DUE: run reviewOnly=true first. Supply selected original question IDs to assemble a focused source-supported lesson." },
   answer_study: { name: "submit_study_answer", title: "Submit a learning answer", description: "Score the learner's actual choice against the bank, save it once, and return feedback. Bind session and question IDs to the current card. Missing confidence stays unknown. Never submit a guess for the learner. The study card calls this itself and shows the only verdict: while a card is live, never call it for a typed answer and never restate, confirm or contradict its verdict; ask the learner in one line to tap their choice on the card. Call it yourself only in text-only use (no card), then show the verdict and call next_study_question." },
   next_study: { name: "next_study_question", title: "Continue or revisit a study question", description: "Continue after the current question's feedback. The saved queue determines the next question. The study card calls this itself from its Tiếp tục button, so never call it while a card is live. Header progress buttons may pass questionId and repair=true for an already answered lesson item; this revisits saved feedback without scoring it again. In text-only use (no card), call it after showing the verdict." },
-  retry_study: { name: "retry_study_question", title: "Retry the current mistake", description: "Open the current wrong original lesson question's correction immediately, only when the learner asks to try again. Requires canRetry=true in the saved study view. Keeps the original mistake and XP; correction is assisted practice, never new mastery credit. Does not apply to compare-the-pair, lightning, or another correction." },
   skip_study: { name: "skip_study_question", title: "Skip a study question", description: "Skip without scoring or covering the question. A skipped due review remains unresolved." },
   pause_study: { name: "pause_study", title: "Pause a study session", description: "Save a paused session without clearing its remaining reviews or recording answers." },
   resume_study: { name: "resume_study", title: "Resume a study session", description: "Resume a saved session and reconcile reviews now due. An explicit other activity may retain this paused session." },
@@ -151,9 +150,9 @@ function courseText(course: ReturnType<typeof courseView> & { historyAvailable?:
   const nextLearn = course.nextLearnAt === null ? "ôn lại khi đến hạn để thuộc" : course.nextLearnAt <= now ? "có câu đã đến hạn, ôn ngay để thuộc" : `sớm nhất ôn lại lúc ${localTime(course.nextLearnAt, course.profile.timezone)}`;
   const lines = [
     ...(course.historyAvailable === false ? ["Lịch sử học chưa khả dụng trên kết nối này; không có tiến độ nào được lưu."] : []),
-    ...(course.nothingToStudy ? ["Không có buổi học mới: chưa có câu đến hạn ôn và đã đạt mục tiêu câu mới hôm nay. Gợi ý luyện theo chủ đề (start_study với unitId và count) hoặc thi thử."] : []),
+    ...(course.nothingToStudy ? ["Không có buổi học mới: chưa có câu đến hạn ôn và đã đạt mục tiêu câu mới hôm nay. Gợi ý học thêm (start_study với count 10, 12 hoặc 15, hoặc unitId và count) hoặc thi thử."] : []),
     `Khóa học bằng B: Đã gặp ${course.covered}/${course.total} · Đã thuộc ${course.learned}/${course.total} · Cần ôn hôm nay ${course.dueCount} · Sai hôm nay ${course.wrongToday}.`,
-    ...(course.onTheWay > 0 ? [`Đang chờ ôn lại để thuộc: ${course.onTheWay} câu đã đúng 1 lần, chưa tính vào Đã thuộc; ${nextLearn}.`] : []),
+    ...(course.onTheWay > 0 ? [`Đang trong lịch ôn: ${course.onTheWay} câu cần ôn (sau 1, 3, 7, 14 ngày) mới tính vào Đã thuộc; ${nextLearn}.`] : []),
     `Mục tiêu ${course.dailyGoal} câu mới mỗi ngày; hôm nay đã học ${course.newToday} câu mới.`,
     `Kết quả: ${course.results.correctAttempts}/${course.results.totalAttempts} lượt đúng (${course.results.accuracyPercent}%).`,
     ...course.units.map(unit => `- ${unit.title} (${unit.id}): Đã gặp ${unit.covered}/${unit.questionCount}, Đã thuộc ${unit.learned}`),
@@ -275,7 +274,7 @@ const errorMessages: Record<string, string> = {
   SESSION_NOT_ACTIVE: "Buổi học đang tạm dừng hoặc đã xong. Tiếp tục bằng resume_study hoặc bắt đầu buổi mới.",
   QUESTION_BINDING_MISMATCH: "Câu này không phải câu đang mở trong buổi học. Hãy trả lời câu hiện tại.",
   QUESTION_NOT_PENDING: "Câu này đã được trả lời trong buổi học. Chuyển sang câu tiếp theo bằng next_study_question.",
-  RETRY_NOT_AVAILABLE: "Chỉ có thể thử lại ngay câu vừa trả lời sai trong bài học. Câu này không còn lượt sửa ngay; hãy tiếp tục bài học.",
+  REVIEWS_DUE: "Còn câu đến hạn ôn. Hãy ôn xong rồi mới học câu mới hoặc chọn chủ đề.",
   ANSWER_OR_SKIP_FIRST: "Hãy trả lời hoặc bỏ qua câu hiện tại trước khi sang câu tiếp theo.",
   QUESTION_NOT_IN_SESSION: "Câu này không nằm trong buổi học hiện tại.",
   PAIR_INCOMPLETE: "Hãy hoàn thành cả hai câu trong thử thách so sánh trước khi xem lại câu này.",

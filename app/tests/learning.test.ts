@@ -28,43 +28,90 @@ function answer(state: LearnerState, q: string, now: number, selected: AnswerId 
         confidence
     }, now);
 }
+function helpedAnswer(state: LearnerState, q: string, now: number, selected: AnswerId = right(q)) {
+    state = run(state, { kind: "start_study", requestId: requestId(), questionIds: [q] }, now);
+    const s = state.sessions.at(-1);
+    assert.ok(s);
+    state = run(state, { kind: "record_help", requestId: requestId(), sessionId: s.id, questionId: q }, now);
+    return run(state, { kind: "answer_study", requestId: requestId(), sessionId: s.id, questionId: q, answer: selected }, now);
+}
 const p = (s: LearnerState, q = "q001") => questionProgress(s).get(q);
-test("immediate retry preserves the original mistake, reuses one repair and cannot earn mastery", () => {
+test("a wrong lesson answer adds no repair item and queues the question for the next day", () => {
     for (const ids of [["q001", "q002", "q003"], ["q001"]]) {
         let state = run(createLearner(clock), { kind: "start_study", requestId: requestId(), questionIds: ids }, clock);
         const sessionId = state.sessions.at(-1)!.id;
-        state = run(state, { kind: "answer_study", requestId: requestId(), sessionId, questionId: "q001", answer: wrong("q001") }, clock + 1000);
-        const evidence = structuredClone(state.evidence);
-        const command: LearningCommand = { kind: "retry_study", requestId: requestId(), sessionId, questionId: "q001" };
-        const retried = executeLearning(state, command, clock + 2000);
-        assert.equal(retried.view.kind, "study");
-        if (retried.view.kind !== "study") assert.fail("expected study view");
-        assert.equal(retried.view.repairOf, "q001");
-        assert.equal(retried.view.currentFeedback, null);
-        assert.equal(retried.view.canRetry, false);
-        assert.deepEqual(retried.state.evidence, evidence, "retry navigation does not record another attempt");
-        assert.equal(retried.state.sessions.at(-1)!.items.filter(i => i.repairOf === "q001").length, 1);
-        assert.deepEqual(executeLearning(retried.state, command, clock + 3000).state, retried.state, "replayed navigation is idempotent");
-        const paused = run(retried.state, { kind: "pause_study", requestId: requestId(), sessionId }, clock + 4000);
-        const resumed = executeLearning(paused, { kind: "resume_study", requestId: requestId(), sessionId }, clock + 5000);
-        if (resumed.view.kind !== "study") assert.fail("expected study view");
-        assert.equal(resumed.view.repairOf, "q001", "resume preserves an unfinished immediate repair");
-        const corrected = executeLearning(resumed.state, { kind: "answer_study", requestId: requestId(), sessionId, questionId: "q001", answer: right("q001") }, clock + DAY);
-        if (corrected.view.kind !== "study") assert.fail("expected study view");
-        assert.equal(corrected.view.currentFeedback?.assisted, true);
-        assert.equal(corrected.view.lastAward?.baseXp, 2);
-        assert.equal(corrected.view.canRetry, false);
-        assert.equal(p(corrected.state)?.successes, 0);
-        assert.throws(() => executeLearning(corrected.state, { ...command, requestId: requestId() }, clock + DAY + 1), /RETRY_NOT_AVAILABLE/);
-        state = run(corrected.state, { kind: "next_study", requestId: requestId(), sessionId }, clock + DAY + 2);
+        const missed = executeLearning(state, { kind: "answer_study", requestId: requestId(), sessionId, questionId: "q001", answer: wrong("q001") }, clock + 1000);
+        if (missed.view.kind !== "study") assert.fail("expected study view");
+        assert.deepEqual(missed.view.queue.map(i => i.questionId), ids, "no repair step joins the queue");
+        assert.deepEqual(missed.state.sessions.at(-1)!.items.map(i => i.questionId), ids);
+        assert.deepEqual(p(missed.state), { learned: false, stage: 0, dueAt: clock + 1000 + DAY, coveredAt: clock + 1000, coveredDay: p(missed.state)?.coveredDay ?? null, confused: false, lastWrong: true });
+        state = run(missed.state, { kind: "next_study", requestId: requestId(), sessionId }, clock + 2000);
         assert.equal(state.sessions.at(-1)!.activeQuestionId, ids.length > 1 ? "q002" : null);
     }
 });
-
-test("immediate retry rejects correct feedback and an unrelated question", () => {
-    const state = answer(createLearner(clock), "q001", clock);
-    const sessionId = state.sessions.at(-1)!.id;
-    for (const questionId of ["q001", "q002"]) assert.throws(() => executeLearning(state, { kind: "retry_study", requestId: requestId(), sessionId, questionId }, clock + 1000), /RETRY_NOT_AVAILABLE/);
+test("first-try clean correct is learned at once and never queued", () => {
+    const s = answer(createLearner(clock), "q001", clock);
+    assert.equal(p(s)?.learned, true);
+    assert.equal(p(s)?.dueAt, null);
+    assert.equal(p(s)?.stage, 0);
+    assert.equal(courseView(s, clock).covered, 1);
+    assert.equal(courseView(s, clock + 400 * DAY).dueCount, 0);
+});
+test("a first answer that is wrong, guessed or helped is queued for tomorrow", () => {
+    let s = answer(createLearner(clock), "q001", clock, wrong("q001"));
+    s = answer(s, "q002", clock + 1, right("q002"), "guess");
+    s = helpedAnswer(s, "q003", clock + 3);
+    for (const [q, at] of [["q001", 0], ["q002", 1], ["q003", 3]] as const) {
+        assert.equal(p(s, q)?.learned, false, q);
+        assert.equal(p(s, q)?.stage, 0, q);
+        assert.equal(p(s, q)?.dueAt, clock + at + DAY, q);
+    }
+    assert.equal(courseView(s, clock + 3).covered, 3);
+});
+test("a wrong answer re-queues a learned question and one that is queued but not yet due", () => {
+    let s = answer(createLearner(clock), "q001", clock);
+    s = answer(s, "q001", clock + 2 * DAY, wrong("q001"));
+    assert.deepEqual([p(s)?.learned, p(s)?.stage, p(s)?.dueAt], [false, 0, clock + 3 * DAY]);
+    s = answer(s, "q001", clock + 2 * DAY + 3600000, wrong("q001"));
+    assert.deepEqual([p(s)?.learned, p(s)?.stage, p(s)?.dueAt], [false, 0, clock + 3 * DAY + 3600000], "the schedule restarts from the latest wrong answer");
+});
+test("a queued question is reviewed after 1, 3, 7 and 14 days and graduates on the fourth success", () => {
+    let s = answer(createLearner(clock), "q001", clock, wrong("q001"));
+    let at = clock;
+    const steps: [number, number][] = [[1, 3], [3, 7], [7, 14]];
+    let stage = 0;
+    for (const [wait, next] of steps) {
+        at += wait * DAY;
+        s = answer(s, "q001", at);
+        stage++;
+        assert.deepEqual([p(s)?.learned, p(s)?.stage, p(s)?.dueAt], [false, stage, at + next * DAY]);
+    }
+    at += 14 * DAY;
+    s = answer(s, "q001", at);
+    assert.deepEqual([p(s)?.learned, p(s)?.dueAt], [true, null]);
+    assert.equal(courseView(s, at + 100 * DAY).dueCount, 0, "learned questions get no recall reviews");
+});
+test("a wrong, guessed or helped answer during a review resets the schedule to step 0", () => {
+    let s = answer(createLearner(clock), "q001", clock, wrong("q001"));
+    s = answer(s, "q001", clock + DAY);
+    s = answer(s, "q001", clock + 4 * DAY);
+    assert.deepEqual([p(s)?.stage, p(s)?.dueAt], [2, clock + 11 * DAY]);
+    const wrongAt = answer(s, "q001", clock + 11 * DAY, wrong("q001"));
+    assert.deepEqual([p(wrongAt)?.learned, p(wrongAt)?.stage, p(wrongAt)?.dueAt], [false, 0, clock + 12 * DAY]);
+    const guessed = answer(s, "q001", clock + 11 * DAY, right("q001"), "guess");
+    assert.deepEqual([p(guessed)?.learned, p(guessed)?.stage, p(guessed)?.dueAt], [false, 0, clock + 12 * DAY]);
+    const helped = helpedAnswer(s, "q001", clock + 11 * DAY + 1);
+    assert.deepEqual([p(helped)?.learned, p(helped)?.stage, p(helped)?.dueAt], [false, 0, clock + 12 * DAY + 1]);
+});
+test("a clean answer before the review is due changes nothing", () => {
+    let s = answer(createLearner(clock), "q001", clock, wrong("q001"));
+    const before = p(s);
+    s = answer(s, "q001", clock + 10 * 60000);
+    assert.equal(p(s)?.stage, before?.stage);
+    assert.equal(p(s)?.dueAt, before?.dueAt);
+    assert.equal(p(s)?.learned, false);
+    s = answer(s, "q001", clock + DAY + 10 * 60000);
+    assert.deepEqual([p(s)?.stage, p(s)?.dueAt], [1, clock + 4 * DAY + 10 * 60000]);
 });
 test("coverage forecast begins empty and keeps custom eight incompatible", () => {
     let s = createLearner(clock);
@@ -80,70 +127,53 @@ test("coverage forecast begins empty and keeps custom eight incompatible", () =>
     assert.equal(courseView(s, clock).targetCompatible, false);
     assert.equal(listUnits(s, "", clock).customCategory.familyCount, 245);
 });
-test("midnight and early practice do not advance or move review", () => {
-    let s = answer(createLearner(clock), "q001", clock);
-    assert.equal(p(s)?.successes, 1);
-    const due = p(s)?.dueAt;
-    s = answer(s, "q001", clock + 10 * 60000);
-    assert.equal(p(s)?.successes, 1);
-    assert.equal(p(s)?.dueAt, due);
-    s = answer(s, "q001", clock + DAY + 10 * 60000);
-    assert.equal(p(s)?.successes, 2);
-});
-test("every wrong resets individual learning including assisted and before learned", () => {
+test("every wrong answer re-queues individual learning and help moves nothing", () => {
     let s = answer(createLearner(clock), "q001", clock);
     s = answer(s, "q001", clock + DAY);
     s = answer(s, "q002", clock + DAY);
-    s = run(s, {
-        kind: "record_help",
-        requestId: requestId(),
-        questionId: "q001"
-    }, clock + 2 * DAY);
+    assert.equal(p(s)?.learned, true);
+    s = run(s, { kind: "record_help", requestId: requestId(), questionId: "q001" }, clock + 2 * DAY);
+    assert.equal(p(s)?.learned, true, "help alone does not unlearn");
+    assert.equal(p(s)?.dueAt, null);
     s = answer(s, "q001", clock + 2 * DAY, wrong("q001"));
-    assert.equal(p(s)?.successes, 0);
-    assert.equal(p(s, "q002")?.successes, 1);
+    assert.deepEqual([p(s)?.learned, p(s)?.stage, p(s)?.dueAt], [false, 0, clock + 3 * DAY]);
+    assert.equal(p(s, "q002")?.learned, true);
     s = answer(s, "q001", clock + 3 * DAY);
-    assert.equal(p(s)?.successes, 1);
+    assert.deepEqual([p(s)?.learned, p(s)?.stage, p(s)?.dueAt], [false, 1, clock + 6 * DAY]);
     s = answer(s, "q001", clock + 6 * DAY);
-    assert.equal(p(s)?.successes, 2);
+    assert.deepEqual([p(s)?.learned, p(s)?.stage, p(s)?.dueAt], [false, 2, clock + 13 * DAY]);
 });
-test("prior help across a new session and guesses cannot count first encounter", () => {
-    let s = run(createLearner(clock), {
-        kind: "record_help",
-        requestId: requestId(),
-        questionId: "q001"
-    }, clock);
-    s = answer(s, "q001", clock + 1000);
-    assert.equal(p(s)?.successes, 0);
+test("help during the first answer and guesses stop the first encounter counting", () => {
+    let s = helpedAnswer(createLearner(clock), "q001", clock + 1000);
+    assert.deepEqual([p(s)?.learned, p(s)?.stage, p(s)?.dueAt], [false, 0, clock + 1000 + DAY]);
     s = answer(s, "q001", clock + DAY + 1000);
-    assert.equal(p(s)?.successes, 1);
+    assert.deepEqual([p(s)?.learned, p(s)?.stage, p(s)?.dueAt], [false, 1, clock + 4 * DAY + 1000]);
     s = answer(s, "q002", clock, right("q002"), "guess");
-    assert.equal(p(s, "q002")?.successes, 0);
+    assert.deepEqual([p(s, "q002")?.learned, p(s, "q002")?.dueAt], [false, clock + DAY]);
     assert.equal(courseView(s, clock).covered, 2);
 });
-test("confusion stays through correct reviews, caps intervals and clearing preserves lapse", () => {
+test("confusion queues a learned question, stays through correct reviews and clearing keeps the schedule", () => {
     let s = answer(createLearner(clock), "q001", clock);
-    s = answer(s, "q001", clock + DAY);
-    s = run(s, {
-        kind: "set_confusion",
-        requestId: requestId(),
-        questionId: "q001",
-        enabled: true
-    }, clock + DAY);
-    assert.equal(p(s)?.dueAt, clock + 2 * DAY);
+    assert.equal(p(s)?.dueAt, null);
+    s = run(s, { kind: "set_confusion", requestId: requestId(), questionId: "q001", enabled: true }, clock + DAY);
+    assert.deepEqual([p(s)?.learned, p(s)?.stage, p(s)?.dueAt, p(s)?.confused], [false, 0, clock + 2 * DAY, true]);
     s = answer(s, "q001", clock + 2 * DAY);
     assert.equal(p(s)?.confused, true);
-    assert.equal(p(s)?.dueAt, clock + 3 * DAY);
-    s = answer(s, "q001", clock + 3 * DAY, wrong("q001"));
+    assert.deepEqual([p(s)?.stage, p(s)?.dueAt], [1, clock + 5 * DAY]);
+    s = answer(s, "q001", clock + 5 * DAY, wrong("q001"));
     const due = p(s)?.dueAt;
-    s = run(s, {
-        kind: "set_confusion",
-        requestId: requestId(),
-        questionId: "q001",
-        enabled: false
-    }, clock + 3 * DAY);
+    assert.equal(due, clock + 6 * DAY);
+    s = run(s, { kind: "set_confusion", requestId: requestId(), questionId: "q001", enabled: false }, clock + 5 * DAY);
     assert.equal(p(s)?.dueAt, due);
-    assert.equal(p(s)?.successes, 0);
+    assert.equal(p(s)?.confused, false);
+    assert.equal(p(s)?.learned, false);
+});
+test("a gap queues a learned question for tomorrow", () => {
+    const { state, m } = mockState(answer(createLearner(clock), "q001", clock), clock + 1000);
+    const q = "q001";
+    if (!m.questionIds.includes(q)) m.questionIds[0] = q;
+    const s = run(state, { kind: "finalise_mock", requestId: requestId(), attemptId: m.id, confirmUnanswered: true }, clock + 2000);
+    assert.deepEqual([p(s, q)?.learned, p(s, q)?.stage, p(s, q)?.dueAt], [false, 0, clock + 2000 + DAY]);
 });
 test("replay is idempotent and changed payload conflicts; wrong does not cycle queue", () => {
     let s = createLearner(clock);
@@ -287,7 +317,7 @@ test("abandon preserves provisional history and adds no coverage", () => {
         attemptId: m.id
     }, clock), /MOCK_ABANDONED/);
 });
-test("late finalisation replays earlier wrong before later recall and cannot fake delay", () => {
+test("late finalisation replays the earlier wrong before the later answers and cannot fake a graduation", () => {
     const { state, m } = mockState(createLearner(clock), clock);
     let s = state;
     const q = m.questionIds[0];
@@ -306,7 +336,7 @@ test("late finalisation replays earlier wrong before later recall and cannot fak
         requestId: requestId(),
         attemptId: m.id
     }, clock + 5 * DAY);
-    assert.equal(p(s, q)?.successes, 2);
+    assert.deepEqual([p(s, q)?.learned, p(s, q)?.stage, p(s, q)?.dueAt], [false, 2, clock + 11 * DAY + 2000], "wrong (queued +1d), due review at +1d (step 1), due review at +4d (step 2)");
     const history = s.evidence.filter(e => e.questionId === q && e.kind === "answer");
     assert.equal(history.length, 3);
 });
@@ -343,9 +373,9 @@ test("critical errors and unanswered critical items fail deterministic score", (
     assert.equal(result.passed, false);
     assert.deepEqual(result.criticalFailures, [critical.questionId]);
 });
-test('timezone edits cannot change elapsed eligibility',()=>{let s=answer(createLearner(clock),'q001',clock);s=run(s,{kind:'update_profile',requestId:requestId(),timezone:'America/Los_Angeles'},clock+1000);s=answer(s,'q001',clock+60_000);assert.equal(p(s)?.successes,1);});
+test('timezone edits cannot make an early answer count as a due review',()=>{let s=answer(createLearner(clock),'q001',clock,wrong('q001'));s=run(s,{kind:'update_profile',requestId:requestId(),timezone:'America/Los_Angeles'},clock+1000);s=answer(s,'q001',clock+60_000);assert.deepEqual([p(s)?.learned,p(s)?.stage,p(s)?.dueAt],[false,0,clock+DAY]);});
 test('reviewOnly freezes all due items and skip cannot bypass unresolved review into new coverage',()=>{let s=answer(createLearner(clock),'q001',clock,wrong('q001'));s=run(s,{kind:'start_study',requestId:requestId(),reviewOnly:true},clock+DAY);const ss=s.sessions.at(-1);assert.ok(ss);assert.equal(ss.items.length,1);assert.equal(ss.items[0]?.kind,'review');s=run(s,{kind:'skip_study',requestId:requestId(),sessionId:ss.id},clock+DAY);assert.equal(s.sessions.at(-1)?.status,'paused');assert.equal(s.sessions.at(-1)?.items[0]?.status,'pending');assert.equal(p(s)?.dueAt,clock+DAY);});
-test('help-shifted due date does not fabricate completion at resume',()=>{let s=answer(createLearner(clock),'q001',clock,wrong('q001'));s=run(s,{kind:'start_study',requestId:requestId(),reviewOnly:true},clock+DAY);const ss=s.sessions.at(-1);assert.ok(ss);s=run(s,{kind:'record_help',requestId:requestId(),sessionId:ss.id,questionId:'q001'},clock+DAY);s=run(s,{kind:'resume_study',requestId:requestId(),sessionId:ss.id},clock+DAY);assert.equal(s.sessions.at(-1)?.items[0]?.status,'pending');s=run(s,{kind:'answer_study',requestId:requestId(),sessionId:ss.id,questionId:'q001',answer:right('q001')},clock+DAY);assert.equal(p(s)?.successes,0);assert.equal(p(s)?.dueAt,clock+2*DAY);});
+test('help does not move the due date, and a helped review answer resets to step 0',()=>{let s=answer(createLearner(clock),'q001',clock,wrong('q001'));s=run(s,{kind:'start_study',requestId:requestId(),reviewOnly:true},clock+DAY);const ss=s.sessions.at(-1);assert.ok(ss);s=run(s,{kind:'record_help',requestId:requestId(),sessionId:ss.id,questionId:'q001'},clock+DAY);assert.equal(p(s)?.dueAt,clock+DAY);s=run(s,{kind:'resume_study',requestId:requestId(),sessionId:ss.id},clock+DAY);assert.equal(s.sessions.at(-1)?.items[0]?.status,'pending');s=run(s,{kind:'answer_study',requestId:requestId(),sessionId:ss.id,questionId:'q001',answer:right('q001')},clock+DAY);assert.deepEqual([p(s)?.learned,p(s)?.stage,p(s)?.dueAt],[false,0,clock+2*DAY]);});
 test('direct original-question scoring shares coverage and idempotency',()=>{const c:LearningCommand={kind:'answer_question',requestId:requestId(),questionId:'q001',answer:right('q001')};let response=executeLearning(createLearner(clock),c,clock);assert.equal(response.view.kind,'answer');assert.equal(courseView(response.state,clock).covered,1);const n=response.state.evidence.length;response=executeLearning(response.state,c,clock+DAY);assert.equal(response.state.evidence.length,n);assert.equal(response.view.kind,'answer');});
 test("a choice made in time but delayed past the deadline still counts, once, and only within the grace window", () => {
     const { state, m } = mockState(createLearner(clock), clock);
@@ -414,15 +444,16 @@ test("default study and mock starts resume the open activity instead of duplicat
     assert.equal(s.mocks.length, 2);
     assert.equal(s.mocks[0]?.status, "finalised");
 });
-test("answer feedback does not delay the next due recall, but explicit help still does", () => {
-    let s = answer(createLearner(clock), "q001", clock);
+test("answer feedback and explicit help never move the due date; a helped review answer resets it", () => {
+    let s = answer(createLearner(clock), "q001", clock, wrong("q001"));
     s = answer(s, "q001", clock + 23 * 3600000);
+    assert.equal(p(s)?.dueAt, clock + DAY, "feedback and an early clean answer change nothing");
+    let h = run(s, { kind: "record_help", requestId: requestId(), questionId: "q001" }, clock + 23 * 3600000);
+    assert.equal(p(h)?.dueAt, clock + DAY, "help does not move the due date");
     s = answer(s, "q001", clock + DAY + 5 * 60000);
-    assert.equal(p(s)?.successes, 2);
-    let h = answer(createLearner(clock), "q001", clock);
-    h = run(h, { kind: "record_help", requestId: requestId(), questionId: "q001" }, clock + 23 * 3600000);
-    h = answer(h, "q001", clock + DAY + 5 * 60000);
-    assert.equal(p(h)?.successes, 1);
+    assert.deepEqual([p(s)?.learned, p(s)?.stage, p(s)?.dueAt], [false, 1, clock + 4 * DAY + 5 * 60000]);
+    h = helpedAnswer(h, "q001", clock + DAY + 5 * 60000);
+    assert.deepEqual([p(h)?.learned, p(h)?.stage, p(h)?.dueAt], [false, 0, clock + 2 * DAY + 5 * 60000]);
 });
 test("imported legacy answers are scheduled for review rather than stranded", () => {
     const s = importLegacyAttempts(createLearner(clock), [{ id: "legacy-1", questionId: "q001", selectedAnswer: right("q001"), createdAt: clock }]);
@@ -561,32 +592,36 @@ test("today's mistakes list each wrong question once with its latest choice, the
     assert.equal(JSON.stringify(s), before, "reviewing mistakes records nothing");
 });
 
-test("questions with one qualifying success are on the way to Đã thuộc until their due review or a wrong answer", () => {
+test("onTheWay counts queued questions that are not learned, and nextLearnAt is the earliest due among them", () => {
     const MINUTE = 60000;
     let s = createLearner(clock);
     for (const [i, q] of ["q001", "q002", "q003"].entries())
-        s = answer(s, q, clock + i * MINUTE);
+        s = answer(s, q, clock + i * MINUTE, wrong(q));
+    s = answer(s, "q004", clock + 3 * MINUTE);
     const today = courseView(s, clock + 5 * MINUTE);
-    assert.deepEqual([today.learned, today.onTheWay, today.nextLearnAt], [0, 3, clock + DAY], "three first-time correct answers are on the way, the earliest back 24 hours later");
+    assert.deepEqual([today.learned, today.onTheWay, today.nextLearnAt], [1, 3, clock + DAY], "q004 was learned first try; three wrong answers are queued");
     const units = listUnits(s, "", clock + 5 * MINUTE);
     assert.equal(units.units.filter(u => u.kind === "category").reduce((sum, u) => sum + u.onTheWay, 0), 3, "each category counts its own");
     assert.equal(units.customCategory.onTheWay, 3, "q001 to q003 are all in confusing-question families");
     s = answer(s, "q001", clock + DAY);
     const reviewed = courseView(s, clock + DAY + MINUTE);
-    assert.deepEqual([reviewed.learned, reviewed.onTheWay, reviewed.nextLearnAt], [1, 2, clock + MINUTE + DAY], "the due review next day learns q001");
-    s = answer(s, "q002", clock + DAY + 2 * MINUTE, wrong("q002"));
-    const lapsed = courseView(s, clock + DAY + 3 * MINUTE);
-    assert.deepEqual([lapsed.learned, lapsed.onTheWay, lapsed.nextLearnAt], [1, 1, clock + 2 * MINUTE + DAY], "a wrong answer takes q002 off the way");
-    // Help after the success lets a review count only 24 hours after the help, later than q003's due time.
-    s = run(s, { kind: "record_help", requestId: requestId(), questionId: "q003" }, clock + DAY + 4 * MINUTE);
-    assert.equal(p(s, "q003")?.dueAt, clock + 2 * MINUTE + DAY);
-    assert.equal(courseView(s, clock + DAY + 5 * MINUTE).nextLearnAt, clock + 4 * MINUTE + 2 * DAY);
-    s = answer(s, "q003", clock + DAY + 6 * MINUTE, wrong("q003"));
-    const none = courseView(s, clock + DAY + 7 * MINUTE);
-    assert.deepEqual([none.onTheWay, none.nextLearnAt], [0, null]);
+    assert.deepEqual([reviewed.learned, reviewed.onTheWay, reviewed.nextLearnAt], [1, 3, clock + MINUTE + DAY], "one correct review does not graduate q001");
+    let at = clock + DAY;
+    for (const wait of [3, 7, 14]) {
+        at += wait * DAY;
+        s = answer(s, "q001", at);
+    }
+    const graduated = courseView(s, at + MINUTE);
+    assert.deepEqual([graduated.learned, graduated.onTheWay, graduated.nextLearnAt], [2, 2, clock + MINUTE + DAY], "the fourth correct due review graduates q001");
+    assert.equal(p(s)?.dueAt, null);
+    s = answer(s, "q002", at + 2 * MINUTE, wrong("q002"));
+    const lapsed = courseView(s, at + 3 * MINUTE);
+    assert.deepEqual([lapsed.learned, lapsed.onTheWay, lapsed.nextLearnAt], [2, 2, clock + 2 * MINUTE + DAY], "a wrong answer re-queues q002 but it was already on the way");
+    s = run(s, { kind: "record_help", requestId: requestId(), questionId: "q003" }, at + 4 * MINUTE);
+    assert.equal(p(s, "q003")?.dueAt, clock + 2 * MINUTE + DAY, "help does not move the due date");
 });
 
-test("lesson keys cover the open queue, repair steps included, and stop once the lesson completes", () => {
+test("lesson keys cover the open queue and stop once the lesson completes", () => {
     const started = executeLearning(createLearner(clock), { kind: "start_study", requestId: requestId(), questionIds: ["q001", "q002", "q003"] }, clock);
     if (started.view.kind !== "study") assert.fail("expected study view");
     const sessionId = started.view.sessionId;
@@ -595,10 +630,10 @@ test("lesson keys cover the open queue, repair steps included, and stop once the
     assert.match(keys?.q001?.explanation ?? "", /phần đường xe chạy/);
     const missed = executeLearning(started.state, { kind: "answer_study", requestId: requestId(), sessionId, questionId: "q001", answer: "A" }, clock + 1000);
     if (missed.view.kind !== "study") assert.fail("expected study view");
-    assert.deepEqual(missed.view.queue.map(i => i.questionId), ["q001", "q002", "q003", "q001"], "the repair step joins the queue");
+    assert.deepEqual(missed.view.queue.map(i => i.questionId), ["q001", "q002", "q003"], "a wrong answer adds no repair item to the queue");
     assert.deepEqual(Object.keys(lessonMeta(missed.state, sessionId, clock + 1000)?.lessonKeys ?? {}), ["q001", "q002", "q003"]);
     let state = missed.state;
-    for (const [at, q] of [[2, "q002"], [4, "q003"], [6, "q001"]] as const) {
+    for (const [at, q] of [[2, "q002"], [4, "q003"]] as const) {
         state = run(state, { kind: "next_study", requestId: requestId(), sessionId }, clock + at * 1000);
         state = run(state, { kind: "answer_study", requestId: requestId(), sessionId, questionId: q, answer: right(q) }, clock + at * 1000 + 500);
     }
@@ -606,4 +641,76 @@ test("lesson keys cover the open queue, repair steps included, and stop once the
     if (done.view.kind !== "study") assert.fail("expected study view");
     assert.equal(done.view.status, "complete");
     assert.equal(lessonMeta(done.state, sessionId, clock + 8000), null);
+});
+
+const ids = (s: LearnerState) => s.sessions.at(-1)?.items.map(i => i.questionId) ?? [];
+test("a topic start is refused while reviews are due, unless reviewOnly or explicit questions", () => {
+    const s = answer(createLearner(clock), "q001", clock, wrong("q001"));
+    assert.throws(() => run(s, { kind: "start_study", requestId: requestId(), unitId: "bien_bao" }, clock + DAY), /REVIEWS_DUE/);
+    assert.throws(() => run(s, { kind: "start_study", requestId: requestId(), count: 5 }, clock + DAY), /REVIEWS_DUE/);
+    assert.throws(() => run(s, { kind: "start_study", requestId: requestId(), override: true }, clock + DAY), /REVIEWS_DUE/);
+    const early = run(s, { kind: "start_study", requestId: requestId(), unitId: "bien_bao", count: 2 }, clock + DAY - 1);
+    assert.equal(ids(early).length, 2, "nothing is due yet");
+    const explicit = run(s, { kind: "start_study", requestId: requestId(), questionIds: ["q002"] }, clock + DAY);
+    assert.deepEqual(ids(explicit), ["q002"]);
+    const review = run(s, { kind: "start_study", requestId: requestId(), reviewOnly: true }, clock + DAY);
+    assert.deepEqual(ids(review), ["q001"]);
+});
+test("a topic start takes only never-answered questions, and all remaining when fewer than requested", () => {
+    let s = run(createLearner(clock), { kind: "start_study", requestId: requestId(), unitId: "bien_bao", count: 3 }, clock);
+    const first = ids(s);
+    assert.equal(first.length, 3);
+    const sessionId = s.sessions.at(-1)!.id;
+    s = run(s, { kind: "answer_study", requestId: requestId(), sessionId, questionId: first[0]!, answer: right(first[0]!) }, clock + 1000);
+    s = run(s, { kind: "next_study", requestId: requestId(), sessionId }, clock + 1500);
+    s = run(s, { kind: "answer_study", requestId: requestId(), sessionId, questionId: first[1]!, answer: wrong(first[1]!) }, clock + 2000);
+    const next = run(s, { kind: "start_study", requestId: requestId(), unitId: "bien_bao", count: 3 }, clock + 3000);
+    const second = ids(next);
+    assert.equal(second.length, 3);
+    assert.deepEqual(second.filter(q => first.slice(0, 2).includes(q)), [], "answered questions are skipped");
+    assert.equal(second[0], first[2], "the remaining never-answered question comes first, in bank order");
+    let all = run(createLearner(clock), { kind: "start_study", requestId: requestId(), unitId: "cau_tao", count: 35 }, clock);
+    const covered = ids(all);
+    assert.equal(covered.length, 35);
+    const sid = all.sessions.at(-1)!.id;
+    for (const [i, q] of covered.entries()) {
+        if (i) all = run(all, { kind: "next_study", requestId: requestId(), sessionId: sid }, clock + i * 1000);
+        all = run(all, { kind: "answer_study", requestId: requestId(), sessionId: sid, questionId: q, answer: right(q) }, clock + i * 1000 + 500);
+    }
+    assert.equal(courseView(all, clock + 40000).dueCount, 0);
+    const rest = run(all, { kind: "start_study", requestId: requestId(), unitId: "cau_tao", count: 10 }, clock + 40000);
+    assert.equal(ids(rest).length, 2, "cau_tao has 37 questions: fewer than requested takes the 2 remaining never-answered ones");
+    assert.deepEqual(ids(rest).filter(q => covered.includes(q)), []);
+    assert.equal(rest.sessions.at(-1)?.items.every(i => i.kind === "new"), true);
+});
+test("practice replays already-answered questions of the pool instead of new ones", () => {
+    let s = run(createLearner(clock), { kind: "start_study", requestId: requestId(), unitId: "bien_bao", count: 3 }, clock);
+    const first = ids(s);
+    const sessionId = s.sessions.at(-1)!.id;
+    for (const [i, q] of first.entries()) {
+        if (i) s = run(s, { kind: "next_study", requestId: requestId(), sessionId }, clock + i * 1000);
+        s = run(s, { kind: "answer_study", requestId: requestId(), sessionId, questionId: q, answer: right(q) }, clock + i * 1000 + 500);
+    }
+    const practice = run(s, { kind: "start_study", requestId: requestId(), unitId: "bien_bao", count: 2, practice: true }, clock + 5000);
+    assert.deepEqual(ids(practice), first.slice(0, 2));
+    assert.equal(practice.sessions.at(-1)?.items.every(i => i.kind === "practice"), true);
+    const before = courseView(practice, clock + 5000).covered;
+    assert.equal(before, 3, "practice adds no first-pass coverage");
+});
+test("count alone starts an extra batch of never-answered questions from the whole bank", () => {
+    const s = run(createLearner(clock), { kind: "start_study", requestId: requestId(), count: 4 }, clock);
+    assert.deepEqual(ids(s), ["q001", "q002", "q003", "q004"]);
+    assert.equal(s.sessions.at(-1)?.override, true);
+});
+test("a no-argument start reopens the latest open topic session instead of starting the daily one", () => {
+    let s = run(createLearner(clock), { kind: "start_study", requestId: requestId(), unitId: "bien_bao", count: 3 }, clock);
+    const topic = s.sessions.at(-1)!;
+    assert.equal(topic.override, true);
+    s = run(s, { kind: "pause_study", requestId: requestId(), sessionId: topic.id }, clock + 1000);
+    const resumed = executeLearning(s, { kind: "start_study", requestId: requestId() }, clock + 2000);
+    assert.equal(resumed.state.sessions.length, 1);
+    assert.equal(resumed.state.sessions[0]?.id, topic.id);
+    assert.equal(resumed.state.sessions[0]?.status, "active");
+    assert.ok(resumed.view.kind === "study");
+    assert.equal(resumed.view.sessionId, topic.id);
 });

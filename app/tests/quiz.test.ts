@@ -70,12 +70,12 @@ after(async () => {
 
 test("MCP get, submit, next and UI resource work over HTTP", async () => {
   const tools = await client.listTools();
-  assert.deepEqual(tools.tools.map((tool) => tool.name).sort(), ["abandon_mock_test", "finalise_mock_test", "get_course", "get_league", "get_mock_test", "get_progress", "get_question", "get_study_session", "get_today_mistakes", "join_league", "leave_league", "list_units", "next_study_question", "pause_study", "request_study_help", "resume_study", "retry_study_question", "save_mock_choice", "search_theory", "set_league_hidden", "set_question_confusion", "skip_study_question", "start_lightning", "start_mock_test", "start_study", "submit_answer", "submit_study_answer", "update_profile"]);
+  assert.deepEqual(tools.tools.map((tool) => tool.name).sort(), ["abandon_mock_test", "finalise_mock_test", "get_course", "get_league", "get_mock_test", "get_progress", "get_question", "get_study_session", "get_today_mistakes", "join_league", "leave_league", "list_units", "next_study_question", "pause_study", "request_study_help", "resume_study", "save_mock_choice", "search_theory", "set_league_hidden", "set_question_confusion", "skip_study_question", "start_lightning", "start_mock_test", "start_study", "submit_answer", "submit_study_answer", "update_profile"]);
   const courseTool = tools.tools.find((tool) => tool.name === "get_course");
   const learningUri = (courseTool?._meta as { ui?: { resourceUri?: string } })?.ui?.resourceUri;
   assert.match(learningUri ?? "", /^ui:\/\/ly-thuyet-lai-xe\/learning-[0-9a-f]{12}\.html$/);
   const cardTools = tools.tools.filter((tool) => (tool._meta as { ui?: { resourceUri?: string } })?.ui?.resourceUri === learningUri).map((tool) => tool.name).sort();
-  assert.deepEqual(cardTools, ["get_course", "get_league", "get_mock_test", "get_question", "get_today_mistakes", "join_league", "leave_league", "next_study_question", "resume_study", "retry_study_question", "set_league_hidden", "skip_study_question", "start_lightning", "start_mock_test", "start_study"], "only entry points open a new card");
+  assert.deepEqual(cardTools, ["get_course", "get_league", "get_mock_test", "get_question", "get_today_mistakes", "join_league", "leave_league", "next_study_question", "resume_study", "set_league_hidden", "skip_study_question", "start_lightning", "start_mock_test", "start_study"], "only entry points open a new card");
   const learningResource = await client.readResource({ uri: learningUri ?? "" });
   const learningHtml = learningResource.contents[0] as { mimeType: string; text: string };
   assert.equal(learningHtml.mimeType, "text/html;profile=mcp-app");
@@ -152,11 +152,12 @@ test("the course text gives ChatGPT the card's four labels, with the questions w
   state = one(state, "q002", key("q002") === "A" ? "B" : "A", at + 60000);
   const view = courseView(state, at + 120000);
   const course = learningText({ ...view, historyAvailable: true, serverNow: at + 120000 }, "http://127.0.0.1");
-  assert.match(course, new RegExp(`^Khóa học bằng B: Đã gặp 2/600 · Đã thuộc 0/600 · Cần ôn hôm nay ${view.dueCount} · Sai hôm nay 1\\.$`, "m"));
-  assert.match(course, /^Đang chờ ôn lại để thuộc: 1 câu đã đúng 1 lần, chưa tính vào Đã thuộc; sớm nhất ôn lại lúc 23:55 ngày 6\/10\.$/m, "the next time comes in the learner's timezone");
+  assert.equal(view.dueCount, 0);
+  assert.match(course, new RegExp(`^Khóa học bằng B: Đã gặp 2/600 · Đã thuộc 1/600 · Cần ôn hôm nay 0 · Sai hôm nay 1\\.$`, "m"));
+  assert.match(course, /^Đang trong lịch ôn: 1 câu cần ôn \(sau 1, 3, 7, 14 ngày\) mới tính vào Đã thuộc; sớm nhất ôn lại lúc 23:56 ngày 6\/10\.$/m, "the next time comes in the learner's timezone");
   assert.doesNotMatch(course, /đã nhớ|đã thử/, "the old unlabelled counts are gone");
   const due = learningText({ ...courseView(state, at + 2 * 86400000), historyAvailable: true, serverNow: at + 2 * 86400000 }, "http://127.0.0.1");
-  assert.match(due, /^Đang chờ ôn lại để thuộc: 1 câu đã đúng 1 lần, chưa tính vào Đã thuộc; có câu đã đến hạn, ôn ngay để thuộc\.$/m);
+  assert.match(due, /^Đang trong lịch ôn: 1 câu cần ôn \(sau 1, 3, 7, 14 ngày\) mới tính vào Đã thuộc; có câu đã đến hạn, ôn ngay để thuộc\.$/m);
 });
 
 test("text replies are readable summaries and errors are plain Vietnamese", async () => {

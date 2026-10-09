@@ -65,7 +65,7 @@ Each lesson step follows the same rhythm:
 4. **Why (one line).** The approved explanation in at most two sentences, with "Xem thêm" to expand. For a question in a confusing family, include a one-line contrast ("Câu 145 khác vì đây là đường hai chiều").
 5. **Continue.** A full-width "Tiếp tục" button. Secondary actions sit behind a quiet row: "Hỏi ChatGPT", "Tôi còn phân vân", "Xem video".
 
-The progress bar at the top of the card advances after every step. After a wrong answer, the same question returns later in the lesson as a repair step. It is labelled "Thử lại" and counts as repair practice, not recall (REV-03).
+The progress bar at the top of the card advances after every step. After a wrong answer the lesson moves on. The question joins the review queue and returns on the next review day, not later in the same lesson (REV-03).
 
 | ID | Priority | Requirement | Acceptance criteria |
 | --- | --- | --- | --- |
@@ -73,7 +73,7 @@ The progress bar at the top of the card advances after every step. After a wrong
 | PLAY-02 | P0 | Instant, self-contained scoring | The card calls `submit_study_answer` directly through the host's `tools/call` bridge. It never posts the answer as a chat message, and it never polls for a verdict that ChatGPT must produce. The verdict and the next question render from the lesson answer keys without waiting for the server. The server scores each answer when it arrives, and its result is the one saved. |
 | PLAY-03 | P0 | Felt feedback | Correct and wrong verdicts each have a distinct icon, motion (≤ 400 ms), and words. They are fully understandable without motion and without colour. `prefers-reduced-motion` replaces movement with a fade. A screen reader announces the verdict (live region). |
 | PLAY-04 | P0 | One-line why | Every verdict shows approved teaching text (B3 KB-07) in ≤ 2 sentences, with optional expansion. If no approved text exists, say so plainly and offer "Hỏi ChatGPT". |
-| PLAY-05 | P0 | Repair inside the lesson | A wrong answer schedules one repair attempt later in the same lesson, after at least 2 other steps. Repair earns reduced XP and never counts as delayed recall. |
+| PLAY-05 | P0 | No repair inside the lesson | A wrong answer inserts no repeat in the same lesson. The learner has just seen the answer, so an immediate retry proves nothing. The question is reviewed from the next day by the spaced-review queue. |
 | PLAY-06 | P0 | Learning rules unchanged | Scoring, confidence, assistance, confusion and review scheduling follow appendix B2–B4 exactly. The game layer reads their results and never alters them. |
 | PLAY-07 | P0 | Resilient on bad networks | If an answer or a move to the next question does not reach the server or gets no reply, the card resends it in the background with the same request ID, so the answer counts once (DAT-02, DAT-03). After three failed sends the card keeps the verdict on screen, says "Chưa gửi được — thử lại", and holds other lesson actions until "Thử lại" gets the queue through. If the server refuses an answer, the card drops the unsent steps and shows the session as the server has it. |
 
@@ -123,7 +123,6 @@ All game values are computed on the server from saved learning events. Lesson an
 | Due review, correct | 10 |
 | Due review, wrong | -3 |
 | Qualifying delayed recall that newly makes a question Mastered (B4) | +15 bonus |
-| Repair attempt | 2 correct, -3 wrong |
 | Derived interaction (INT-04, INT-05) | 2 per step |
 | Lightning round | 1 per correct, max 15 reward XP per round; -3 per wrong |
 | Lesson finished | 10 |
@@ -131,7 +130,7 @@ All game values are computed on the server from saved learning events. Lesson an
 
 Rules:
 
-- Every wrong study answer deducts 3 XP, including guessed, assisted, practice and repair attempts. Signed totals may be negative.
+- Every wrong study answer deducts 3 XP, including guessed, assisted and practice attempts. Signed totals may be negative.
 - A replayed submission earns nothing (DAT-02).
 - Correct assisted answers earn 3 XP; wrong assisted answers deduct 3 XP. Penalties never refund capped reward budgets.
 - Abandoned mock tests earn nothing.
@@ -163,7 +162,7 @@ This section fixes the confusion in the v0.11 build.
 | Learner taps "Hỏi ChatGPT" | Calls `request_study_help` (recording assistance, TUT-04), then posts one chat message containing the question ID, choice and verdict | Explains from approved material (TUT-03). Card stays on the same step. |
 | Learner types a question mid-lesson | Unchanged | Answers using the model context. Never opens a second lesson card. |
 | Learner types an answer ("B") while a card is live | Unchanged | Does not submit or judge it. Replies in one line asking them to tap their choice on the card. Typed answering stays available in text-only use (TUT-05). |
-| A question is wrong again on its repair step, or 3 answers are wrong in one lesson | Shows "ChatGPT có thể giải thích kỹ hơn" with a button | Coaches only if the learner taps it |
+| 3 answers are wrong in one lesson | Shows "ChatGPT có thể giải thích kỹ hơn" with a button | Coaches only if the learner taps it |
 | Lesson finished | Shows the finish screen, then posts one message with the lesson summary | Writes a 2–3 sentence coach note: one strength, one thing to watch, and tomorrow's review. No new verdicts. |
 | Learner taps "Nhờ ChatGPT nhắc tôi" | Posts one message asking for a daily reminder at the chosen time. Saves nothing. | Creates a daily ChatGPT scheduled task that opens the course, calls `get_course` and reports the due reviews. Says so plainly if scheduled tasks are unavailable on the learner's plan, and never claims a reminder exists without the task. |
 | Text-only use (card fails) | — | Falls back to the v0.11 conversational flow (TUT-05) |
@@ -364,12 +363,12 @@ Daily review of wrong answers is P0. Review also includes previously correct ans
 | --- | --- | --- | --- |
 | REV-01 | P0 | Save review state reliably | Persist learner-scoped attempts, assistance, optional confidence, and due dates. The same learner sees their queue across chats and restarts. Other learners cannot access it. |
 | REV-02 | P0 | Complete due review before new learning | Prioritise overdue mistakes and critical-question gaps within the due queue. Complete all scheduled review attempts before starting the new lesson by default, extending total session duration as needed. Honour explicit learner requests for a different lesson or mock test; briefly note pending reviews and retain their due dates. An override does not count as completion, a wrong answer, or abandonment of those reviews. Show the queue and estimated duration. On pause, persist the remaining queue and resume it first by default; honour an explicit request for a different activity. An incorrect attempt receives repair and a future due date; it does not require endless correct retries to complete today's queue. |
-| REV-03 | P0 | Separate repair from retention | An immediate retry after feedback is repair practice. It can show immediate understanding but cannot advance the delayed-review stage or claim mastery. |
+| REV-03 | P0 | No immediate retry | There is no immediate retry after feedback. Only the spaced-review queue (1, 3, 7, 14 days) moves a question towards Đã thuộc. |
 | REV-04 | P0 | Schedule deterministically | The server owns attempt classification, eligibility, timestamps, qualifying-success count, and interval changes under the contract below. Repeating a question early, changing timezone, or replaying a submission cannot advance learned status or the schedule. Intervals use elapsed 24-hour days, not the next local midnight. Scheduling policy is versioned and testable with a controlled clock. |
 | REV-05 | P0 | Treat uncertainty explicitly | Optional confidence distinguishes an independent correct answer from a guess. Missing confidence is not silently labelled confident. Confidence alone does not establish correctness or mastery. |
 | REV-06 | P0 | Support concept transfer | Use reviewed related questions to check whether the distinction transfers. Track this separately from exact-question recall. New or generated tasks do not overwrite the bank's official attempt history. |
 | REV-07 | P0 | Use learner-local daily boundaries | Store timestamps consistently and show dates in the learner's timezone. Define daily sessions using that timezone. Timezone changes do not create duplicate attempts or reviews. |
-| REV-08 | P0 | Relearn an individual question after a lapse | Any later submitted wrong answer on a learned question, including after a hint or explanation, removes its learned status and starts targeted repair plus spaced review. Reset the qualifying-success count on every scored wrong answer, including before a question first becomes learned. Restore learned status only after two new qualifying unassisted correct answers on separate days after the lapse. In a mock test, saved choices become scored attempts only at finalisation. Preserve prior history. Do not reset other family members or their schedules. |
+| REV-08 | P0 | Requeue on every wrong answer | Any scored wrong answer, on any question, learned or not, queued or not, removes learned status and puts the question at review step 1 (due 24 hours later). A guessed or assisted correct answer is queued the same way. A clean first-try correct answer is learned at once and never queued. In a mock test, saved choices become scored attempts only at finalisation. Do not reset other family members or their schedules. |
 | REV-09 | P0 | Let learners flag unresolved confusion | Offer "Tôi còn phân vân" on learning and review cards and recognise explicit conversational statements. Link the flag to the active question and save it across chats. Ask for clarification when its target is ambiguous. Keep it until the learner confirms the distinction is clear. Do not infer resolution from a correct answer, clip click, or answer reveal. Verify learning independently. Catalogue membership alone cannot set a personal flag. Setting a flag schedules review no later than 24 hours later, preserving an earlier due date. While unresolved, a completed review schedules another review no later than 24 hours later. Keep this flag separate from learned status. Clearing it does not delete a scheduled review or erase a lapse. Do not reinsert an already-handled question into the current queue solely because its flag persists. |
 
 #### Qualifying learning attempts
@@ -378,18 +377,18 @@ Learning and relearning use the same question-level contract:
 
 1. Count an original question's first correct independent encounter once. This exception applies only when that learner has no prior scored attempt or recorded help for the question. A new chat does not create another first encounter. If prior help or an attempt exists, use due delayed recall instead. Missing confidence remains unknown and does not imply a guess. An explicitly guessed answer cannot qualify.
 2. After prior help, a wrong answer, or the first qualifying success, further successes count only as scheduled, due, unassisted delayed recall. An attempt must occur at least 24 hours after the previous qualifying success and on a different learner-local day. Recall after help or a mistake must also wait at least 24 hours from that exposure or wrong attempt, as well as its scheduled delay. The timestamps, not a new local date alone, establish eligibility.
-3. An early practice answer, assisted answer, immediate repair, related-question answer, generated exercise, skip, answer reveal, or request replay cannot increase the qualifying-success count. A scored wrong answer resets that count even when the question was not yet learned. An assisted or guessed correct answer does not increase the count or remove an existing learned status by itself.
+3. Learning rule. A first-encounter correct answer with no help and no guess makes the question learned (Đã thuộc) at once. Any wrong, guessed or assisted answer queues it for review after 1, 3, 7 and 14 days. A clean correct answer on a due review advances one step, and a clean correct answer on the 14-day review graduates the question to learned. A wrong, guessed or assisted answer on a review returns it to step 1. A clean correct answer before the due date changes nothing.
 4. Mark learned at two qualifying successes since the latest scored wrong answer. A later scored wrong answer removes learned status and begins the same process again. Preserve the full history and other family members' status.
 5. A mock-test answer is evaluated using its original accepted-choice timestamp and assistance state when the test finalises. Finalisation latency cannot turn an early answer into delayed recall. Never use replay time as a new answer time. Apply late-arriving results in evidence-time order so an older result does not erase later qualifying evidence.
 
 #### Review intervals and confusion
 
-The initial interval sequence is 1, 3, 7, 14, and 30 elapsed days. One day means 24 hours. Evaluate its review burden and learning effect during the pilot.
+The review sequence is 1, 3, 7 and 14 elapsed days, then the question graduates. One day means 24 hours.
 
-- A first qualifying independent correct encounter starts the first interval. A wrong scored answer resets the interval stage and schedules delayed review 24 hours later, with optional repair in the current session.
-- A due qualifying independent correct recall advances one stage. An assisted or explicitly guessed correct response does not advance the stage and schedules review 24 hours later.
-- An early correct practice response does not extend the due date. An early wrong scored response resets qualifying successes and learned status and brings review forward to the earlier of the existing due date and 24 hours later.
-- If a retained earlier due date precedes the minimum delayed-eligibility time after help or a mistake, handle that due attempt as practice without a qualifying success or stage advancement. Schedule the next recall at the minimum eligibility time. Ordinary practice before the due date does not extend its existing schedule.
+- A wrong, guessed or assisted answer queues the question at step 1, due 24 hours later. A wrong answer always does this, even when the question was learned or already queued.
+- A clean correct answer on a due review advances one step; after the 14-day step it graduates to learned and leaves the queue.
+- An early clean correct answer changes nothing. Help events do not move due dates.
+- A wrong answer given today is reviewed from tomorrow, so it does not reopen today's review.
 - Setting a personal confusion flag offers coaching when requested and brings its review forward to the earlier of the existing due date and 24 hours later. With no existing date, create a date 24 hours later. The flag alone does not reset learned status or qualifying successes.
 - After a scheduled review, unresolved confusion caps the next interval at 24 hours. Eligible recall can still establish learned status, while the personal flag stays visible until the learner confirms the distinction is clear. Ask about that distinction after relevant coaching without automatically clearing it.
 - Clearing the flag keeps the currently scheduled review. Future eligible answers use the normal interval policy. Do not cancel a wrong-answer review or restore learned status merely because the learner says the explanation is clear.
@@ -404,7 +403,7 @@ At resume and before entering a new lesson, reconcile the pending queue with ite
 
 Concurrent chats share saved attempts. If a question was already handled elsewhere, reconcile its pending entry without creating a second attempt or discarding either chat's distinct evidence. A save failure is not successful queue completion. Finishing a session cannot clear unattempted due items.
 
-The separation of repair from delayed recall is fixed. Interval changes require policy versioning and evaluation; they cannot silently change learned-status eligibility or owner-confirmed activity ordering.
+Interval changes require policy versioning and evaluation; they cannot silently change learned-status eligibility or owner-confirmed activity ordering.
 
 ### B5. Content and exam preparation
 

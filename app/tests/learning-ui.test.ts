@@ -47,7 +47,9 @@ test("learning preview drives course, goal, families, lesson, confusion, help, p
     await app.getByText("Đáp án đúng: B ·").waitFor();
     await page.reload();
     await app.getByText("Theo nhịp 20 câu/ngày", { exact: false }).waitFor();
-    await action("daily").click();
+    await app.getByRole("button", { name: "Tiếp tục" }).waitFor();
+    assert.equal(await action("daily").count(), 0, "an open lesson turns Học tiếp into Tiếp tục");
+    await action("resume").click();
     await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
     await app.getByRole("heading", { name: /Phần của đường bộ được sử dụng/ }).waitFor();
     assert.equal(await action("skip").count(), 0, "feedback stays bound and skip is unavailable until next");
@@ -74,14 +76,14 @@ test("learning preview drives course, goal, families, lesson, confusion, help, p
     if (!server.listening) await once(server, "listening");
     await page.reload();
     await app.getByText("Theo nhịp 20 câu/ngày", { exact: false }).waitFor();
-    await action("daily").click();
+    await action("resume").click();
     await app.getByRole("heading", { name: "Làn đường là gì?" }).waitFor();
     await app.locator("#verdict").waitFor();
-    await app.getByText("2/23", { exact: true }).waitFor();
+    await app.getByText("2/21", { exact: true }).waitFor();
 
     assert.equal(await app.locator("nav:not(.segs)").count(), 0, "no global navigation during a lesson, only the question stepper");
     await page.reload();
-    await app.getByRole("button", { name: "Học tiếp" }).waitFor();
+    await app.getByRole("button", { name: "Tiếp tục" }).waitFor();
     // The course map shows the seven categories and the confusing-question category, which opens the family picker.
     await app.getByRole("button", { name: "Chọn chủ đề" }).click();
     await app.getByRole("heading", { name: "Khóa học bằng B" }).waitFor();

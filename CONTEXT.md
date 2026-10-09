@@ -29,12 +29,12 @@ A set of original bank questions about a shared concept, with recorded aspects o
 _Avoid_: Duplicate questions, learner misconception
 
 **Learned question**:
-An original question with two qualifying correct answers on separate days since its latest scored wrong answer. A later scored wrong answer, including an assisted attempt, requires relearning. It remains eligible for scheduled recall. Learning one question does not establish learning of related questions.
+An original question the learner answered correctly on the first encounter without help or guessing, or that cleared the review queue (reviews after 1, 3, 7 and 14 days). Any scored wrong answer, and any guessed or assisted answer, queues it again at step 1. Learning one question does not establish learning of related questions.
 _Avoid_: Permanently mastered question, viewed question
 
 **Qualifying answer**:
-An unassisted, non-guessed correct answer eligible to count toward learning. The first independent encounter can count once when there is no prior scored attempt or help for that question. Further successes require due delayed recall on another local day and at least 24 hours after the preceding qualifying success.
-_Avoid_: Early practice, assisted repair, provisional test choice
+A correct answer with no help and no guess. On the first encounter it makes the question learned. On a due review it advances the question one review step. Before the due date it changes nothing.
+_Avoid_: Early practice, assisted answer, provisional test choice
 
 **New learning**:
 Study of questions or distinctions the learner has not yet learned. It is distinct from scheduled recall of previously studied material.
@@ -53,11 +53,11 @@ A question for which the learner expresses uncertainty or difficulty understandi
 _Avoid_: Wrong answer
 
 **Repair practice**:
-Practice after receiving help or seeing an answer, intended to check immediate understanding.
+Removed. A wrong answer is not retried in the same lesson. The question is reviewed from the next day.
 _Avoid_: Delayed recall, mastery
 
 **Delayed recall**:
-An answer attempt after a scheduled interval, made before receiving help for that attempt.
+A review attempt after a scheduled interval of 1, 3, 7 or 14 days, made before receiving help for that attempt.
 _Avoid_: Immediate retry, answer reveal
 
 **Mock test**:
