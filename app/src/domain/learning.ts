@@ -2,7 +2,7 @@ import { randomUUID, createHash } from "node:crypto";
 import { z } from "zod";
 import { submitAnswer } from "./quiz.js";
 import { bankQuestions, bankVersion, categories, categoryTitles, CONFUSING_CATEGORY_ID, families, safeQuestion, unitQuestions } from "./course.js";
-import { answerAwards, awardParts, comboOf, hasFinishedLesson, lessonXp, xpSummary } from "./game.js";
+import { answerAwards, awardHints, awardParts, comboOf, hasFinishedLesson, lessonXp, xpSummary } from "./game.js";
 import { dailyStreak } from "./streak.js";
 import { leagueDisplayName } from "./league.js";
 export const DAY = 86400000;
@@ -284,7 +284,7 @@ export function createLearner(now: number): LearnerState {
         receipts: {}
     });
 }
-function localDay(at: number, timezone: string) {
+export function localDay(at: number, timezone: string) {
     return new Intl.DateTimeFormat("en-CA", {
         timeZone: timezone,
         year: "numeric",
@@ -292,21 +292,62 @@ function localDay(at: number, timezone: string) {
         day: "2-digit"
     }).format(at);
 }
+export interface QuestionProgress {
+    successes: number;
+    stage: number;
+    dueAt: number | null;
+    eligibleAt: number;
+    prior: boolean;
+    coveredAt: number | null;
+    coveredDay: string | null;
+    confused: boolean;
+    lastDay: string | null;
+    lastAt: number | null;
+    lastWrong: boolean;
+}
+export type ScoredAnswer = Pick<AnswerFact, "at" | "localDay" | "correct" | "assisted" | "confidence">;
+/** Applies one answer to its question's progress, as the B4 replay does, and returns how the replay classifies it. */
+export function applyAnswer(p: QuestionProgress, e: ScoredAnswer): AnswerStep {
+    const soon = e.at + DAY;
+    const earlier = (a: number | null, b: number) => a === null ? b : Math.min(a, b);
+    const first = p.coveredAt === null;
+    const learnedBefore = p.successes >= 2;
+    if (p.coveredAt === null) {
+        p.coveredAt = e.at;
+        p.coveredDay = e.localDay;
+    }
+    const due = p.dueAt !== null && e.at >= p.dueAt;
+    const qualifies = e.correct && !e.assisted && e.confidence !== "guess" && (!p.prior || (due && e.at >= p.eligibleAt && (p.lastAt === null || e.at - p.lastAt >= DAY) && p.lastDay !== e.localDay));
+    if (!e.correct) {
+        p.successes = 0;
+        p.stage = 0;
+        p.lastAt = null;
+        p.lastDay = null;
+        p.eligibleAt = soon;
+        p.dueAt = due ? soon : earlier(p.dueAt, soon);
+        p.lastWrong = true;
+    }
+    else if (qualifies) {
+        if (p.prior)
+            p.stage = Math.min(p.stage + 1, 4);
+        p.successes++;
+        p.lastAt = e.at;
+        p.lastDay = e.localDay;
+        p.eligibleAt = soon;
+        p.dueAt = e.at + ([1, 3, 7, 14, 30][p.stage] ?? 30) * DAY;
+        p.lastWrong = false;
+    }
+    else if (due) {
+        p.dueAt = p.eligibleAt > e.at ? p.eligibleAt : soon;
+    }
+    if (p.confused && due)
+        p.dueAt = earlier(p.dueAt, soon);
+    p.prior = true;
+    return { first, due, qualified: qualifies, learnedBefore, learnedAfter: p.successes >= 2 };
+}
 // observe sees each answer fact as the replay classifies it; it cannot change the replay.
 export function questionProgress(state: LearnerState, observe?: (fact: AnswerFact, step: AnswerStep) => void) {
-    const result = new Map<string, {
-        successes: number;
-        stage: number;
-        dueAt: number | null;
-        eligibleAt: number;
-        prior: boolean;
-        coveredAt: number | null;
-        coveredDay: string | null;
-        confused: boolean;
-        lastDay: string | null;
-        lastAt: number | null;
-        lastWrong: boolean;
-    }>();
+    const result = new Map<string, QuestionProgress>();
     for (const q of bankQuestions)
         result.set(q.questionId, {
             successes: 0,
@@ -345,40 +386,8 @@ export function questionProgress(state: LearnerState, observe?: (fact: AnswerFac
                 p.dueAt = earlier(p.dueAt, soon);
             continue;
         }
-        const first = p.coveredAt === null;
-        const learnedBefore = p.successes >= 2;
-        if (p.coveredAt === null) {
-            p.coveredAt = e.at;
-            p.coveredDay = e.localDay;
-        }
-        const due = p.dueAt !== null && e.at >= p.dueAt;
-        const qualifies = e.correct && !e.assisted && e.confidence !== "guess" && (!p.prior || (due && e.at >= p.eligibleAt && (p.lastAt === null || e.at - p.lastAt >= DAY) && p.lastDay !== e.localDay));
-        if (!e.correct) {
-            p.successes = 0;
-            p.stage = 0;
-            p.lastAt = null;
-            p.lastDay = null;
-            p.eligibleAt = soon;
-            p.dueAt = due ? soon : earlier(p.dueAt, soon);
-            p.lastWrong = true;
-        }
-        else if (qualifies) {
-            if (p.prior)
-                p.stage = Math.min(p.stage + 1, 4);
-            p.successes++;
-            p.lastAt = e.at;
-            p.lastDay = e.localDay;
-            p.eligibleAt = soon;
-            p.dueAt = e.at + ([1, 3, 7, 14, 30][p.stage] ?? 30) * DAY;
-            p.lastWrong = false;
-        }
-        else if (due) {
-            p.dueAt = p.eligibleAt > e.at ? p.eligibleAt : soon;
-        }
-        if (p.confused && due)
-            p.dueAt = earlier(p.dueAt, soon);
-        p.prior = true;
-        observe?.(e, { first, due, qualified: qualifies, learnedBefore, learnedAfter: p.successes >= 2 });
+        const step = applyAnswer(p, e);
+        observe?.(e, step);
     }
     return result;
 }
@@ -708,18 +717,26 @@ export function studyView(state: LearnerState, sessionId: string, now: number) {
     };
 }
 /**
- * The answer key for every question in an open lesson or lightning round, so the card can show a verdict before
- * the server confirms it. It travels in hidden result metadata; mock tests and closed sessions get none.
+ * The answer key and award hint for every question in an open lesson or lightning round, and what is left of the
+ * XP caps, so the card can show a verdict and its XP before the server confirms them. It travels in hidden result
+ * metadata; mock tests and closed sessions get none.
  */
-export function lessonKeys(view: Pick<ReturnType<typeof studyView>, "status" | "mode" | "queue">) {
-    if (view.status === "complete" || (view.mode !== "lesson" && view.mode !== "lightning"))
+export function lessonMeta(state: LearnerState, sessionId: string, now: number) {
+    const s = findSession(state, sessionId);
+    if (s.status === "complete")
         return null;
-    return Object.fromEntries([...new Set(view.queue.map(i => i.questionId))].map(id => {
-        const question = safeQuestion(id);
-        const { correctAnswer, explanation } = submitAnswer(id, question.options[0]?.id ?? "A");
-        return [id, { question, correctAnswer, explanation, teachingStatus: teachingStatusOf(id) }];
-    }));
+    const ids = [...new Set(s.items.map(i => i.questionId))];
+    const { hintFor, budget } = awardHints(state, s.id, now);
+    return {
+        lessonKeys: Object.fromEntries(ids.map(id => {
+            const question = safeQuestion(id);
+            const { correctAnswer, explanation } = submitAnswer(id, question.options[0]?.id ?? "A");
+            return [id, { question, correctAnswer, explanation, teachingStatus: teachingStatusOf(id), award: hintFor(id) }];
+        })),
+        xpBudget: budget
+    };
 }
+export type LessonMeta = NonNullable<ReturnType<typeof lessonMeta>>;
 export function mockView(state: LearnerState, attemptId: string, now: number, resumed = false) {
     const m = findMock(state, attemptId);
     const common = {

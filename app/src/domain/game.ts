@@ -1,6 +1,6 @@
 // Game values (PRD section 6) derived from saved learning events. Nothing here is stored, so a replayed
 // request, which adds no evidence, cannot add XP, and these rules never feed back into B4 scheduling.
-import { questionProgress, type AnswerFact, type LearnerState } from "./learning.js";
+import { applyAnswer, localDay, questionProgress, type AnswerFact, type AnswerStep, type LearnerState, type ScoredAnswer } from "./learning.js";
 
 export type AwardReason = "first_correct" | "first_wrong" | "review_correct" | "review_wrong" | "assisted" | "repair" | "practice" | "lightning";
 export interface Award {
@@ -30,55 +30,98 @@ const MOCK_PASSED_XP = 30;
 const SUSPICIOUS_DAILY_XP = 500;
 const LEAGUE_UTC_OFFSET = 7 * HOUR;
 
+/** Where a study answer was given: a lightning round, a lesson's repair step, or any other study step. */
+type AnswerPath = "lightning" | "repair" | "study";
+/** What is left of the two XP caps for an answer: the learner-local day's practice XP and the lightning round's XP. */
+interface AwardBudget {
+    practiceLeft: number;
+    lightningLeft: number;
+}
+
 /**
- * One award per scored study answer, in questionProgress replay order. Precedence, first match wins:
- * mock answer (no award), lightning round, repair step, assisted, first answer, due review, other practice.
- * Assisted answers on questions that were neither new nor due share the practice cap, bucketed by the
- * learner-local day saved with each answer so a later timezone change cannot move past awards.
- * masteredNow adds its bonus outside both caps.
+ * The award for one scored study answer. Precedence, first match wins: lightning round, repair step,
+ * assisted, first answer, due review, other practice. Assisted answers on questions that were neither new
+ * nor due share the practice cap. masteredNow adds its bonus outside both caps. charge is the XP the
+ * answer takes from a cap, so the caller can track what is left.
  */
-export function answerAwards(state: LearnerState) {
+function awardFor(step: AnswerStep, answer: Pick<AnswerFact, "correct" | "assisted">, path: AnswerPath, budget: AwardBudget): { award: Award; charge: { cap: "practice" | "lightning"; xp: number } | null } {
+    if (!answer.correct) {
+        const reason: AwardReason = path === "lightning" ? "lightning" : path === "repair" ? "repair" : answer.assisted ? "assisted" : step.first ? "first_wrong" : step.due ? "review_wrong" : "practice";
+        return { award: { xp: -3, reason, masteredNow: false }, charge: null };
+    }
+    const masteredNow = !step.learnedBefore && step.learnedAfter;
+    const bonus = masteredNow ? MASTERED_BONUS : 0;
+    if (path === "lightning") {
+        const xp = budget.lightningLeft > 0 ? 1 : 0;
+        return { award: { xp: xp + bonus, reason: "lightning", masteredNow }, charge: { cap: "lightning", xp } };
+    }
+    if (path === "repair")
+        return { award: { xp: BASE_XP.repair + bonus, reason: "repair", masteredNow }, charge: null };
+    const reason: AwardReason = answer.assisted ? "assisted" : step.first ? "first_correct" : step.due ? "review_correct" : "practice";
+    if (step.first || step.due)
+        return { award: { xp: BASE_XP[reason] + bonus, reason, masteredNow }, charge: null };
+    const xp = Math.min(BASE_XP[reason], budget.practiceLeft);
+    return { award: { xp: xp + bonus, reason, masteredNow }, charge: { cap: "practice", xp } };
+}
+
+/**
+ * Replays every scored study answer through awardFor, in questionProgress replay order. Mock answers get no
+ * award. Practice XP is bucketed by the learner-local day saved with each answer, so a later timezone change
+ * cannot move past awards; lightning XP by round.
+ */
+function replayAwards(state: LearnerState) {
     const lightning = new Set(state.sessions.filter(s => s.mode === "lightning").map(s => s.id));
     const repairs = new Set(state.sessions.flatMap(s => s.items.flatMap(i => i.repairOf !== undefined && i.answerId ? [i.answerId] : [])));
     const practiceSpent = new Map<string, number>();
     const lightningSpent = new Map<string, number>();
     const awards = new Map<string, Award>();
-    questionProgress(state, (e, step) => {
+    const progress = questionProgress(state, (e, step) => {
         if (e.origin === "mock")
             return;
-        if (!e.correct) {
-            const reason: AwardReason = lightning.has(e.activityId) ? "lightning" : repairs.has(e.id) ? "repair" : e.assisted ? "assisted" : step.first ? "first_wrong" : step.due ? "review_wrong" : "practice";
-            awards.set(e.id, { xp: -3, reason, masteredNow: false });
-            return;
-        }
-        const masteredNow = !step.learnedBefore && step.learnedAfter;
-        let reason: AwardReason;
-        let xp: number;
-        if (lightning.has(e.activityId)) {
-            const spent = lightningSpent.get(e.activityId) ?? 0;
-            reason = "lightning";
-            xp = e.correct && spent < LIGHTNING_CAP_PER_ROUND ? 1 : 0;
-            lightningSpent.set(e.activityId, spent + xp);
-        }
-        else if (repairs.has(e.id)) {
-            reason = "repair";
-            xp = BASE_XP.repair;
-        }
-        else {
-            reason = e.assisted ? "assisted" : step.first ? e.correct ? "first_correct" : "first_wrong" : step.due ? e.correct ? "review_correct" : "review_wrong" : "practice";
-            xp = BASE_XP[reason];
-            if (!step.first && !step.due) {
-                const spent = practiceSpent.get(e.localDay) ?? 0;
-                xp = Math.min(xp, PRACTICE_CAP_PER_DAY - spent);
-                practiceSpent.set(e.localDay, spent + xp);
-            }
-        }
-        awards.set(e.id, { xp: xp + (masteredNow ? MASTERED_BONUS : 0), reason, masteredNow });
+        const path: AnswerPath = lightning.has(e.activityId) ? "lightning" : repairs.has(e.id) ? "repair" : "study";
+        const budget = { practiceLeft: PRACTICE_CAP_PER_DAY - (practiceSpent.get(e.localDay) ?? 0), lightningLeft: LIGHTNING_CAP_PER_ROUND - (lightningSpent.get(e.activityId) ?? 0) };
+        const { award, charge } = awardFor(step, e, path, budget);
+        if (charge?.cap === "practice")
+            practiceSpent.set(e.localDay, (practiceSpent.get(e.localDay) ?? 0) + charge.xp);
+        if (charge?.cap === "lightning")
+            lightningSpent.set(e.activityId, (lightningSpent.get(e.activityId) ?? 0) + charge.xp);
+        awards.set(e.id, award);
     });
-    return awards;
+    return { awards, progress, practiceSpent, lightningSpent };
+}
+
+export function answerAwards(state: LearnerState) {
+    return replayAwards(state).awards;
+}
+
+/**
+ * What answering each question now would earn, unassisted and outside a repair step, in this session:
+ * correct, correct but marked a guess, and wrong. Each hypothetical answer goes through the same applyAnswer
+ * and awardFor as a saved one, so a hint cannot drift from the award the answer then gets. budget is what is
+ * left of the caps now; lightningLeft is null outside a lightning round.
+ */
+export function awardHints(state: LearnerState, sessionId: string, now: number) {
+    const { progress, practiceSpent, lightningSpent } = replayAwards(state);
+    const day = localDay(now, state.profile.timezone);
+    const lightningRound = state.sessions.some(s => s.id === sessionId && s.mode === "lightning");
+    const path: AnswerPath = lightningRound ? "lightning" : "study";
+    const budget = { practiceLeft: PRACTICE_CAP_PER_DAY - (practiceSpent.get(day) ?? 0), lightningLeft: LIGHTNING_CAP_PER_ROUND - (lightningSpent.get(sessionId) ?? 0) };
+    const hintFor = (questionId: string) => {
+        const p = progress.get(questionId);
+        if (!p)
+            throw new Error("QUESTION_NOT_FOUND");
+        const award = (correct: boolean, confidence: ScoredAnswer["confidence"]) => {
+            const answer = { at: now, localDay: day, correct, assisted: false, confidence };
+            return awardFor(applyAnswer(structuredClone(p), answer), answer, path, budget).award;
+        };
+        return { correct: awardParts(award(true, "unknown")), guess: awardParts(award(true, "guess")), wrong: award(false, "unknown").xp };
+    };
+    return { hintFor, budget: { practiceLeft: budget.practiceLeft, lightningLeft: lightningRound ? budget.lightningLeft : null } };
 }
 
 /** An award split into the answer's own XP and the mastery bonus it includes, so the card shows both without arithmetic. */
+export function awardParts(award: Award): Award & { baseXp: number; bonusXp: number };
+export function awardParts(award: Award | undefined): (Award & { baseXp: number; bonusXp: number }) | null;
 export function awardParts(award: Award | undefined) {
     if (!award)
         return null;

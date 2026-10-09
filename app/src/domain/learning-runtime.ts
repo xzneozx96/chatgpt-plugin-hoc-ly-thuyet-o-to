@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { closeExpiredLightning, createLearner, courseView, todayMistakes, executeLearning, listUnits, runningMockQuestions, studyView, type LearnerState, type LearningCommand } from "./learning.js";
+import { closeExpiredLightning, createLearner, courseView, todayMistakes, executeLearning, lessonMeta, listUnits, runningMockQuestions, studyView, type LearnerState, type LearningCommand } from "./learning.js";
 import { leagueSummary, leagueView } from "./league.js";
 import type { LearningStore } from "../persistence/learning-store.js";
 
@@ -15,8 +15,8 @@ export class LearningRuntime {
     for (let retry = 0; retry < 8; retry++) {
       const stored = await this.store.load(this.userId);
       const result = executeLearning(stored?.state ?? createLearner(at), command, at);
-      if (stored && JSON.stringify(result.state) === JSON.stringify(stored.state)) return { ...await this.withLeagueRank(result.view, result.state), revision: stored.revision };
-      if (await this.store.compareAndSwap(this.userId, stored?.revision ?? null, result.state)) return { ...await this.withLeagueRank(result.view, result.state), revision: stored ? stored.revision + 1 : 0 };
+      if (stored && JSON.stringify(result.state) === JSON.stringify(stored.state)) return { ...await this.present(result.view, result.state), revision: stored.revision };
+      if (await this.store.compareAndSwap(this.userId, stored?.revision ?? null, result.state)) return { ...await this.present(result.view, result.state), revision: stored ? stored.revision + 1 : 0 };
     }
     throw new Error("LEARNING_SAVE_CONFLICT");
   }
@@ -41,9 +41,11 @@ export class LearningRuntime {
   }
 
   // A finished lesson or mock test carries the member's league line, so the result card shows the rank without a second call.
-  private async withLeagueRank<V extends { kind: string }>(view: V, state: LearnerState) {
+  // An open lesson carries its answer keys and award hints as lessonMeta, which learningResult moves into hidden _meta.
+  private async present<V extends { kind: string }>(view: V, state: LearnerState) {
     const finished = (view.kind === "study" && (view as { status?: string }).status === "complete") || (view.kind === "mock" && "score" in view);
-    return finished && state.league ? { ...view, leagueSummary: leagueSummary(await this.board(state)) } : view;
+    const meta = view.kind === "study" && "sessionId" in view && typeof view.sessionId === "string" ? lessonMeta(state, view.sessionId, this.now()) : null;
+    return { ...view, ...(finished && state.league ? { leagueSummary: leagueSummary(await this.board(state)) } : {}), ...(meta ? { lessonMeta: meta } : {}) };
   }
 
   delete() { return this.store.delete(this.userId); }
@@ -52,5 +54,5 @@ export class LearningRuntime {
   async league() { const saved = await this.current(); return { ...await this.board(saved.state), revision: saved.revision }; }
   async mistakes() { const saved = await this.current(); return { kind: "mistakes" as const, items: todayMistakes(saved.state, this.now()), revision: saved.revision }; }
   async units(query?: string) { const saved = await this.current(); return { ...listUnits(saved.state, query, this.now()), revision: saved.revision }; }
-  async session(sessionId: string) { const saved = await this.current(); return { ...await this.withLeagueRank(studyView(saved.state, sessionId, this.now()), saved.state), revision: saved.revision }; }
+  async session(sessionId: string) { const saved = await this.current(); return { ...await this.present(studyView(saved.state, sessionId, this.now()), saved.state), revision: saved.revision }; }
 }

@@ -232,6 +232,9 @@ test("lesson results carry every queued answer key in hidden _meta, never in the
   assert.deepEqual(Object.fromEntries(Object.entries(keys ?? {}).map(([id, key]) => [id, [key.question.id, key.correctAnswer, key.teachingStatus]])), { q001: ["q001", "B", "bank_text_unreviewed"], q003: ["q003", "A", "bank_text_unreviewed"] });
   assert.equal(JSON.stringify(started.structuredContent).includes("correctAnswer"), false, "an unanswered lesson's view has no key");
   assert.equal(JSON.stringify(started.content).includes("correctAnswer"), false);
+  const meta = started._meta as { lessonKeys?: Record<string, { award?: { wrong: number } }>; xpBudget?: { lightningLeft: number | null } };
+  assert.deepEqual([meta.lessonKeys?.q001?.award?.wrong, meta.xpBudget?.lightningLeft], [-3, null], "award hints and the XP budget ride with the keys");
+  assert.equal(/award|xpBudget|lessonMeta/.test(JSON.stringify([started.structuredContent, started.content])), false, "the model never sees award hints");
   const sessionId = (started.structuredContent as { sessionId: string }).sessionId;
   const address = httpServer.address();
   assert.ok(address && typeof address === "object");
