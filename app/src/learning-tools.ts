@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { createLearner, courseView, lessonKeys, listUnits, LearningCommandSchema, type mockView, type studyView, type todayMistakes } from "./domain/learning.js";
+import { createLearner, courseView, listUnits, LearningCommandSchema, type LessonMeta, type mockView, type studyView, type todayMistakes } from "./domain/learning.js";
 import { LearningRuntime } from "./domain/learning-runtime.js";
 import { questionTeaching } from "./domain/teaching.js";
 import type { leagueView } from "./domain/league.js";
@@ -119,11 +119,11 @@ export function calledByCard(input: unknown) {
   return typeof input === "object" && input !== null && "caller" in input && input.caller === "card";
 }
 
-/** A learning tool's MCP result. Lesson answer keys ride in _meta, which reaches the card but never the model. */
-export function learningResult(view: object, origin: string, input: unknown, toolMs: number) {
-  const keys = "kind" in view && view.kind === "study" ? lessonKeys(view as ReturnType<typeof studyView>) : null;
+/** A learning tool's MCP result. Lesson answer keys and award hints ride in _meta, which reaches the card but never the model. */
+export function learningResult(result: object, origin: string, input: unknown, toolMs: number) {
+  const { lessonMeta, ...view } = result as { lessonMeta?: LessonMeta };
   return {
-    _meta: { timing: { toolMs }, ...(keys ? { lessonKeys: keys } : {}) },
+    _meta: { timing: { toolMs }, ...lessonMeta },
     structuredContent: { ...view },
     content: [{ type: "text" as const, text: learningText(view, origin, calledByCard(input)) }]
   };

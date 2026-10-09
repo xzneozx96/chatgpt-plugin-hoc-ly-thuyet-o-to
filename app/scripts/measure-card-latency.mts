@@ -1,4 +1,4 @@
-// Measures click → verdict and click → next question in the preview with ?delay=<ms> standing in for ChatGPT's tool latency.
+// Measures click → verdict, click → XP chip and click → next question in the preview with ?delay=<ms> standing in for ChatGPT's tool latency.
 // Usage: node --import tsx scripts/measure-card-latency.mts [delayMs]
 import { once } from "node:events";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
@@ -28,19 +28,23 @@ try {
   const frame = page.frames().find(f => f.url().includes("/ui/learning.html"));
   if (!frame) throw new Error("No card frame");
   // Timed inside the card, from the click to the DOM change, so Playwright's polling interval is not part of the number.
-  const timed = (action: string, selector: string, text: string) => frame.evaluate(`new Promise(done => {
-    const t = performance.now(), observer = new MutationObserver(() => check());
-    function check() { const el = document.querySelector(${JSON.stringify(selector)}); if (el && el.textContent.includes(${JSON.stringify(text)})) { observer.disconnect(); done(Math.round(performance.now() - t)); } }
+  // Resolves the ms from the click until each [selector, text] target first appears.
+  const timed = (action: string, targets: [string, string][]) => frame.evaluate(`new Promise(done => {
+    const t = performance.now(), targets = ${JSON.stringify(targets)}, seen = targets.map(() => null), observer = new MutationObserver(() => check());
+    function check() {
+      targets.forEach(([selector, text], i) => { const el = document.querySelector(selector); if (seen[i] === null && el && el.textContent.includes(text)) seen[i] = Math.round(performance.now() - t); });
+      if (seen.every(ms => ms !== null)) { observer.disconnect(); done(seen); }
+    }
     observer.observe(document.body, { subtree: true, childList: true, characterData: true });
     document.querySelector('[data-action="${action}"]').click(); check();
-  })`) as Promise<number>;
+  })`) as Promise<number[]>;
   const rows: string[] = [];
   for (const [index, next] of ["q002", "q003"].entries()) {
     const stem = await tool("get_question", { questionId: next }).then(r => r.structuredContent.question as string);
     await app.locator('input[name="answer"]').first().check();
-    const verdict = await timed("answer", "#verdict", "");
-    const question = await timed("study-next", "h2.stem", stem);
-    rows.push(`question ${index + 1}: click→verdict ${verdict} ms, click→next question ${question} ms`);
+    const [verdict, xp] = await timed("answer", [["#verdict", ""], [".answer-award", "XP"]]);
+    const [question] = await timed("study-next", [["h2.stem", stem]]);
+    rows.push(`question ${index + 1}: click→verdict ${verdict} ms, click→XP chip ${xp} ms, click→next question ${question} ms`);
   }
   await app.locator("[data-action]").first().waitFor();
   const deadline = Date.now() + 4 * delay + 5000;

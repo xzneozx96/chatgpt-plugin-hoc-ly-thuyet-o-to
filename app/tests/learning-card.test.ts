@@ -18,6 +18,15 @@ interface Preview { origin: string; dataPath: string; page: Page; app: FrameLoca
 const right = (q: string) => submitAnswer(q, safeQuestion(q).options[0]?.id ?? "A").correctAnswer;
 const wrong = (q: string) => safeQuestion(q).options.find(o => o.id !== right(q))?.id ?? "A";
 
+/** The session once the server has saved at least `answered` answers; the card shows each verdict before that. */
+async function savedSession(tool: Preview["tool"], sessionId: unknown, answered: number) {
+  for (let i = 0; ; i++) {
+    const saved = await tool("get_study_session", { sessionId });
+    if ((saved.structuredContent.sessionResults as { answered: number }).answered >= answered || i >= 60) return saved;
+    await new Promise(done => setTimeout(done, 100));
+  }
+}
+
 async function continueStudy(app: FrameLocator) {
   await app.locator('[data-action="study-next"], [data-action="resume"]').first().waitFor({ state: "attached" });
   const next = app.getByRole("button", { name: "Tiếp tục", exact: true }).last();
@@ -128,6 +137,40 @@ test("under a 3-second host delay a lesson shows each verdict and the next quest
   });
 });
 
+test("under a 3-second host delay a lesson verdict shows its XP and the header total at once, and the server's confirmation changes neither", async () => {
+  await withPreview(async ({ origin, page, app, tool, open }) => {
+    const started = await tool("start_study", { questionIds: ["q001", "q002", "q003"], requestId: randomUUID() });
+    const sessionId = started.structuredContent.sessionId as string;
+    await page.goto(`${origin}/preview?delay=3000`);
+    await app.locator("[data-action]").first().waitFor();
+    await open(started);
+    await app.getByRole("button", { name: "Bắt đầu" }).click({ timeout: 15000 });
+    const total = app.locator("[data-lesson-xp]");
+    assert.equal(await total.innerText(), "0");
+    await app.locator(`input[name="answer"][value="${right("q001")}"]`).check();
+    await app.locator('[data-action="answer"]').click();
+    await app.locator(".answer-award").getByText("+10 XP", { exact: true }).waitFor({ timeout: 300 });
+    assert.equal(await total.innerText(), "10", "the header total moves in the verdict render");
+    await app.locator('[data-action="study-next"]').click();
+    await app.locator("h2.stem", { hasText: safeQuestion("q002").question }).waitFor({ timeout: 300 });
+    await app.locator(`input[name="answer"][value="${wrong("q002")}"]`).check();
+    await app.locator('[data-action="answer"]').click();
+    await app.locator(".answer-award").getByText("-3 XP", { exact: true }).waitFor({ timeout: 300 });
+    assert.equal(await total.innerText(), "7");
+    const chip = await app.locator(".answer-award").elementHandle();
+    assert.ok(chip);
+    let saved = await tool("get_study_session", { sessionId });
+    for (let i = 0; i < 60 && (saved.structuredContent.sessionResults as { answered: number }).answered < 2; i++) {
+      await page.waitForTimeout(250);
+      saved = await tool("get_study_session", { sessionId });
+    }
+    await page.waitForTimeout(3500);
+    assert.equal(saved.structuredContent.xp, 7, "the server gave the XP the card showed");
+    assert.equal(await total.innerText(), "7");
+    assert.equal(await chip.evaluate(el => [el.isConnected, el.textContent].join(" ")), "true -3 XP", "the confirmation left the verdict and its XP chip as drawn");
+  });
+});
+
 test("under a 3-second host delay a lightning round moves on at once and the server records both answers", async () => {
   await withPreview(async ({ origin, dataPath, page, app, tool, open }) => {
     const sessionId = await lightningStartedAgo(dataPath, 0);
@@ -180,7 +223,7 @@ test("study actions stay in one footer, inline XP accumulates, and immediate ret
     const why = await app.locator('[data-action="why"]').boundingBox();
     const next = await app.locator('.study-footer [data-action="study-next"]').boundingBox();
     assert.ok(why && next && why.x < next.x && Math.abs(why.y - next.y) < 4, "secondary is left of primary in one row");
-    const scored = await tool("get_study_session", { sessionId });
+    const scored = await savedSession(tool, sessionId, 1);
     assert.equal(await app.locator("[data-lesson-xp]").innerText(), String(scored.structuredContent.xp));
     await continueStudy(app);
     await app.locator(`input[name="answer"][value="${wrong("q002")}"]`).check();
@@ -206,7 +249,7 @@ test("study actions stay in one footer, inline XP accumulates, and immediate ret
     await app.getByRole("heading", { name: "Đã sửa!" }).waitFor();
     assert.equal(await app.locator('[data-action="study-retry"]').count(), 0);
     await app.locator(".answer-award").waitFor();
-    const corrected = await tool("get_study_session", { sessionId });
+    const corrected = await savedSession(tool, sessionId, 3);
     assert.equal(await app.locator("[data-lesson-xp]").innerText(), String(corrected.structuredContent.xp));
     assert.equal(Number(corrected.structuredContent.xp) - Number(repair.structuredContent.xp), 2, "repair earns only the server's assisted credit");
     await page.setViewportSize({ width: 390, height: 844 });
@@ -360,12 +403,11 @@ test("XP, the combo and a repair step come from the server, and a second miss of
       await next();
       await answer(q, right(q));
     }
-    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String((await tool("get_study_session", { sessionId: started.structuredContent.sessionId })).structuredContent.xp));
-    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String((await tool("get_study_session", { sessionId: started.structuredContent.sessionId })).structuredContent.xp));
+    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String((await savedSession(tool, started.structuredContent.sessionId, 3)).structuredContent.xp));
     await next();
     await app.locator(".combo-pill").getByText("×3").waitFor();
     await answer("q004", wrong("q004"));
-    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String((await tool("get_study_session", { sessionId: started.structuredContent.sessionId })).structuredContent.xp));
+    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String((await savedSession(tool, started.structuredContent.sessionId, 4)).structuredContent.xp));
     for (const q of ["q005", "q006"]) {
       await next();
       await answer(q, right(q));
@@ -376,7 +418,7 @@ test("XP, the combo and a repair step come from the server, and a second miss of
     const sent = await messages();
     await answer("q004", wrong("q004"));
     await app.getByRole("heading", { name: "Chưa đúng" }).waitFor();
-    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String((await tool("get_study_session", { sessionId: started.structuredContent.sessionId })).structuredContent.xp));
+    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String((await savedSession(tool, started.structuredContent.sessionId, 7)).structuredContent.xp));
     await app.getByRole("button", { name: "Xem đáp án" }).click();
     await app.getByRole("button", { name: "ChatGPT có thể giải thích kỹ hơn" }).click();
     await page.locator("#host-message").getByText("Mình vẫn nhầm câu 4, giải thích kỹ hơn nhé. [q004 · lần 2 · sai]").waitFor();
@@ -454,8 +496,12 @@ test("a lightning answer the card showed in time counts even when it reaches the
     await page.waitForTimeout(2500);
     const first = (opened.structuredContent.question as { id: string }).id;
     await app.locator(`input[name="answer"][value="${right(first)}"]`).check();
+    // Reading the round before the card's answer arrives would close it, so the check waits for the card's own calls.
+    const sent = (name: string) => page.waitForResponse(r => r.url().endsWith("/preview/tool") && (r.request().postData() ?? "").includes(`"name":"${name}"`));
+    const confirmed = Promise.all([sent("submit_study_answer"), sent("next_study_question")]);
     await page.keyboard.press("Enter");
-    await app.locator(".flash").getByText(`Câu ${Number(first.slice(1))}: chính xác! +`, { exact: false }).waitFor();
+    await app.locator(".flash").getByText(`Câu ${Number(first.slice(1))}: chính xác! +1 XP`, { exact: true }).waitFor({ timeout: 300 });
+    await confirmed;
     const saved = await tool("get_study_session", { sessionId });
     assert.equal(saved.structuredContent.correctCount, 1, "the server counted the answer the card's clock allowed");
   });
@@ -489,7 +535,7 @@ test("when the server refuses a lightning answer the card shows the round as the
   });
 });
 
-test("a lightning answer shows at once, the clock keeps running, and its XP follows the server's confirmation", async () => {
+test("a lightning answer shows at once with its XP, and the clock keeps running while the server confirms it", async () => {
   await withPreview(async ({ origin, dataPath, page, app, tool, open }) => {
     const sessionId = await lightningStartedAgo(dataPath, 0);
     await page.goto(`${origin}/preview`);
@@ -505,8 +551,8 @@ test("a lightning answer shows at once, the clock keeps running, and its XP foll
     });
     await app.locator(`input[name="answer"][value="${right(first)}"]`).check();
     await app.locator('[data-action="lt-check"]').click();
-    await app.locator(".flash").getByText(`Câu ${Number(first.slice(1))}: chính xác!`, { exact: true }).waitFor({ timeout: 300 });
-    await app.locator(".flash").getByText(`Câu ${Number(first.slice(1))}: chính xác! +`, { exact: false }).waitFor({ timeout: 15000 });
+    await app.locator(".flash").getByText(`Câu ${Number(first.slice(1))}: chính xác! +1 XP`, { exact: true }).waitFor({ timeout: 300 });
+    await page.waitForTimeout(5500);
     const [minutes, seconds] = (await app.locator("#lt-timer").innerText()).split(":").map(Number) as [number, number];
     assert.ok(minutes * 60 + seconds <= 55, `the 5 seconds of sending were not paused, timer reads ${minutes}:${seconds}`);
   });
@@ -1262,7 +1308,7 @@ test("the ⓘ beside Tôi đoán, THỬ LẠI, the combo, XP, the goal, the mock
     await app.getByText("THỬ LẠI", { exact: true }).waitFor();
     await explains("Thử lại", "Thử lại");
     await answer(right("q001"));
-    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String((await tool("get_study_session", { sessionId: started.structuredContent.sessionId })).structuredContent.xp));
+    assert.equal(await app.locator("[data-lesson-xp]").innerText(), String((await savedSession(tool, started.structuredContent.sessionId, 4)).structuredContent.xp));
     await app.getByRole("button", { name: "Vì sao?" }).click();
     await explains("Combo", "Combo");
     await next();

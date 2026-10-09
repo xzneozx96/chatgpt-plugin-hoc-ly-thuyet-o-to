@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { createLearner, courseView, executeLearning, LearnerStateSchema, DAY, type LearnerState, type LearningCommand } from "../src/domain/learning.js";
+import { createLearner, courseView, executeLearning, lessonMeta, LearnerStateSchema, DAY, type LearnerState, type LearningCommand } from "../src/domain/learning.js";
 import { answerAwards, leagueWeek, sessionCombo, xpSummary } from "../src/domain/game.js";
 import { safeQuestion, bankQuestions } from "../src/domain/course.js";
 import { submitAnswer, type AnswerId } from "../src/domain/quiz.js";
@@ -314,4 +314,98 @@ test("the study view counts this lesson's first-time correct answers that count 
     assert.ok(finished.kind === "study" && finished.status === "complete");
     assert.deepEqual([finished.firstCorrectCount, finished.masteredCount], [1, 0], "only q001 counts: not the guess, the miss, the question helped before, the one answered earlier or the repair");
     assert.deepEqual([finished.goal.onTheWay, finished.goal.nextLearnAt], [2, morning + DAY], "q001 and the earlier q005 are on the way, q005 back first");
+});
+
+/** The award hint lessonMeta gives for q in this session just before q is answered at now. */
+function hintOf(state: LearnerState, sessionId: string, q: string, now: number) {
+    const meta = lessonMeta(state, sessionId, now);
+    assert.ok(meta);
+    const hint = meta.lessonKeys[q]?.award;
+    assert.ok(hint);
+    return { hint, budget: meta.xpBudget };
+}
+
+test("lesson award hints say what answering a new question now earns: 10 when right, guessed or not, and -3 when wrong", () => {
+    const { state, sessionId } = lesson(createLearner(morning), ["q001"], morning);
+    const { hint, budget } = hintOf(state, sessionId, "q001", morning);
+    assert.deepEqual(hint, {
+        correct: { xp: 10, reason: "first_correct", masteredNow: false, baseXp: 10, bonusXp: 0 },
+        guess: { xp: 10, reason: "first_correct", masteredNow: false, baseXp: 10, bonusXp: 0 },
+        wrong: -3
+    });
+    assert.deepEqual(budget, { practiceLeft: 50, lightningLeft: null });
+});
+
+test("a due review after one qualifying success hints 25 with Đã thuộc, and 10 for a guess that cannot master it", () => {
+    const first = answer(createLearner(morning), "q001", morning).state;
+    const { state, sessionId } = lesson(first, ["q001"], morning + DAY);
+    const { hint } = hintOf(state, sessionId, "q001", morning + DAY);
+    assert.deepEqual(hint.correct, { xp: 25, reason: "review_correct", masteredNow: true, baseXp: 10, bonusXp: 15 });
+    assert.deepEqual(hint.guess, { xp: 10, reason: "review_correct", masteredNow: false, baseXp: 10, bonusXp: 0 });
+});
+
+test("practice hints 2 and the practice budget shrinks as practice XP is earned today", () => {
+    let s = answer(createLearner(morning), "q001", morning).state;
+    let started = lesson(s, ["q001"], morning + MINUTE);
+    const before = hintOf(started.state, started.sessionId, "q001", morning + MINUTE);
+    assert.deepEqual([before.hint.correct.xp, before.hint.correct.reason, before.budget.practiceLeft], [2, "practice", 50]);
+    s = answerIn(started.state, started.sessionId, "q001", morning + MINUTE);
+    started = lesson(s, ["q001"], morning + 2 * MINUTE);
+    assert.equal(hintOf(started.state, started.sessionId, "q001", morning + 2 * MINUTE).budget.practiceLeft, 48);
+});
+
+test("lightning hints 1 when right and -3 when wrong, with the round's budget", () => {
+    let s = answer(createLearner(morning), "q001", morning).state;
+    s = run(s, { kind: "start_lightning", requestId: requestId() }, morning + MINUTE);
+    const round = s.sessions.at(-1);
+    assert.ok(round);
+    const before = hintOf(s, round.id, "q001", morning + MINUTE);
+    assert.deepEqual([before.hint.correct.xp, before.hint.correct.reason, before.hint.wrong, before.budget], [1, "lightning", -3, { practiceLeft: 50, lightningLeft: 15 }]);
+    s = answerIn(s, round.id, "q001", morning + MINUTE + 1000);
+    assert.equal(hintOf(s, round.id, "q001", morning + MINUTE + 2000).budget.lightningLeft, 14);
+});
+
+test("every hint equals the award the answer then gets, across first answers, guesses, misses, practice past the cap, reviews, mastery and lightning", () => {
+    let s = createLearner(morning);
+    const checked: string[] = [];
+    const step = (q: string, at: number, kind: "correct" | "guess" | "wrong", sessionId?: string) => {
+        let open = sessionId;
+        if (!open)
+            ({ state: s, sessionId: open } = lesson(s, [q], at));
+        const { hint } = hintOf(s, open, q, at);
+        s = run(s, { kind: "answer_study", requestId: requestId(), sessionId: open, questionId: q, answer: kind === "wrong" ? wrong(q) : right(q), ...(kind === "guess" ? { confidence: "guess" as const } : {}) }, at);
+        const fact = s.evidence.filter(e => e.kind === "answer").at(-1);
+        assert.ok(fact);
+        const award = answerAwards(s).get(fact.id);
+        assert.ok(award);
+        if (kind === "wrong")
+            assert.equal(award.xp, hint.wrong, `${q} ${kind} at ${at}`);
+        else
+            assert.deepEqual({ xp: award.xp, reason: award.reason, masteredNow: award.masteredNow }, { xp: hint[kind].xp, reason: hint[kind].reason, masteredNow: hint[kind].masteredNow }, `${q} ${kind} at ${at}`);
+        checked.push(`${award.reason}:${award.xp}`);
+    };
+    step("q001", morning, "correct");
+    step("q002", morning, "wrong");
+    step("q003", morning, "guess");
+    for (let i = 1; i <= 27; i++)
+        step("q001", morning + i * MINUTE, "correct");
+    step("q001", morning + DAY, "correct");
+    step("q002", morning + DAY, "correct");
+    step("q003", morning + DAY, "guess");
+    step("q003", morning + DAY + MINUTE, "correct");
+    for (const q of bankQuestions.slice(3, 20))
+        s = run(s, { kind: "answer_question", requestId: requestId(), questionId: q.questionId, answer: right(q.questionId) }, morning + DAY + 2 * MINUTE);
+    s = run(s, { kind: "start_lightning", requestId: requestId() }, morning + DAY + 3 * MINUTE);
+    const lightningId = s.sessions.at(-1)?.id;
+    assert.ok(lightningId);
+    for (let i = 0; i < 18; i++) {
+        const at = morning + DAY + 3 * MINUTE + i * 1000;
+        const q = s.sessions.at(-1)?.activeQuestionId;
+        assert.ok(q);
+        step(q, at, i === 4 ? "wrong" : i === 6 ? "guess" : "correct", lightningId);
+        s = next(s, lightningId, at + 1);
+    }
+    const reasons = new Set(checked.map(c => c.split(":")[0]));
+    assert.deepEqual([...reasons].sort(), ["first_correct", "first_wrong", "lightning", "practice", "review_correct"]);
+    assert.ok(checked.includes("practice:0") && checked.includes("review_correct:25") && checked.includes("lightning:0"), checked.join(" "));
 });
