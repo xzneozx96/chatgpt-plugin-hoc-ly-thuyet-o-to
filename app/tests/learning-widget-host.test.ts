@@ -333,7 +333,8 @@ test("a lost answer response still shows the verdict at once, and the background
     await app.locator('input[name="answer"][value="A"]').check();
     await app.locator('[data-action="answer"]').click();
     await app.getByRole("heading", { name: "Chưa đúng" }).waitFor({ timeout: 300 });
-    await app.locator(".answer-award").waitFor();
+    await app.locator(".answer-award").getByText("-3 XP").waitFor({ timeout: 300 });
+    for (let i = 0; i < 50 && submits.length < 2; i++) await page.waitForTimeout(100);
     assert.equal(submits.length, 2);
     assert.equal(submits[1], submits[0], "the background resend reuses the request ID");
     assert.equal(await app.getByText("Chưa gửi được — thử lại").count(), 0, "one lost response is recovered without asking the learner");
